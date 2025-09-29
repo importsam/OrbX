@@ -10,6 +10,8 @@ to disk.
 
 def get_distance_matrix(df, save=False):
     
+    
+    
     """This will return the distance matrix upper triangle and the key for satno to index"""
     
     line1 = df['line1'].values
@@ -47,17 +49,25 @@ def get_key(df, save=False):
         
         with open(f'data/idx_satNo_dict.pkl', 'wb') as f:
             pickle.dump(idx_satNo_dict, f)
+            
+    # return both dictionaries
+    return {'satNo_idx_dict': satNo_idx_dict, 'idx_satNo_dict': idx_satNo_dict} 
     
-        print("Saved satNo to index and index to satNo dictionaries to disk.")
+    print("Saved satNo to index and index to satNo dictionaries to disk.")
     
 if __name__ == '__main__':
-    # run this file to get the distance matrix for the entire catalog (have on standby for usage later)
-    
+    inclination_range = (0, 180)  # degrees
+    apogee_range = (0, 2000)   # kilometers
     # get all satellites from celestrak data and create distance matrix
     celestrak_tles_path = 'data/3le'
     data = []
+    
     with open(celestrak_tles_path, 'r') as f:
         lines = f.readlines()
+    
+    earth_radius = 6371000  # meters
+    GM_earth = 3.986004418e14  # m^3/s^2
+    seconds_in_day = 86400  # seconds per day
    
     for i in range(0, len(lines), 3):
         if i + 2 < len(lines):
@@ -70,14 +80,33 @@ if __name__ == '__main__':
                
             sat_no = line1[2:7].strip()
            
+            inclination = float(line2[8:16].strip())
+           
+            # Extract mean motion (revolutions per day)
+            mean_motion = float(line2[52:63].strip())
+           
+            # Extract eccentricity (columns 27-33 in standard TLE format)
+            eccentricity = float("0." + line2[26:33].strip())
+           
+            # Calculate angular velocity n in radians per second
+            n = mean_motion * 2 * pi / seconds_in_day
+           
+            # Calculate semi-major axis a in meters
+            a = (GM_earth / (n ** 2)) ** (1/3)
+           
+            # Calculate apogee in kilometers
+            apogee = (a * (1 + eccentricity) - earth_radius) / 1000
+           
             data.append({
                 'satNo': sat_no,
                 'line1': line1,
-                'line2': line2
+                'line2': line2,
+                'inclination': inclination,
+                'apogee': apogee
             })
-   
+    
     elset_df = pd.DataFrame(data)
-   
+    
     elset_df['satNo'] = (
         elset_df['satNo']
         .astype(str)
@@ -85,5 +114,9 @@ if __name__ == '__main__':
         .str.zfill(5)
     )
     
-    distance_matrix, key = get_distance_matrix(elset_df, save=True)
+    elset_df = elset_df[
+        (elset_df['inclination'] >= inclination_range[0]) & (elset_df['inclination'] <= inclination_range[1]) &
+        (elset_df['apogee'] >= apogee_range[0]) & (elset_df['apogee'] <= apogee_range[1])
+    ].copy()
 
+    distance_matrix, key = get_distance_matrix(elset_df, save=True)
