@@ -60,7 +60,7 @@ def celestrak_elsets_to_df():
         .str.replace(r"\.0$", "", regex=True)
         .str.zfill(5)
     )
-   
+    
     return elset_df
 
 def compute_clusters(distance_matrix, damping):
@@ -81,26 +81,38 @@ def plot(df):
    
     inclination = df['inclination'].values
     apogee = df['apogee'].values
-    
+    labels = df['label'].values
     inc_min, inc_max = inclination.min(), inclination.max()
     apo_min, apo_max = apogee.min(), apogee.max()
-   
-    inc_grid, apo_grid = np.mgrid[inc_min:inc_max:150j, apo_min:apo_max:150j]
 
     fig, ax = plt.subplots(figsize=(10, 8))
     
+    scatter = ax.scatter(inclination, apogee, c=labels, cmap='tab20', s=2, alpha=0.2)
+    
     ax.set_xlabel('Inclination (degrees)')
     ax.set_ylabel('Apogee (km)')
-
+    ax.set_title('LEO Satellites: Apogee vs Inclination (Scatter Plot)')
+    ax.grid(True)
+    
     plt.tight_layout()
-    fig.savefig(f'data/orbital_density_2D_({apo_min}, {apo_max}),({inc_min}, {inc_max}).png', dpi=300, bbox_inches='tight')
+    
+    fig.savefig(f"data/orbit_scatter_({apo_min:.0f}, {apo_max:.0f}),({inc_min:.0f}, {inc_max:.0f}).png", dpi=300)
 
-
-if __name__ == '__main__':
-    # Only loading in sats from leo in celestrak current catalog
+def main():
+    # Set the inclination and apogee ranges for filtering
+    inclination_range = (0, 180)  # degrees
+    apogee_range = (1000, 2000)      # kilometers
     
     tle_df = celestrak_elsets_to_df()
     
+    # Filter the DataFrame based on inclination and apogee ranges
+    tle_df = tle_df[
+        (tle_df['inclination'] >= inclination_range[0]) & (tle_df['inclination'] <= inclination_range[1]) &
+        (tle_df['apogee'] >= apogee_range[0]) & (tle_df['apogee'] <= apogee_range[1])
+    ].copy()
+    
+    print(f"# of sats in df: {len(tle_df)}")
+
     # get the distance matrix and compute clusters
     distance_matrix, _ = get_distance_matrix(tle_df)
     labels = compute_clusters(distance_matrix, 0.95)
@@ -108,11 +120,15 @@ if __name__ == '__main__':
     # get cluster counts for logging
     unique_labels, label_counts = np.unique(labels, return_counts=True)
     cluster_counts = dict(zip(unique_labels, label_counts))
+    
     print("\nCluster counts:")
     print(cluster_counts)
     
     # Add cluster information directly to the DataFrame
     tle_df['label'] = labels.astype(int)
-    tle_df['correlated'] = False
-
-    plot(tle_df, ranges={'inclination': (0, 180), 'apogee': (0, 2000)})
+    
+    plot(tle_df)
+    
+if __name__ == '__main__':
+    
+    main()
