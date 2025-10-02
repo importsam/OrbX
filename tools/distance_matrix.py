@@ -1,7 +1,8 @@
-from DMT import VectorizedKeplerianOrbit
+from tools.DMT import VectorizedKeplerianOrbit
 import pickle
 from math import pi
 import pandas as pd 
+import numpy as np
 
 """
 This file is used to process the given elset data into a distance matrix and save
@@ -9,11 +10,7 @@ to disk.
 """
 
 def get_distance_matrix(df, save=False):
-    
-    
-    
-    """This will return the distance matrix upper triangle and the key for satno to index"""
-    
+        
     line1 = df['line1'].values
     line2 = df['line2'].values
     
@@ -28,11 +25,30 @@ def get_distance_matrix(df, save=False):
             pickle.dump(distance_matrix, f)
     
     key = get_key(df, save=save)
+
+    if _validate_matrix(distance_matrix):
+        return distance_matrix, key
+
+def _validate_matrix(distance_matrix):
+    # check if distance matrix is square
+    if distance_matrix.shape[0] != distance_matrix.shape[1]:
+        raise ValueError("Distance matrix is not square")
     
-    return distance_matrix, key
+    # check if distance matrix is symmetric
+    if not np.allclose(distance_matrix, distance_matrix.T):
+        raise ValueError("Distance matrix is not symmetric")
+    
+    # check if diagonal is zero
+    if not np.allclose(np.diag(distance_matrix), 0):
+        raise ValueError("Distance matrix diagonal is not zero")
+    
+    print("Distance matrix is valid")
+    return True
     
 def get_key(df, save=False):
-    
+    """These dictionaries map satellite numbers to their
+        index in the distance matrix and vice versa"""
+        
     df = df['satNo'].unique()
     
     satNo_idx_dict = {}
@@ -52,9 +68,7 @@ def get_key(df, save=False):
             
     # return both dictionaries
     return {'satNo_idx_dict': satNo_idx_dict, 'idx_satNo_dict': idx_satNo_dict} 
-    
-    print("Saved satNo to index and index to satNo dictionaries to disk.")
-    
+        
 if __name__ == '__main__':
     inclination_range = (0, 180)  # degrees
     apogee_range = (0, 2000)   # kilometers
