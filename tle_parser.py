@@ -13,17 +13,24 @@ class TLEParser:
         self.source = source # "Space-Track", "Celestrak", "UDL"
         # By default, should load in the data and hold a df containing it
         paths = PathConfig()
+        self.df = pd.DataFrame()
         if source == "Space-Track":
-            self.sat_df = self.spacetrack_parse_file(paths.spacetrack_data)
+            self.spacetrack_parse_file(paths.spacetrack_data)
         elif source == "Celestrak":
-            self.sat_df = self.celestrak_parse_file(paths.celestrak_data)
+            self.celestrak_parse_file(paths.celestrak_data)
         elif source == "UDL":
-            self.sat_df = self.udl_parse_file(paths.udl_data)
+            self.udl_parse_file(paths.udl_data)
         else:
             raise ValueError("Unsupported source. Valid Options: 'Space-Track', 'Celestrak', 'UDL'")
         
-    def spacetrack_parse_file(self, filepath: Path) -> Iterator[Satellite]:
-        """Satellite object generator"""
+        # fix satNo to be string
+        self.df['satNo'] = self.df['satNo'].astype(str).str.replace(r"\.0$", "", regex=True).str.zfill(5)
+        
+    def spacetrack_parse_file(self, filepath: Path) -> None:
+        """Takes tle data and converts to df"""
+        
+        print(f"Parsing TLE data from Space-Track...")
+        
         with open(filepath, 'r') as f:
             lines = f.readlines()
         
@@ -31,19 +38,25 @@ class TLEParser:
             if i + 2 >= len(lines):
                 break
                 
-            sat = self._parse_tle_group(
+            sat_obj = self._parse_tle_group(
                 lines[i].strip(),
                 lines[i+1].strip(), 
                 lines[i+2].strip()
             )
             
-            if sat:
-                yield sat
-                
-    def celestrak_parse_file(self, filepath: Path) -> Iterator[Satellite]:
+            # add to df 
+            self.df = pd.concat([self.df, pd.DataFrame([{
+                'satNo': sat_obj.sat_no,
+                'line1': sat_obj.line1,
+                'line2': sat_obj.line2,
+                'inclination': sat_obj.inclination,
+                'apogee': sat_obj.apogee
+            }])], ignore_index=True)
+    
+    def celestrak_parse_file(self, filepath: Path) -> None:
         raise NotImplementedError()
     
-    def udl_parse_file(self, filepath: Path) -> Iterator[Satellite]:
+    def udl_parse_file(self, filepath: Path) -> None:
         raise NotImplementedError()
     
     def _parse_tle_group(self, name: str, line1: str, line2: str) -> Satellite:
@@ -52,6 +65,7 @@ class TLEParser:
             raise ValueError("Invalid TLE format")
 
         sat_no = line1[2:7].strip()
+
         inclination = float(line2[8:16].strip())
         mean_motion = float(line2[52:63].strip())
         eccentricity = float("0." + line2[26:33].strip())
@@ -65,22 +79,6 @@ class TLEParser:
             inclination=inclination,
             apogee=apogee
         )
-
-    def _get_tle_df(self) -> 'pd.DataFrame':
-        """Convert TLE data to DataFrame"""
-
-        satellites = list(self.parse_file)
-        
-        return pd.DataFrame([
-            {
-                'satNo': sat.sat_no,
-                'line1': sat.line1,
-                'line2': sat.line2,
-                'inclination': sat.inclination,
-                'apogee': sat.apogee
-            }
-            for sat in satellites
-        ])
 
     def _calculate_apogee(self, mean_motion: float, eccentricity: float) -> float:
         """Calculate apogee in kilometers from mean motion and eccentricity"""

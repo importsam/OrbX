@@ -4,6 +4,7 @@ from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
 from clustering import SatelliteClusterer
 from graph import Grapher
+import os
 
 class SatelliteClusteringApp:
     def __init__(self, cluster_config: ClusterConfig):
@@ -16,12 +17,12 @@ class SatelliteClusteringApp:
         self.path_config = PathConfig()
         self.clusterer = SatelliteClusterer()
         self.graph = Grapher()
-        
+    
     """use_cached - if using cached distance matrix and dictionaries"""
     def run(self, use_cached: bool = False):
         # 1. Get the satellite data into a dataframe 
-        df = self._load_satellite_data()
-        # Apply filters
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
         df = df[
             (df['inclination'] >= self.cluster_config.inclination_range[0]) &
             (df['inclination'] <= self.cluster_config.inclination_range[1]) &
@@ -36,12 +37,29 @@ class SatelliteClusteringApp:
         df = self._reorder_dataframe(df, key)
         
         # 3. clustering 
-        labels = self.clusterer.compute_clusters_affinity(distance_matrix, damping=0.95)
+        labels, silhouette = self.clusterer.compute_clusters_affinity(distance_matrix, damping=0.95)
         
         df['label'] = labels
         
+        # save the current dataframe with clusters 
+        os.makedirs(self.path_config.output_dataframe, exist_ok=True)
+
+        # Build the save path
+        cluster_save_path = (
+            f"{self.path_config.output_dataframe}/"
+            f"clusters_inc_{self.cluster_config.inclination_range[0]}-"
+            f"{self.cluster_config.inclination_range[1]}_"
+            f"apogee_{self.cluster_config.apogee_range[0]}-"
+            f"{self.cluster_config.apogee_range[1]}_"
+            "silhouette_"
+            f"{silhouette:.3f}.pkl"
+        )
+
+        # Save the dataframe
+        df.to_pickle(cluster_save_path)
+        
         # 4. plot 
-        self.graph.plot_clusters(df, self.path_config.output_image)
+        self.graph.plot_clusters(df, self.path_config.output_plot)
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""

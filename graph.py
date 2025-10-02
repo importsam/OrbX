@@ -7,7 +7,7 @@ class Grapher:
     """Creates visualizations of satellite clusters"""
     
     def plot_clusters(self, df: pd.DataFrame, output_path: Path):
-        """Create scatter plot of satellite clusters"""
+        print("\nPlotting clusters...\n")
         if df.empty:
             print("No data available to plot.")
             return

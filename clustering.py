@@ -5,17 +5,19 @@ from sklearn.metrics import silhouette_score
 class SatelliteClusterer:
 
     def compute_clusters_affinity(self, distance_matrix: np.ndarray, damping: float = 0.95):
-        affinity_clustering = AffinityPropagation(affinity='precomputed', damping=damping)
+        print("Clustering has begun...\n")
+        
+        affinity_clustering = AffinityPropagation(affinity='precomputed', damping=damping, verbose=True)
         affinity_clustering.fit(np.exp(-distance_matrix/np.var(distance_matrix)))
 
         # Get the cluster labels
         labels = affinity_clustering.labels_
         
-        self._compute_silhouette(distance_matrix, labels)
+        silhouette = self._compute_silhouette(distance_matrix, labels)
         
-        return labels
+        return labels, silhouette
 
-    def _compute_silhouette(self, distance_matrix: np.ndarray, labels: np.ndarray) -> None:
+    def _compute_silhouette(self, distance_matrix: np.ndarray, labels: np.ndarray) -> float:
             
         distance_matrix_copy = distance_matrix.copy()
         np.fill_diagonal(distance_matrix_copy, 0)
@@ -26,3 +28,5 @@ class SatelliteClusterer:
             print(f"\nSilhouette score: {score:.4f}")
         else:
             print("\nOnly one cluster, silhouette score = N/A")
+            
+        return score
