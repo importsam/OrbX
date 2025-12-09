@@ -38,7 +38,8 @@ class SatelliteClusteringApp:
         
         # 3. clustering 
         # labels, silhouette = self.clusterer.compute_clusters_affinity(distance_matrix, damping=0.95) # affinity propagation
-        labels, silhouette = self.clusterer.compute_clusters_hdbscan(distance_matrix) 
+        labels, silhouette = self.clusterer.compute_clusters_agglomerative(distance_matrix)
+
         
         df['label'] = labels
         
@@ -60,7 +61,7 @@ class SatelliteClusteringApp:
         df.to_pickle(cluster_save_path)
         
         # 4. plot 
-        # self.graph.plot_clusters(df, self.path_config.output_plot)
+        self.graph.plot_clusters(df, self.path_config.output_plot)
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""

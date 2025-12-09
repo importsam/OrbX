@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.cluster import AffinityPropagation, DBSCAN, HDBSCAN
+from sklearn.cluster import AffinityPropagation, DBSCAN, HDBSCAN, AgglomerativeClustering
 from sklearn.metrics import silhouette_score
 
 from kneed import KneeLocator
@@ -72,7 +72,7 @@ class SatelliteClusterer:
             db = DBSCAN(eps=eps, min_samples=min_samples, metric='precomputed')
             labels = db.fit_predict(distance_matrix)
             if len(set(labels)) > 1 and len(set(labels)) < len(labels):  # Valid clustering
-                score = silhouette_score(distance_matrix, labels, metric='precomputed')
+                score = self.robust_silhouette_score(distance_matrix, labels)
             else:
                 score = -1  # Invalid clustering (all noise or one cluster)
             return score, labels
@@ -161,7 +161,7 @@ class SatelliteClusterer:
 
                 distance_matrix_copy = distance_matrix.copy()
                 np.fill_diagonal(distance_matrix_copy, 0)
-                score = silhouette_score(distance_matrix_copy, labels, metric="precomputed")
+                score = self.robust_silhouette_score(distance_matrix_copy, labels)
             else:
                 score = -1  # Invalid clustering
             return score, labels
@@ -195,3 +195,42 @@ class SatelliteClusterer:
         print(f"Outlier satellite numbers: {outliers}")
         
         return labels, best_score
+    
+    def compute_clusters_agglomerative(self, distance_matrix: np.ndarray):
+        print("Running Agglomerative Clustering...")
+        
+        threshold_guess = np.percentile(distance_matrix, 0.35) 
+        
+        agg = AgglomerativeClustering(
+            n_clusters=None, 
+            metric='precomputed',
+            linkage='complete',
+            distance_threshold=threshold_guess
+        )
+        
+        labels = agg.fit_predict(distance_matrix)
+        n_clusters = len(set(labels))
+        
+        if n_clusters > 1 and n_clusters < len(distance_matrix):
+            # Note: Agglomerative doesn't produce noise (-1), so standard silhouette is fine
+            np.fill_diagonal(distance_matrix, 0)
+            score = silhouette_score(distance_matrix, labels, metric="precomputed")
+            print(f"Agglomerative | Clusters: {n_clusters} | Silhouette: {score:.4f}")
+        else:
+            score = -1
+            
+        return labels, score
+
+
+    def robust_silhouette_score(self, distance_matrix, labels):
+        # Filter out noise points (-1)
+        core_mask = labels != -1
+        
+        # Check if we have at least 2 clusters AND valid points remaining
+        if np.sum(core_mask) > 0 and len(set(labels[core_mask])) > 1:
+            # subset the matrix and labels
+            core_dist_matrix = distance_matrix[np.ix_(core_mask, core_mask)]
+            core_labels = labels[core_mask]
+            
+            return silhouette_score(core_dist_matrix, core_labels, metric='precomputed')
+        return -1.0 # Invalid result
