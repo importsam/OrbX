@@ -1,31 +1,32 @@
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
+from sklearn.cluster import DBSCAN
+
+from kneed import KneeLocator
+import matplotlib.pyplot as plt
 
 class SatelliteClusterer:
 
     def compute_clusters_affinity(self, distance_matrix: np.ndarray, damping: float = 0.95):
-        print("Clustering has begun...\n")
-                
-        normalizer = np.median(distance_matrix)
+        
+        # normalizer = np.median(distance_matrix)
+        
+        normalizer = 1347.81296
+        
+        print(f"Clustering has begun... norm = {normalizer}\n")
         
         if normalizer == 0:
             normalizer = 1.0
         
         similarity_matrix = np.exp(-distance_matrix/normalizer)
         
-        median_sim = np.median(similarity_matrix)
-        
-        print(f"Median similarity: {median_sim:.2f}\n")
-        
         affinity_clustering = AffinityPropagation(
             affinity='precomputed',
             damping=damping,
-            verbose=False,
             max_iter=500,
             convergence_iter=15,
-            random_state=42,
-            preference=10
+            random_state=42
         )
         
         try:
@@ -45,7 +46,7 @@ class SatelliteClusterer:
                 
             else:
                 score = np.nan
-            
+
                 print(f"Clusters: {n_clusters:4d} | Silhouette: N/A")
                 
         except Exception as e:
@@ -53,3 +54,91 @@ class SatelliteClusterer:
 
         return labels, score
 
+    def compute_clusters_dbscan(self, distance_matrix: np.ndarray):
+    
+        min_samples_range = range(2, 11)
+        best_score = -1
+        best_params = None
+        best_labels = None
+        
+        for min_samples in min_samples_range:
+            print(f"Evaluating min_samples={min_samples}...")
+            eps = find_optimal_eps(distance_matrix, min_samples)
+            score, labels = evaluate_dbscan(distance_matrix, eps, min_samples)
+            print(f"  eps={eps:.4f}, silhouette_score={score:.4f}")
+            if score > best_score:
+                best_score = score
+                best_params = (eps, min_samples)
+                best_labels = labels
+        
+        if best_params is None:
+            print("No valid clustering found. Adjust min_samples range or check data.")
+            exit()
+        
+        eps, min_samples = best_params
+        labels = best_labels
+        print(f"Best parameters: eps={eps:.4f}, min_samples={min_samples}, silhouette_score={best_score:.4f}")
+        
+        # Step 4: Identify outliers
+        outliers = np.where(labels == -1)[0].tolist()
+        print(f"Number of outliers (orbits not in clusters): {len(outliers)}")
+        print(f"Outlier satellite numbers: {outliers}")
+        
+        def evaluate_dbscan(distance_matrix, eps, min_samples):
+            """
+            Evaluate DBSCAN clustering using silhouette score.
+            
+            Parameters:
+            - distance_matrix: Precomputed distance matrix
+            - eps: Maximum distance between two samples for one to be considered as in the neighborhood of the other
+            - min_samples: Number of samples in a neighborhood for a point to be a core point
+            
+            Returns:
+            - Silhouette score (or -1 if clustering is invalid), cluster labels
+            """
+            db = DBSCAN(eps=eps, min_samples=min_samples, metric='precomputed')
+            labels = db.fit_predict(distance_matrix)
+            if len(set(labels)) > 1 and len(set(labels)) < len(labels):  # Valid clustering
+                score = silhouette_score(distance_matrix, labels, metric='precomputed')
+            else:
+                score = -1  # Invalid clustering (all noise or one cluster)
+            return score, labels
+    
+        def find_optimal_eps(distance_matrix, min_samples, graph=False):
+            """
+            Find the optimal eps using the elbow method with kneed library.
+            
+            Parameters:
+            - distance_matrix: Precomputed distance matrix
+            - min_samples: Number of samples in a neighborhood for a point to be a core point
+            
+            Returns:
+            - Optimal eps value
+            """
+            k = min_samples - 1
+            k_distances = []
+            for i in range(distance_matrix.shape[0]):
+                distances = distance_matrix[i, np.arange(distance_matrix.shape[0]) != i]
+                sorted_distances = np.sort(distances)
+                k_dist = sorted_distances[k-1] if len(sorted_distances) >= k else sorted_distances[-1]
+                k_distances.append(k_dist)
+            k_distances_sorted = np.sort(k_distances)
+            kneedle = KneeLocator(range(len(k_distances_sorted)), k_distances_sorted, S=1.0, curve='convex', direction='increasing')
+            optimal_eps = k_distances_sorted[kneedle.elbow]
+            
+            if graph:
+                # Plot k-distance graph for verification
+                plt.figure(figsize=(8, 6))
+                plt.plot(range(len(k_distances_sorted)), k_distances_sorted)
+                plt.axvline(x=kneedle.elbow, color='r', linestyle='--', label=f'Elbow at eps={optimal_eps:.4f}')
+                plt.xlabel('Points sorted by distance')
+                plt.ylabel(f'{k}-th Nearest Neighbor Distance')
+                plt.title(f'K-Distance Plot (min_samples={min_samples})')
+                plt.legend()
+                plt.savefig(f'k_distance_min_samples_{min_samples}.png')
+                plt.close()
+            
+            return optimal_eps
+        
+        return labels, best_score
+    
