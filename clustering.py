@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.cluster import AffinityPropagation
+from sklearn.cluster import AffinityPropagation, DBSCAN, HDBSCAN
 from sklearn.metrics import silhouette_score
-from sklearn.cluster import DBSCAN
 
 from kneed import KneeLocator
 import matplotlib.pyplot as plt
@@ -55,36 +54,9 @@ class SatelliteClusterer:
         return labels, score
 
     def compute_clusters_dbscan(self, distance_matrix: np.ndarray):
-    
-        min_samples_range = range(2, 11)
-        best_score = -1
-        best_params = None
-        best_labels = None
-        
-        for min_samples in min_samples_range:
-            print(f"Evaluating min_samples={min_samples}...")
-            eps = find_optimal_eps(distance_matrix, min_samples)
-            score, labels = evaluate_dbscan(distance_matrix, eps, min_samples)
-            print(f"  eps={eps:.4f}, silhouette_score={score:.4f}")
-            if score > best_score:
-                best_score = score
-                best_params = (eps, min_samples)
-                best_labels = labels
-        
-        if best_params is None:
-            print("No valid clustering found. Adjust min_samples range or check data.")
-            exit()
-        
-        eps, min_samples = best_params
-        labels = best_labels
-        print(f"Best parameters: eps={eps:.4f}, min_samples={min_samples}, silhouette_score={best_score:.4f}")
-        
-        # Step 4: Identify outliers
-        outliers = np.where(labels == -1)[0].tolist()
-        print(f"Number of outliers (orbits not in clusters): {len(outliers)}")
-        print(f"Outlier satellite numbers: {outliers}")
         
         def evaluate_dbscan(distance_matrix, eps, min_samples):
+            
             """
             Evaluate DBSCAN clustering using silhouette score.
             
@@ -96,6 +68,7 @@ class SatelliteClusterer:
             Returns:
             - Silhouette score (or -1 if clustering is invalid), cluster labels
             """
+            
             db = DBSCAN(eps=eps, min_samples=min_samples, metric='precomputed')
             labels = db.fit_predict(distance_matrix)
             if len(set(labels)) > 1 and len(set(labels)) < len(labels):  # Valid clustering
@@ -139,6 +112,86 @@ class SatelliteClusterer:
                 plt.close()
             
             return optimal_eps
+    
+        min_samples_range = range(2, 41)
+        best_score = -1
+        best_params = None
+        best_labels = None
+        
+        for min_samples in min_samples_range:
+            print(f"Evaluating min_samples={min_samples}...")
+            eps = find_optimal_eps(distance_matrix, min_samples)
+            score, labels = evaluate_dbscan(distance_matrix, eps, min_samples)
+            print(f"  eps={eps:.4f}, silhouette_score={score:.4f}")
+            if score > best_score:
+                best_score = score
+                best_params = (eps, min_samples)
+                best_labels = labels
+        
+        if best_params is None:
+            print("No valid clustering found. Adjust min_samples range or check data.")
+            exit()
+        
+        eps, min_samples = best_params
+        labels = best_labels
+        print(f"Best parameters: eps={eps:.4f}, min_samples={min_samples}, silhouette_score={best_score:.4f}")
+        
+        outliers = np.where(labels == -1)[0].tolist()
+        print(f"Number of outliers (orbits not in clusters): {len(outliers)}")
+        print(f"Outlier satellite numbers: {outliers}")
         
         return labels, best_score
-    
+
+        
+    def compute_clusters_hdbscan(self, distance_matrix: np.ndarray):
+        
+        def evaluate_hdbscan(distance_matrix, min_cluster_size):
+
+            hdb = HDBSCAN(
+                min_cluster_size=min_cluster_size,
+                min_samples=min_cluster_size, 
+                metric='precomputed',
+                cluster_selection_method='eom',
+                allow_single_cluster=False
+            )
+            labels = hdb.fit_predict(distance_matrix)
+            
+            n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+            if n_clusters > 1 and n_clusters < len(distance_matrix):
+
+                distance_matrix_copy = distance_matrix.copy()
+                np.fill_diagonal(distance_matrix_copy, 0)
+                score = silhouette_score(distance_matrix_copy, labels, metric="precomputed")
+            else:
+                score = -1  # Invalid clustering
+            return score, labels
+        
+        min_cluster_size_range = range(2, 41)
+        best_score = -1
+        best_params = None
+        best_labels = None
+        
+        for min_cluster_size in min_cluster_size_range:
+            print(f"Evaluating min_cluster_size={min_cluster_size}...")
+            score, labels = evaluate_hdbscan(distance_matrix, min_cluster_size)
+            print(f"  silhouette_score={score:.4f}")
+            if score > best_score:
+                best_score = score
+                best_params = min_cluster_size
+                best_labels = labels
+        
+        if best_params is None:
+            print("No valid clustering found. Adjust min_cluster_size range or check data.")
+            # Return all as noise as fallback
+            labels = np.full(distance_matrix.shape[0], -1)
+            score = -1
+        else:
+            labels = best_labels
+            print(f"Best parameters: min_cluster_size={best_params}, silhouette_score={best_score:.4f}")
+        
+        # Report outliers
+        outliers = np.where(labels == -1)[0].tolist()
+        print(f"Number of outliers (orbits not in clusters): {len(outliers)}")
+        print(f"Outlier satellite numbers: {outliers}")
+        
+        return labels, best_score

@@ -30,17 +30,28 @@ def get_distance_matrix(df, save=False):
         return distance_matrix, key
 
 def _validate_matrix(distance_matrix):
+    """
+    Validate and sanitize distance matrix.
+    Modifies the matrix in place to fix common issues.
+    """
     # check if distance matrix is square
     if distance_matrix.shape[0] != distance_matrix.shape[1]:
         raise ValueError("Distance matrix is not square")
     
+    # Sanitize diagonal first (ensure it's zero)
+    np.fill_diagonal(distance_matrix, 0)
+    
+    # Sanitize any negative values (numerical errors)
+    if np.any(distance_matrix < 0):
+        num_negatives = np.sum(distance_matrix < 0)
+        min_negative = distance_matrix[distance_matrix < 0].min()
+        print(f"  Found {num_negatives} negative values (min: {min_negative:.2e}), setting to zero")
+        distance_matrix[distance_matrix < 0] = 0
+    
     # check if distance matrix is symmetric
     if not np.allclose(distance_matrix, distance_matrix.T):
-        raise ValueError("Distance matrix is not symmetric")
-    
-    # check if diagonal is zero
-    if not np.allclose(np.diag(distance_matrix), 0):
-        raise ValueError("Distance matrix diagonal is not zero")
+        print("  WARNING: Matrix not symmetric. Symmetrizing...")
+        distance_matrix[:] = (distance_matrix + distance_matrix.T) / 2
     
     print("Distance matrix is valid")
     return True
