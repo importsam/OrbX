@@ -2,7 +2,7 @@ import pandas as pd
 from configs import PathConfig, ClusterConfig
 from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
-from clustering import SatelliteClusterer
+from clustering_algs.clustering import SatelliteClusterer
 from graph import Grapher
 import os
 
