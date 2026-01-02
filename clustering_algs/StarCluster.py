@@ -39,24 +39,21 @@ class StarCluster(object):
         self.distance_type = distance_type
         self.debug = debug
 
-    def fit(self, X):
+    def fit(self, distance_matrix: np.ndarray):
         # Number of Nodes
-        n = X.shape[0]
+        n = distance_matrix.shape[0]
         # Number of Features
-        d = X.shape[1]
-
-        # Construct Node-To-Node Matrix of Distances
-        distances_matrix = squareform(pdist(X, self.distance_type))
+        d = distance_matrix.shape[1]
 
         # Determine Average Distance And Extend By Constant of Proportionality To Set Limit
-        limit = np.sum(distances_matrix) / (n * n - n) * self.limit_factor
+        limit = np.sum(distance_matrix) / (n * n - n) * self.limit_factor
 
         # Construct List of Distances Less Than Limit
         distances_list = []
         for i in range(n):
             for j in range(n):
                 if i < j:
-                    distances_list.append((i, j, distances_matrix[i, j]))
+                    distances_list.append((i, j, distance_matrix[i, j]))
 
         # Sort List of Distances From Shortest To Longest
         distances_list.sort(key=lambda x: x[2])
@@ -91,11 +88,11 @@ class StarCluster(object):
                 self.labels_[np.argwhere(self.labels_ == self.labels_[i])] = self.labels_[j]
             mindex += 1
 
-        distances_matrix[distances_matrix == 0.0] = np.inf
+        distance_matrix[distance_matrix == 0.0] = np.inf
         # Reduce Mass of Each Node By Effectively Twice The Distance To Nearest Neighbour
         for i in range(n):
-            mindex = np.argmin(distances_matrix[i])
-            distance = distances_matrix[i, mindex]
+            mindex = np.argmin(distance_matrix[i])
+            distance = distance_matrix[i, mindex]
             mass[i] -= distance
             mass[mindex] -= distance
 
@@ -121,7 +118,7 @@ class StarCluster(object):
             mindex = i
             if self.has_upper_cutoff:
                 while self.labels_[mindex] == -1:
-                    dsorted = np.argsort(distances_matrix[i])
+                    dsorted = np.argsort(distance_matrix[i])
                     not_connected = True
                     sidx = 0
                     while not_connected:
@@ -132,12 +129,12 @@ class StarCluster(object):
                         else:
                             mindex = cidx
                             not_connected = False
-                    distances_matrix[i, mindex] = np.inf
+                    distance_matrix[i, mindex] = np.inf
             else:
                 while self.labels_[mindex] == -1:
-                    mindex = np.argmin(distances_matrix[i])
-                    distance = distances_matrix[i, mindex]
-                    distances_matrix[i, mindex] = np.inf
+                    mindex = np.argmin(distance_matrix[i])
+                    distance = distance_matrix[i, mindex]
+                    distance_matrix[i, mindex] = np.inf
             self.labels_[i] = self.labels_[mindex]
             mass[i] = -np.inf
 
@@ -145,6 +142,6 @@ class StarCluster(object):
             print('Connections to nodes above upper mass threshold skipped: {}'.format(acount))
         return self
 
-    def predict(self, X):
-        self.fit(X)
+    def predict(self, distance_matrix: np.ndarray):
+        self.fit(distance_matrix)
         return self.labels_

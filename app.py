@@ -2,9 +2,8 @@ import pandas as pd
 from configs import PathConfig, ClusterConfig
 from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
-from clustering_algs.clustering import SatelliteClusterer
 from graph import Grapher
-import os
+from clustering_algs.cluster_wrapper import ClusterWrapper
 
 class SatelliteClusteringApp:
     def __init__(self, cluster_config: ClusterConfig):
@@ -15,12 +14,12 @@ class SatelliteClusteringApp:
         self.tle_parser = TLEParser("Space-Track") 
         self.cluster_config = cluster_config
         self.path_config = PathConfig()
-        self.clusterer = SatelliteClusterer()
         self.graph = Grapher()
+        self.cluster_wrapper = ClusterWrapper()
     
     """use_cached - if using cached distance matrix and dictionaries"""
     def run(self, use_cached: bool = False):
-        # 1. Get the satellite data into a dataframe 
+        # Get the satellite data into a dataframe 
         df = self.tle_parser.df
         # filter by inclination and apogee range
         df = df[
@@ -32,36 +31,19 @@ class SatelliteClusteringApp:
 
         print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
 
-        # 2. Get or compute the distance matrix
+        # Get or compute the distance matrix
         distance_matrix, key = get_distance_matrix(df)
         df = self._reorder_dataframe(df, key)
         
-        # 3. clustering 
-        # labels, silhouette = self.clusterer.compute_clusters_affinity(distance_matrix, damping=0.95) # affinity propagation
-        labels, silhouette = self.clusterer.compute_clusters_agglomerative(distance_matrix)
-
+        # Clustering 
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+        # init the clustering algs
+        self.cluster_wrapper.run_all(distance_matrix)
         
-        df['label'] = labels
-        
-        # save the current dataframe with clusters 
-        os.makedirs(self.path_config.output_dataframe, exist_ok=True)
-
-        # Build the save path
-        cluster_save_path = (
-            f"{self.path_config.output_dataframe}/"
-            f"clusters_inc_{self.cluster_config.inclination_range[0]}-"
-            f"{self.cluster_config.inclination_range[1]}_"
-            f"apogee_{self.cluster_config.apogee_range[0]}-"
-            f"{self.cluster_config.apogee_range[1]}_"
-            "silhouette_"
-            f"{silhouette:.3f}.pkl"
-        )
-
-        # Save the dataframe
-        df.to_pickle(cluster_save_path)
-        
-        # 4. plot 
-        self.graph.plot_clusters(df, self.path_config.output_plot)
+        # # plot 
+        # self.graph.plot_clusters(df, self.path_config.output_plot)
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
@@ -69,3 +51,4 @@ class SatelliteClusteringApp:
         
         satNos_in_order = [idx_satNo[i] for i in range(len(idx_satNo))]
         return df.set_index("satNo").loc[satNos_in_order].reset_index()
+    
