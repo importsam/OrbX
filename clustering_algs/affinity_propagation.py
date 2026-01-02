@@ -1,12 +1,12 @@
 from sklearn.cluster import AffinityPropagation
 import numpy as np
 
-class AffinityPropagation:
+class AffinityPropagationWrapper:
 
-    def __init__(self, damping=0.95):
-        self.damping = damping
+    def __init__(self):
+        self.damping = 0.95
 
-    def fit(self, distance_matrix: np.ndarray):
+    def run(self, distance_matrix: np.ndarray):
         print("Running Affinity Propagation...")
 
         normalizer = 2 * (np.std(distance_matrix) ** 2)
