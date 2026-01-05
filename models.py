@@ -9,6 +9,10 @@ class Satellite:
     line2: str
     inclination: float
     apogee: float
+    raan: float
+    argument_of_perigee: float
+    eccentricity: float
+    mean_motion: float
     
     def __post_init__(self):
         # Normalize satellite number

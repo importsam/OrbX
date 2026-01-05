@@ -15,3 +15,13 @@ class OPTICSWrapper:
         
         labels = model.fit_predict(distance_matrix)
         return labels
+    
+    def run_X(self, X):
+        model = OPTICS(
+            min_samples=self.min_samples,
+            max_eps=self.max_eps,
+            metric='euclidean'
+        )
+        
+        labels = model.fit_predict(X)
+        return labels

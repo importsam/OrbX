@@ -1,4 +1,3 @@
-from typing import Iterator
 from pathlib import Path
 from math import pi
 import pandas as pd
@@ -50,7 +49,11 @@ class TLEParser:
                 'line1': sat_obj.line1,
                 'line2': sat_obj.line2,
                 'inclination': sat_obj.inclination,
-                'apogee': sat_obj.apogee
+                'apogee': sat_obj.apogee,
+                'raan': sat_obj.raan,
+                'argument_of_perigee': sat_obj.argument_of_perigee,
+                'eccentricity': sat_obj.eccentricity,
+                'mean_motion': sat_obj.mean_motion
             }])], ignore_index=True)
     
     def celestrak_parse_file(self, filepath: Path) -> None:
@@ -69,7 +72,8 @@ class TLEParser:
         inclination = float(line2[8:16].strip())
         mean_motion = float(line2[52:63].strip())
         eccentricity = float("0." + line2[26:33].strip())
-        
+        raan = float(line2[17:25].strip())
+        argument_of_perigee = float(line2[34:42].strip())
         apogee = self._calculate_apogee(mean_motion, eccentricity)
         
         return Satellite(
@@ -77,7 +81,11 @@ class TLEParser:
             line1=line1,
             line2=line2,
             inclination=inclination,
-            apogee=apogee
+            apogee=apogee,
+            raan=raan,
+            argument_of_perigee=argument_of_perigee,
+            eccentricity=eccentricity,
+            mean_motion=mean_motion
         )
 
     def _calculate_apogee(self, mean_motion: float, eccentricity: float) -> float:

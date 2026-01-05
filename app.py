@@ -1,9 +1,10 @@
 import pandas as pd
-from configs import PathConfig, ClusterConfig
+from configs import PathConfig, ClusterConfig, OrbitalConstants
 from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
 from graph import Grapher
 from clustering_algs.cluster_wrapper import ClusterWrapper
+import numpy as np
 
 class SatelliteClusteringApp:
     def __init__(self, cluster_config: ClusterConfig):
@@ -16,9 +17,10 @@ class SatelliteClusteringApp:
         self.path_config = PathConfig()
         self.graph = Grapher()
         self.cluster_wrapper = ClusterWrapper()
+        self.orbital_constants = OrbitalConstants()
     
     """use_cached - if using cached distance matrix and dictionaries"""
-    def run(self, use_cached: bool = False):
+    def run(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
         # filter by inclination and apogee range
@@ -33,6 +35,7 @@ class SatelliteClusteringApp:
 
         # Get or compute the distance matrix
         distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
         df = self._reorder_dataframe(df, key)
         
         # Clustering 
@@ -40,7 +43,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        self.cluster_wrapper.run_all(distance_matrix)
+        self.cluster_wrapper.run_all(distance_matrix, orbit_points)
         
         # # plot 
         # self.graph.plot_clusters(df, self.path_config.output_plot)
@@ -52,3 +55,49 @@ class SatelliteClusteringApp:
         satNos_in_order = [idx_satNo[i] for i in range(len(idx_satNo))]
         return df.set_index("satNo").loc[satNos_in_order].reset_index()
     
+    def get_points(self, df: pd.DataFrame):
+        """Takes in a dataframe of Satellite objects. Converts each to a point in the 5D manifold embedded in 6D.
+        This is so the raw data can be passed into clustering algs, quality metrics, etc.
+        
+        Args:
+            df (pd.DataFrame): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        
+        # Convert degrees → radians
+        i = np.deg2rad(df['inclination'].values)
+        Omega = np.deg2rad(df['raan'].values)
+        omega = np.deg2rad(df['argument_of_perigee'].values)
+        e = df['eccentricity'].values
+        n = df['mean_motion'].values  # rev/day
+
+        # Constants
+        MU = self.orbital_constants.GM_EARTH  # m^3/s^2
+
+        # Semi-major axis from mean motion
+        n_rad = 2 * np.pi * n / 86400.0
+        a = (MU / n_rad**2) ** (1/3)
+
+        # Semi-latus rectum
+        p = a * (1 - e**2)
+        sqrt_p = np.sqrt(p)
+
+        # Angular momentum vector u
+        u = np.column_stack([
+            sqrt_p * np.sin(i) * np.sin(Omega),
+            -sqrt_p * np.sin(i) * np.cos(Omega),
+            sqrt_p * np.cos(i)
+        ])
+
+        # LRL vector v
+        v = np.column_stack([
+            e * sqrt_p * (np.cos(omega) * np.cos(Omega) - np.cos(i) * np.sin(omega) * np.sin(Omega)),
+            e * sqrt_p * (np.cos(omega) * np.sin(Omega) + np.cos(i) * np.sin(omega) * np.cos(Omega)),
+            e * sqrt_p * (np.sin(i) * np.sin(omega))
+        ])
+
+        X = np.hstack([u, v])
+
+        return X
