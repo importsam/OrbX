@@ -9,29 +9,30 @@ class AffinityPropagationWrapper:
     def run(self, distance_matrix: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation...")
 
-        normalizer = 2 * (np.std(distance_matrix) ** 2)
+        normalizer = 2 *(np.median(distance_matrix) ** 2)
         similarity_matrix = np.exp(-distance_matrix / normalizer)
+        preference = np.median(similarity_matrix)
         
         model = AffinityPropagation(
             affinity='precomputed',
             damping=self.damping,
-            max_iter=500,
-            convergence_iter=15,
+            preference=preference,
+            max_iter=1000,
             random_state=42
         )
 
         model.fit(similarity_matrix)
         return model.labels_
     
-    def run_X(self, X: np.ndarray) -> np.ndarray:
-        print("Running Affinity Propagation on raw data...")
+    # def run_X(self, X: np.ndarray) -> np.ndarray:
+    #     print("Running Affinity Propagation on raw data...")
 
-        model = AffinityPropagation(
-            damping=self.damping,
-            max_iter=500,
-            convergence_iter=15,
-            random_state=42
-        )
+    #     model = AffinityPropagation(
+    #         damping=self.damping,
+    #         max_iter=500,
+    #         convergence_iter=15,
+    #         random_state=42
+    #     )
 
-        model.fit(X)
-        return model.labels_
+    #     model.fit(X)
+    #     return model.labels_

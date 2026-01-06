@@ -16,3 +16,12 @@ class AgglomerativeClustererWrapper:
         )
         
         return model.fit_predict(distance_matrix)
+    
+    def run_X(self, X):
+        
+        model = AgglomerativeClustering(
+            metric='euclidean',
+            linkage=self.linkage
+        )
+        
+        return model.fit_predict(X)
