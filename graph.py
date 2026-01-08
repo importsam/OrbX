@@ -2,9 +2,16 @@ import random
 import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from configs import PathConfig
+import numpy as np
 
 class Grapher:
     """Creates visualizations of satellite clusters"""
+    
+    def __init__(self):
+        self.path_config = PathConfig()
     
     def plot_clusters(self, df: pd.DataFrame, output_path: Path):
         print("\nPlotting clusters...\n")
@@ -63,3 +70,17 @@ class Grapher:
         )
         
         return fig
+    
+    def plot_tsne(self, X: np.ndarray, df: pd.DataFrame):
+        tsne = TSNE(n_components=2, random_state=42, init='pca')
+        X_2d = tsne.fit_transform(X)
+
+        # Plot
+        plt.figure(figsize=(10, 8))
+        scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=df['inclination'], cmap='viridis', alpha=0.6)
+        plt.colorbar(scatter, label='Inclination (degrees)')
+        plt.title('t-SNE Visualization of Orbital Manifold')
+        plt.xlabel('t-SNE Component 1')
+        plt.ylabel('t-SNE Component 2')
+        plt.tight_layout()
+        plt.savefig(self.path_config.output_plot / 'tsne_orbital_points.png', dpi=300, bbox_inches='tight')

@@ -21,5 +21,5 @@ class PathConfig:
     distance_matrix: Path = Path('data/distance_matrix.pkl')
     idx_satNo_dict: Path = Path('data/idx_satNo_dict.pkl')
     satNo_idx_dict: Path = Path('data/satNo_idx_dict.pkl')
-    output_plot: Path = Path('data/orbit_scatter.html')
+    output_plot: Path = Path('data/')
     output_dataframe: Path = Path('data/clustering_results')

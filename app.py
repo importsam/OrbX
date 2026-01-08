@@ -18,8 +18,7 @@ class SatelliteClusteringApp:
         self.graph = Grapher()
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
-    
-    """use_cached - if using cached distance matrix and dictionaries"""
+        
     def run(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
@@ -47,6 +46,8 @@ class SatelliteClusteringApp:
         
         # # plot 
         # self.graph.plot_clusters(df, self.path_config.output_plot)
+        self.graph.plot_tsne(orbit_points, df)
+
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
