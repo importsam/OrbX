@@ -18,10 +18,10 @@ class Grapher:
         if df.empty:
             print("No data available to plot.")
             return
-        
+
         unique_labels = sorted(df['label'].unique())
         cluster_colors = self._generate_colors(unique_labels)
-        
+
         fig = self._create_figure(df, unique_labels, cluster_colors)
         fig.write_html(str(output_path), include_plotlyjs="cdn")
         print(f"Plot saved to {output_path}")

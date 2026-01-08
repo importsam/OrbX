@@ -7,6 +7,7 @@ from clustering_algs.cluster_wrapper import ClusterWrapper
 import numpy as np
 
 class SatelliteClusteringApp:
+    
     def __init__(self, cluster_config: ClusterConfig):
         
         """Getting full TLE catalog from Space-Track
@@ -19,7 +20,7 @@ class SatelliteClusteringApp:
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
         
-    def run(self):
+    def run_metrics(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
         # filter by inclination and apogee range
@@ -43,11 +44,50 @@ class SatelliteClusteringApp:
         """
         # init the clustering algs
         self.cluster_wrapper.run_all(distance_matrix, orbit_points)
+
+    def run_apo_inc_clustering_graphs(self):
+        # Get the satellite data into a dataframe 
+        df = self.tle_parser.df
+
+        # filter by inclination and apogee range
+        df = df[
+            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
+            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
+            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
+            (df['apogee'] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+
+        affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
+
+        # Plot affinity clusters in apogee/inclination space
+        df_aff = df.copy()
+        df_aff['label'] = affinity_labels
+        self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
         
-        # # plot 
-        # self.graph.plot_clusters(df, self.path_config.output_plot)
-        self.graph.plot_tsne(orbit_points, df)
+        # Plot affinity clusters in t-SNE space
+        self.graph.plot_tsne(orbit_points, df_aff, name="affinity", labels=affinity_labels)
+
+        # Plot optics clusters in apogee/inclination space  
+        df_opt = df.copy()
+        df_opt['label'] = optics_labels
+        self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
         
+        # Plot optics clusters in t-SNE space
+        self.graph.plot_tsne(orbit_points, df_opt, name="optics", labels=optics_labels)
+
+
     def run_tsne(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
@@ -71,7 +111,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        # affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
         
         optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
         # # plot 
