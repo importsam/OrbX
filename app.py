@@ -71,11 +71,13 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        # affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
         
+        optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
         # # plot 
         # self.graph.plot_clusters(df, self.path_config.output_plot)
-        self.graph.plot_tsne(orbit_points, df, labels=labels, name="affinity")
+        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
