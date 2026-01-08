@@ -71,16 +71,28 @@ class Grapher:
         
         return fig
     
-    def plot_tsne(self, X: np.ndarray, df: pd.DataFrame):
+    def plot_tsne(self, X: np.ndarray, df: pd.DataFrame, name: str = "None", labels: np.ndarray = None):
         tsne = TSNE(n_components=2, random_state=42, init='pca')
         X_2d = tsne.fit_transform(X)
 
-        # Plot
         plt.figure(figsize=(10, 8))
-        scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=df['inclination'], cmap='viridis', alpha=0.6)
-        plt.colorbar(scatter, label='Inclination (degrees)')
-        plt.title('t-SNE Visualization of Orbital Manifold')
+        
+        if labels is not None:
+            # Color by labels (clusters)
+            unique_labels = np.unique(labels)
+            colors = plt.cm.tab10(np.linspace(0, 1, len(unique_labels)))  # Discrete colors
+            for i, lbl in enumerate(unique_labels):
+                mask = labels == lbl
+                plt.scatter(X_2d[mask, 0], X_2d[mask, 1], c=[colors[i]], label=f'Cluster {lbl}', alpha=0.7, s=50)
+            plt.legend(title='Clusters')
+            plt.title(f't-SNE: Orbital Points by Clusters ({name})')
+        else:
+            # Fallback to inclination
+            scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=df['inclination'], cmap='viridis', alpha=0.6)
+            plt.colorbar(scatter, label='Inclination (degrees)')
+            plt.title(f't-SNE: Orbital Points by Inclination ({name})')
+        
         plt.xlabel('t-SNE Component 1')
         plt.ylabel('t-SNE Component 2')
         plt.tight_layout()
-        plt.savefig(self.path_config.output_plot / 'tsne_orbital_points.png', dpi=300, bbox_inches='tight')
+        plt.savefig(self.path_config.output_plot / f'tsne_orbital_points_{name if name else "None"}.png', dpi=300, bbox_inches='tight')

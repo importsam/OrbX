@@ -47,7 +47,35 @@ class SatelliteClusteringApp:
         # # plot 
         # self.graph.plot_clusters(df, self.path_config.output_plot)
         self.graph.plot_tsne(orbit_points, df)
+        
+    def run_tsne(self):
+        # Get the satellite data into a dataframe 
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
+        df = df[
+            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
+            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
+            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
+            (df['apogee'] <= self.cluster_config.apogee_range[1])
+        ].copy()
 
+        print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+        
+        # Clustering 
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+        # init the clustering algs
+        labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        
+        # # plot 
+        # self.graph.plot_clusters(df, self.path_config.output_plot)
+        self.graph.plot_tsne(orbit_points, df, labels=labels, name="affinity")
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""

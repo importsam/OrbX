@@ -9,7 +9,7 @@ class AffinityPropagationWrapper:
     def run(self, distance_matrix: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation...")
 
-        normalizer = 2 *(np.median(distance_matrix) ** 2)
+        normalizer = 2 * (np.median(distance_matrix) ** 2)
         similarity_matrix = np.exp(-distance_matrix / normalizer)
         preference = np.median(similarity_matrix)
         
