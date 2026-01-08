@@ -11,4 +11,4 @@ if __name__ == '__main__':
     
     # nothing is cached
     app = SatelliteClusteringApp(cluster_config)
-    app.run_apo_inc_clustering_graphs()
+    app.run_metrics()

@@ -18,7 +18,7 @@ class QualityMetrics:
             print(f"Calinski-Harabasz Score: {ch_score}")
             print(f"Silhouette Score: {silhouette_avg}")
             print(f"Davies-Bouldin Score: {db_score}")
-            print(f"DBCV Score: {dbcv_score}")
+            print(f"DBCV Score: {dbcv_score}\n")
             
             return {
                 'Calinski-Harabasz': ch_score,

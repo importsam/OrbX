@@ -20,16 +20,16 @@ class ClusterWrapper:
     def run_all(self, distance_matrix: np.ndarray, X: np.ndarray) -> None:
         
         affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
-        print(f"Affinity Propagation found {len(set(affinity_labels))} clusters")
-        self.quality_metrics(X, affinity_labels)
+        print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
+        self.quality_metrics.quality_metrics(X, affinity_labels)
 
-        optics_labels = self.optics.run(distance_matrix.copy())
-        print(f"OPTICS found {len(set(optics_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, optics_labels)
+        # optics_labels = self.optics.run(distance_matrix.copy())
+        # print(f"OPTICS found {len(set(optics_labels))} clusters")
+        # self.quality_metrics.quality_metrics(X, optics_labels)
 
-        agglomerative_labels = self.agglomerative.run(distance_matrix.copy())
-        print(f"Agglomerative Clustering found {len(set(agglomerative_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, agglomerative_labels)
+        # agglomerative_labels = self.agglomerative.run(distance_matrix.copy())
+        # print(f"Agglomerative Clustering found {len(set(agglomerative_labels))} clusters")
+        # self.quality_metrics.quality_metrics(X, agglomerative_labels)
         
         # gmm = GaussianMixture(n_components=285, init_params='k-means++')
         # labels = gmm.fit_predict(X)

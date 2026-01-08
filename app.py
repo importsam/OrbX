@@ -7,7 +7,7 @@ from clustering_algs.cluster_wrapper import ClusterWrapper
 import numpy as np
 
 class SatelliteClusteringApp:
-    
+
     def __init__(self, cluster_config: ClusterConfig):
         
         """Getting full TLE catalog from Space-Track
@@ -19,7 +19,7 @@ class SatelliteClusteringApp:
         self.graph = Grapher()
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
-        
+
     def run_metrics(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
@@ -86,7 +86,6 @@ class SatelliteClusteringApp:
         
         # Plot optics clusters in t-SNE space
         self.graph.plot_tsne(orbit_points, df_opt, name="optics", labels=optics_labels)
-
 
     def run_tsne(self):
         # Get the satellite data into a dataframe 
