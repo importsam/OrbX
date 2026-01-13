@@ -5,24 +5,24 @@ import dbcv
 class QualityMetrics:
     
     @staticmethod
-    def quality_metrics(X: np.ndarray, labels: np.ndarray) -> dict:
+    def quality_metrics(X: np.ndarray, distance_matrix: np.ndarray, labels: np.ndarray) -> dict:
         """Compute clustering quality metrics"""
         
         try:
             
             ch_score = calinski_harabasz_score(X, labels)
-            silhouette_avg = silhouette_score(X, labels)
+            silhouette = silhouette_score(distance_matrix, labels, metric='precomputed')
             db_score = davies_bouldin_score(X, labels)
             dbcv_score = dbcv.dbcv(X, labels)
             
             print(f"Calinski-Harabasz Score: {ch_score}")
-            print(f"Silhouette Score: {silhouette_avg}")
+            print(f"Silhouette Score: {silhouette}")
             print(f"Davies-Bouldin Score: {db_score}")
             print(f"DBCV Score: {dbcv_score}\n")
             
             return {
                 'Calinski-Harabasz': ch_score,
-                'Silhouette Score': silhouette_avg,
+                'Silhouette Score': silhouette,
                 'Davies-Bouldin': db_score,
                 'DBCV': dbcv_score
             }

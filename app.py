@@ -69,23 +69,17 @@ class SatelliteClusteringApp:
         """
 
         affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
-        optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
+        # optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
 
         # Plot affinity clusters in apogee/inclination space
         df_aff = df.copy()
         df_aff['label'] = affinity_labels
         self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
-        
-        # Plot affinity clusters in t-SNE space
-        self.graph.plot_tsne(orbit_points, df_aff, name="affinity", labels=affinity_labels)
 
         # Plot optics clusters in apogee/inclination space  
-        df_opt = df.copy()
-        df_opt['label'] = optics_labels
-        self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
-        
-        # Plot optics clusters in t-SNE space
-        self.graph.plot_tsne(orbit_points, df_opt, name="optics", labels=optics_labels)
+        # df_opt = df.copy()
+        # df_opt['label'] = optics_labels
+        # self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
 
     def run_tsne(self):
         # Get the satellite data into a dataframe 
@@ -112,11 +106,11 @@ class SatelliteClusteringApp:
         # init the clustering algs
         affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
         
-        optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
+        # optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
         # # plot 
         # self.graph.plot_clusters(df, self.path_config.output_plot)
-        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
-        self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
+        self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
