@@ -30,52 +30,66 @@ class AffinityPropagationWrapper:
         return labels
 
     def run_pref_test(self, distance_matrix: np.ndarray) -> np.ndarray:
-        print("Running Affinity Propagation (preference sweep)...")
-        
-        # 1. Build similarity matrix
-        normaliser = np.std(distance_matrix) ** 2
-        similarity_matrix = (-distance_matrix / normaliser)
+        print("Running Affinity Propagation (parallel preference sweep)...")
 
-        # 2. Preference sweep (lower = more clusters)
+        normaliser = np.std(distance_matrix) ** 2
+        similarity_matrix = -distance_matrix / normaliser
+
         pref_min = np.min(similarity_matrix)
         pref_med = np.median(similarity_matrix)
         preferences = np.linspace(pref_min, pref_med, 25)
 
-        best_score = -1
-        best_labels = None
-        best_info = None
-
-        for pref in tqdm(preferences, desc="Testing preferences"):
-            model = AffinityPropagation(
-                affinity='precomputed',
-                damping=self.damping,
-                preference=pref,
-                max_iter=1000,
-                random_state=42
+        results = Parallel(
+            n_jobs=2,          # use all CPU cores
+            backend="loky"      # safe for sklearn
+        )(
+            delayed(_test_preference)(
+                pref, similarity_matrix, distance_matrix, self.damping
             )
+            for pref in preferences
+        )
 
-            labels = model.fit_predict(similarity_matrix)
-            n_clusters = len(np.unique(labels))
+        results = [r for r in results if r is not None]
 
-            # Skip degenerate solutions
-            if n_clusters < 2:
-                continue
-
-            score = silhouette_score(
-                distance_matrix,
-                labels,
-                metric='precomputed'
-            )
-
-            if score > best_score:
-                best_score = score
-                best_labels = labels
-                best_info = (pref, n_clusters, score)
-
-        if best_labels is None:
+        if not results:
             raise RuntimeError("Affinity Propagation failed to find a valid clustering")
 
-        pref, k, score = best_info
-        print(f"Selected preference={pref:.4f}, clusters={k}, silhouette={score:.3f}")
+        best_pref, best_labels, best_k, best_score = max(
+            results, key=lambda x: x[3]
+        )
+
+        print(
+            f"Selected preference={best_pref:.4f}, "
+            f"clusters={best_k}, silhouette={best_score:.3f}"
+        )
 
         return best_labels
+
+
+from joblib import Parallel, delayed
+import numpy as np
+from sklearn.cluster import AffinityPropagation
+from sklearn.metrics import silhouette_score
+
+def _test_preference(pref, similarity_matrix, distance_matrix, damping):
+    model = AffinityPropagation(
+        affinity='precomputed',
+        damping=damping,
+        preference=pref,
+        max_iter=1000,
+        random_state=42
+    )
+
+    labels = model.fit_predict(similarity_matrix)
+    n_clusters = len(np.unique(labels))
+
+    if n_clusters < 2:
+        return None
+
+    score = silhouette_score(
+        distance_matrix,
+        labels,
+        metric='precomputed'
+    )
+
+    return pref, labels, n_clusters, score

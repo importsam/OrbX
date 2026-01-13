@@ -4,8 +4,6 @@ from clustering_algs.OPTICSWrapper import OPTICSWrapper
 from clustering_algs.star_clustering.star_clustering import StarCluster
 from clustering_algs.agglomerative_clustering import AgglomerativeClustererWrapper
 from metrics.quality_metrics import QualityMetrics
-from sklearn.mixture import GaussianMixture
-
 
 import numpy as np
 
@@ -19,13 +17,13 @@ class ClusterWrapper:
         
     def run_all(self, distance_matrix: np.ndarray, X: np.ndarray) -> None:
         
-        affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
-        print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
-        self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
+        # affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
+        # print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
+        # self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
 
-        # optics_labels = self.optics.run(distance_matrix.copy())
-        # print(f"OPTICS found {len(set(optics_labels))} clusters")
-        # self.quality_metrics.quality_metrics(X, optics_labels)
+        optics_labels = self.optics.run(distance_matrix.copy())
+        print(f"OPTICS found {len(set(optics_labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, optics_labels)
 
         # agglomerative_labels = self.agglomerative.run(distance_matrix.copy())
         # print(f"Agglomerative Clustering found {len(set(agglomerative_labels))} clusters")
@@ -51,6 +49,6 @@ class ClusterWrapper:
     def run_optics(self, distance_matrix: np.ndarray, X) -> np.ndarray:
         optics_labels = self.optics.run(distance_matrix.copy())
         print(f"OPTICS found {len(set(optics_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, optics_labels)
+        self.quality_metrics.quality_metrics(X, distance_matrix, optics_labels)
         
         return optics_labels
