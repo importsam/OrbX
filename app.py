@@ -45,43 +45,7 @@ class SatelliteClusteringApp:
         # init the clustering algs
         self.cluster_wrapper.run_all(distance_matrix, orbit_points)
 
-    def run_apo_inc_clustering_graphs(self):
-        # Get the satellite data into a dataframe 
-        df = self.tle_parser.df
-
-        # filter by inclination and apogee range
-        df = df[
-            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
-            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
-            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
-            (df['apogee'] <= self.cluster_config.apogee_range[1])
-        ].copy()
-
-        print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
-
-        # Get or compute the distance matrix
-        distance_matrix, key = get_distance_matrix(df)
-        orbit_points = self.get_points(df)
-        df = self._reorder_dataframe(df, key)
-
-        """
-        So here I want to use all the clustering algs and do comparative analysis of performance.
-        """
-
-        # affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
-        optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
-
-        # Plot affinity clusters in apogee/inclination space
-        # df_aff = df.copy()
-        # df_aff['label'] = affinity_labels
-        # self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
-
-        # Plot optics clusters in apogee/inclination space  
-        df_opt = df.copy()
-        df_opt['label'] = optics_labels
-        self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
-
-    def run_tsne(self):
+    def run_graphs(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
         # filter by inclination and apogee range
@@ -104,13 +68,36 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
-        
+        # affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
         # optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
-        # # plot 
-        # self.graph.plot_clusters(df, self.path_config.output_plot)
-        self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        dbscan_labels = self.cluster_wrapper.run_dbscan(distance_matrix, orbit_points)
+        hdbscan_labels = self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
+        
+        # plot tsne graphs
+        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
         # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
+        self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+        
+        
+        # Plot clusters in apogee/inclination space  
+        # df_opt = df.copy()
+        # df_opt['label'] = optics_labels
+        # self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
+        
+        # # now for affinity
+        # df_aff = df.copy()
+        # df_aff['label'] = affinity_labels
+        # self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
+        
+        # now for dbscan
+        df_db = df.copy()
+        df_db['label'] = dbscan_labels
+        self.graph.plot_clusters(df_db, self.path_config.output_plot / "dbscan_clusters.html")
+        
+        df_hdb = df.copy()
+        df_hdb['label'] = hdbscan_labels
+        self.graph.plot_clusters(df_hdb, self.path_config.output_plot / "hdbscan_clusters.html")
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""

@@ -10,11 +10,10 @@ class OPTICSWrapper:
 
     def run(self, distance_matrix):
         model = OPTICS(
-            min_samples=5,
-            max_eps=np.inf,
+            min_samples=self.min_samples,
+            max_eps=self.max_eps,
             metric='precomputed',
-            n_jobs=-1,
-            xi=0.5
+            n_jobs=-1
         )
     
         labels = model.fit_predict(distance_matrix)

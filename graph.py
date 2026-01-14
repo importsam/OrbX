@@ -71,28 +71,94 @@ class Grapher:
         
         return fig
     
-    def plot_tsne(self, X: np.ndarray, df: pd.DataFrame, name: str = "None", labels: np.ndarray = None):
-        tsne = TSNE(n_components=2, random_state=42, init='pca')
+    def plot_tsne(
+        self,
+        X: np.ndarray,
+        df: pd.DataFrame,
+        name: str = "None",
+        labels: np.ndarray = None
+    ):
+        print("\nRunning t-SNE and generating interactive plot...\n")
+
+        tsne = TSNE(
+            n_components=2,
+            random_state=42,
+            init='pca',
+            perplexity=30
+        )
         X_2d = tsne.fit_transform(X)
 
-        plt.figure(figsize=(10, 8))
-        
+        fig = go.Figure()
+
         if labels is not None:
-            # Color by labels (clusters)
+            # Colour by cluster labels
             unique_labels = np.unique(labels)
-            colors = plt.cm.tab10(np.linspace(0, 1, len(unique_labels)))  # Discrete colors
-            for i, lbl in enumerate(unique_labels):
+
+            for lbl in unique_labels:
                 mask = labels == lbl
-                plt.scatter(X_2d[mask, 0], X_2d[mask, 1], c=[colors[i]], label=f'Cluster {lbl}', alpha=0.7, s=50)
-            plt.legend(title='Clusters')
-            plt.title(f't-SNE: Orbital Points by Clusters ({name})')
+                fig.add_trace(go.Scatter(
+                    x=X_2d[mask, 0],
+                    y=X_2d[mask, 1],
+                    mode='markers',
+                    name=f'Cluster {lbl}',
+                    marker=dict(
+                        size=6,
+                        opacity=0.7
+                    ),
+                    text=df.loc[mask, 'satNo'],
+                    hovertemplate=(
+                        "SatNo: %{text}<br>"
+                        "t-SNE 1: %{x}<br>"
+                        "t-SNE 2: %{y}<br>"
+                        f"Cluster: {lbl}<br>"
+                        "Inclination: %{customdata[0]}°<br>"
+                        "Apogee: %{customdata[1]} km"
+                        "<extra></extra>"
+                    ),
+                    customdata=df.loc[mask, ['inclination', 'apogee']].values
+                ))
+
+            title = f"t-SNE: Orbital Points by Clusters ({name})"
+
         else:
-            # Fallback to inclination
-            scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=df['inclination'], cmap='viridis', alpha=0.6)
-            plt.colorbar(scatter, label='Inclination (degrees)')
-            plt.title(f't-SNE: Orbital Points by Inclination ({name})')
-        
-        plt.xlabel('t-SNE Component 1')
-        plt.ylabel('t-SNE Component 2')
-        plt.tight_layout()
-        plt.savefig(self.path_config.output_plot / f'tsne_orbital_points_{name if name else "None"}.png', dpi=300, bbox_inches='tight')
+            # Colour by inclination (continuous)
+            fig.add_trace(go.Scatter(
+                x=X_2d[:, 0],
+                y=X_2d[:, 1],
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    opacity=0.7,
+                    color=df['inclination'],
+                    colorscale='Viridis',
+                    colorbar=dict(title='Inclination (deg)')
+                ),
+                text=df['satNo'],
+                hovertemplate=(
+                    "SatNo: %{text}<br>"
+                    "t-SNE 1: %{x}<br>"
+                    "t-SNE 2: %{y}<br>"
+                    "Inclination: %{marker.color}°<br>"
+                    "Apogee: %{customdata} km"
+                    "<extra></extra>"
+                ),
+                customdata=df['apogee']
+            ))
+
+            title = f"t-SNE: Orbital Points by Inclination ({name})"
+
+        fig.update_layout(
+            title=title,
+            xaxis_title="t-SNE Component 1",
+            yaxis_title="t-SNE Component 2",
+            template="plotly_white",
+            width=900,
+            height=700,
+            legend_title="Clusters"
+        )
+
+        output_file = self.path_config.output_plot / f"tsne_orbital_points_{name if name else 'None'}.html"
+        fig.write_html(str(output_file), include_plotlyjs="cdn")
+
+        print(f"t-SNE plot saved to {output_file}")
+
