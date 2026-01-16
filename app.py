@@ -4,6 +4,7 @@ from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
 from graph import Grapher
 from clustering_algs.cluster_wrapper import ClusterWrapper
+from tools.density_estimation import DensityEstimator
 import numpy as np
 
 class SatelliteClusteringApp:
@@ -19,7 +20,8 @@ class SatelliteClusteringApp:
         self.graph = Grapher()
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
-
+        self.density_estimator = DensityEstimator()
+        
     def run_metrics(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
@@ -59,9 +61,10 @@ class SatelliteClusteringApp:
         print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
 
         # Get or compute the distance matrix
-        distance_matrix, key = get_distance_matrix(df)
-        orbit_points = self.get_points(df)
-        df = self._reorder_dataframe(df, key)
+        distance_matrix, key = get_distance_matrix(df.copy())
+        orbit_points = self.get_points(df.copy())
+        df = self._reorder_dataframe(df.copy(), key.copy())
+        df = self.density_estimator.assign_density(df.copy(), distance_matrix.copy())
         
         # Clustering 
         """
