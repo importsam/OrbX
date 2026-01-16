@@ -78,29 +78,35 @@ class SatelliteClusteringApp:
         hdbscan_labels = self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
         
         # plot tsne graphs
-        self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
-        self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
-        self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
-        self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
+        # self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        # self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+        
+        # plot UMAP graphs
+        self.graph.plot_umap(orbit_points, df, labels=affinity_labels, name="affinity")
+        self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
+        self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
         
         # Plot clusters in apogee/inclination space  
-        df_opt = df.copy()
-        df_opt['label'] = optics_labels
-        self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
+        # df_opt = df.copy()
+        # df_opt['label'] = optics_labels
+        # self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
         
-        # now for affinity
-        df_aff = df.copy()
-        df_aff['label'] = affinity_labels
-        self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
+        # # now for affinity
+        # df_aff = df.copy()
+        # df_aff['label'] = affinity_labels
+        # self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
         
-        # now for dbscan
-        df_db = df.copy()
-        df_db['label'] = dbscan_labels
-        self.graph.plot_clusters(df_db, self.path_config.output_plot / "dbscan_clusters.html")
+        # # now for dbscan
+        # df_db = df.copy()
+        # df_db['label'] = dbscan_labels
+        # self.graph.plot_clusters(df_db, self.path_config.output_plot / "dbscan_clusters.html")
         
-        df_hdb = df.copy()
-        df_hdb['label'] = hdbscan_labels
-        self.graph.plot_clusters(df_hdb, self.path_config.output_plot / "hdbscan_clusters.html")
+        # df_hdb = df.copy()
+        # df_hdb['label'] = hdbscan_labels
+        # self.graph.plot_clusters(df_hdb, self.path_config.output_plot / "hdbscan_clusters.html")
 
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
