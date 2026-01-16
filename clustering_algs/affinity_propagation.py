@@ -13,7 +13,6 @@ class AffinityPropagationWrapper:
     def run(self, distance_matrix: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation (preference sweep)...")
         
-        # 1. Build similarity matrix
         normaliser = np.std(distance_matrix) ** 2
         similarity_matrix = (-distance_matrix / normaliser)
 
