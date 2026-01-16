@@ -1,6 +1,7 @@
 from sklearn.metrics import calinski_harabasz_score, silhouette_score, davies_bouldin_score
 import numpy as np
 import dbcv
+from s_dbw import S_Dbw
 
 class QualityMetrics:
     
@@ -14,17 +15,20 @@ class QualityMetrics:
             silhouette = silhouette_score(distance_matrix, labels, metric='precomputed')
             db_score = davies_bouldin_score(X, labels)
             dbcv_score = dbcv.dbcv(X, labels)
+            s_Dbw_score = S_Dbw(X, labels, centers_id=None, method='Tong', alg_noise='filter', centr='mean', nearest_centr=True, metric='euclidean')
             
             print(f"Calinski-Harabasz Score: {ch_score}")
             print(f"Silhouette Score: {silhouette}")
             print(f"Davies-Bouldin Score: {db_score}")
             print(f"DBCV Score: {dbcv_score}\n")
+            print(f"S_Dbw Score: {s_Dbw_score}\n")
             
             return {
                 'Calinski-Harabasz': ch_score,
                 'Silhouette Score': silhouette,
                 'Davies-Bouldin': db_score,
-                'DBCV': dbcv_score
+                'DBCV': dbcv_score,
+                'S_Dbw': s_Dbw_score
             }
             
         except Exception as e:

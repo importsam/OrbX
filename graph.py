@@ -13,6 +13,11 @@ class Grapher:
     def __init__(self):
         self.path_config = PathConfig()
     
+    def _normalize_density(self, df: pd.DataFrame) -> pd.Series:
+        """Normalize density values to 0-1 range"""
+        density = df['density']
+        return (density - density.min()) / (density.max() - density.min())
+    
     def plot_clusters(self, df: pd.DataFrame, output_path: Path):
         print("\nPlotting clusters...\n")
         if df.empty:
@@ -21,6 +26,9 @@ class Grapher:
 
         unique_labels = sorted(df['label'].unique())
         cluster_colors = self._generate_colors(unique_labels)
+        
+        # Normalize density
+        df['density_norm'] = self._normalize_density(df)
 
         fig = self._create_figure(df, unique_labels, cluster_colors)
         fig.write_html(str(output_path), include_plotlyjs="cdn")
@@ -48,15 +56,23 @@ class Grapher:
                 x=cluster_df['inclination'],
                 y=cluster_df['apogee'],
                 mode='markers',
-                marker=dict(size=5, opacity=0.6, color=colors[label]),
+                marker=dict(
+                    size=5, 
+                    opacity=0.6, 
+                    color=colors[label]
+                ),
                 name=f"Cluster {label}",
                 text=cluster_df['satNo'],
                 hovertemplate=(
                     "SatNo: %{text}<br>"
                     "Inclination: %{x}<br>"
                     "Apogee: %{y} km<br>"
-                    f"Cluster: {label}<extra></extra>"
-                )
+                    f"Cluster: {label}<br>"
+                    "Density: %{customdata[0]:.4f}<br>"
+                    "Normalized Density: %{customdata[1]:.4f}"
+                    "<extra></extra>"
+                ),
+                customdata=cluster_df[['density', 'density_norm']].values
             ))
         
         fig.update_layout(
@@ -79,6 +95,10 @@ class Grapher:
         labels: np.ndarray = None
     ):
         print("\nRunning t-SNE and generating interactive plot...\n")
+        
+        # Normalize density
+        df = df.copy()
+        df['density_norm'] = self._normalize_density(df)
 
         tsne = TSNE(
             n_components=2,
@@ -112,10 +132,12 @@ class Grapher:
                         "t-SNE 2: %{y}<br>"
                         f"Cluster: {lbl}<br>"
                         "Inclination: %{customdata[0]}°<br>"
-                        "Apogee: %{customdata[1]} km"
+                        "Apogee: %{customdata[1]} km<br>"
+                        "Density: %{customdata[2]:.4f}<br>"
+                        "Normalized Density: %{customdata[3]:.4f}"
                         "<extra></extra>"
                     ),
-                    customdata=df.loc[mask, ['inclination', 'apogee']].values
+                    customdata=df.loc[mask, ['inclination', 'apogee', 'density', 'density_norm']].values
                 ))
 
             title = f"t-SNE: Orbital Points by Clusters ({name})"
@@ -139,10 +161,12 @@ class Grapher:
                     "t-SNE 1: %{x}<br>"
                     "t-SNE 2: %{y}<br>"
                     "Inclination: %{marker.color}°<br>"
-                    "Apogee: %{customdata} km"
+                    "Apogee: %{customdata[0]} km<br>"
+                    "Density: %{customdata[1]:.4f}<br>"
+                    "Normalized Density: %{customdata[2]:.4f}"
                     "<extra></extra>"
                 ),
-                customdata=df['apogee']
+                customdata=df[['apogee', 'density', 'density_norm']].values
             ))
 
             title = f"t-SNE: Orbital Points by Inclination ({name})"
@@ -161,4 +185,3 @@ class Grapher:
         fig.write_html(str(output_file), include_plotlyjs="cdn")
 
         print(f"t-SNE plot saved to {output_file}")
-

@@ -88,7 +88,7 @@ class SatelliteClusteringApp:
         df_opt['label'] = optics_labels
         self.graph.plot_clusters(df_opt, self.path_config.output_plot / "optics_clusters.html")
         
-        # # now for affinity
+        # now for affinity
         df_aff = df.copy()
         df_aff['label'] = affinity_labels
         self.graph.plot_clusters(df_aff, self.path_config.output_plot / "affinity_clusters.html")
