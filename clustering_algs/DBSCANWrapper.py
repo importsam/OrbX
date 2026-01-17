@@ -1,13 +1,14 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
 from kneed import KneeLocator
-import dbcv
+from metrics.quality_metrics import QualityMetrics
 from tqdm import tqdm
 
 class DBSCANClusterer:
 
-    def __init__(self, min_samples_range=range(2, 12)):
+    def __init__(self, min_samples_range=range(2, 30)):
         self.min_samples_range = min_samples_range
+        self.quality_metrics = QualityMetrics()
 
     def run(self, distance_matrix: np.ndarray, X: np.ndarray):
         return self.fit(distance_matrix, X)
@@ -27,7 +28,8 @@ class DBSCANClusterer:
             return -1.0, labels
 
         try:
-            score = dbcv.dbcv(X, labels)
+            # CHANGE IF YOU NEED ANOTHER METRIC FOR QUALITY
+            score = self.quality_metrics.s_dbw_score_wrapper(X, labels)
             return score, labels
         except Exception:
             return -1.0, labels
@@ -55,7 +57,7 @@ class DBSCANClusterer:
         return k_distances[knee.elbow]
 
     def fit(self, distance_matrix: np.ndarray, X: np.ndarray):
-        best_score = -np.inf
+        best_score = np.inf
         best_labels = None
         best_params = None
 
@@ -67,7 +69,8 @@ class DBSCANClusterer:
             eps = self._find_optimal_eps(distance_matrix, min_samples)
             score, labels = self._evaluate(X, distance_matrix, eps, min_samples)
 
-            if score > best_score:
+            # lower score is better clustering
+            if score < best_score:
                 best_score = score
                 best_labels = labels
                 best_params = (eps, min_samples)

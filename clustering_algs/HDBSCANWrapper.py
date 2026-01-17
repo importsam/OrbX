@@ -1,14 +1,14 @@
 import numpy as np
 from sklearn.cluster import HDBSCAN
-import dbcv
 from tqdm import tqdm
-
+from metrics.quality_metrics import QualityMetrics
 
 class HDBSCANClusterer:
 
-    def __init__(self, min_cluster_size=4, min_samples_range=range(2, 15)):
+    def __init__(self, min_cluster_size=4, min_samples_range=range(2, 30)):
         self.min_cluster_size = min_cluster_size
         self.min_samples_range = min_samples_range
+        self.quality_metrics = QualityMetrics()
 
     def run(self, distance_matrix: np.ndarray, X: np.ndarray):
         return self.fit(distance_matrix, X)
@@ -29,13 +29,18 @@ class HDBSCANClusterer:
             return -1.0, labels
 
         try:
-            score = dbcv.dbcv(X, labels)
+            # CHANGE IF YOU NEED ANOTHER METRIC FOR QUALITY
+            score = self.quality_metrics.s_dbw_score_wrapper(X, labels)
+
+            print(f"Min Samples: {min_samples}, Score: {score}")
+
             return score, labels
+        
         except Exception:
             return -1.0, labels
 
     def fit(self, distance_matrix: np.ndarray, X: np.ndarray):
-        best_score = -np.inf
+        best_score = np.inf
         best_labels = None
         best_min_samples = None
 
@@ -46,7 +51,8 @@ class HDBSCANClusterer:
         ):
             score, labels = self._evaluate(X, distance_matrix, min_samples)
 
-            if score > best_score:
+            # lower score is better clustering
+            if score < best_score:
                 best_score = score
                 best_labels = labels
                 best_min_samples = min_samples
@@ -63,6 +69,6 @@ class HDBSCANClusterer:
             f"HDBSCAN found {len(set(best_labels) - {-1})} clusters "
             f"(noise points: {(best_labels == -1).sum()})"
         )
-        print(f"Best DBCV score: {best_score:.4f}")
+        print(f"Best score: {best_score:.4f}")
 
         return best_labels

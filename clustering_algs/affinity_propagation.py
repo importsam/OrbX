@@ -3,12 +3,17 @@ import numpy as np
 from sklearn.metrics import silhouette_score
 # Add tqdm progress bar for preference sweep
 from tqdm import tqdm
-        
+from joblib import Parallel, delayed
+import numpy as np
+from sklearn.cluster import AffinityPropagation
+from metrics.quality_metrics import QualityMetrics
+
 class AffinityPropagationWrapper:
 
     def __init__(self):
         self.damping = 0.95
         self.preference = -0.0003
+        self.quality_metrics = QualityMetrics()
         
     def run(self, distance_matrix: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation (preference sweep)...")
@@ -28,7 +33,7 @@ class AffinityPropagationWrapper:
 
         return labels
 
-    def run_pref_test(self, distance_matrix: np.ndarray) -> np.ndarray:
+    def run_pref_optimization(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation (parallel preference sweep)...")
 
         normaliser = np.std(distance_matrix) ** 2
@@ -43,7 +48,7 @@ class AffinityPropagationWrapper:
             backend="loky"      # safe for sklearn
         )(
             delayed(_test_preference)(
-                pref, similarity_matrix, distance_matrix, self.damping
+                pref, similarity_matrix, X, self.damping, self.quality_metrics
             )
             for pref in preferences
         )
@@ -59,18 +64,13 @@ class AffinityPropagationWrapper:
 
         print(
             f"Selected preference={best_pref:.4f}, "
-            f"clusters={best_k}, silhouette={best_score:.3f}"
+            f"clusters={best_k}, best CH score={best_score:.3f}"
         )
 
         return best_labels
 
-
-from joblib import Parallel, delayed
-import numpy as np
-from sklearn.cluster import AffinityPropagation
-from sklearn.metrics import silhouette_score
-
-def _test_preference(pref, similarity_matrix, distance_matrix, damping):
+def _test_preference(pref, similarity_matrix, X, damping, quality_metrics):
+    
     model = AffinityPropagation(
         affinity='precomputed',
         damping=damping,
@@ -85,10 +85,6 @@ def _test_preference(pref, similarity_matrix, distance_matrix, damping):
     if n_clusters < 2:
         return None
 
-    score = silhouette_score(
-        distance_matrix,
-        labels,
-        metric='precomputed'
-    )
+    score = quality_metrics.calinski_harabasz_score_wrapper(X, labels)
 
     return pref, labels, n_clusters, score
