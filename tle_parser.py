@@ -37,8 +37,12 @@ class TLEParser:
             if i + 2 >= len(lines):
                 break
                 
+            name_line = lines[i].strip()
+            # Extract name (remove leading "0 " if present, or use the whole line)
+            name = name_line[2:].strip() if name_line.startswith('0 ') else name_line
+            
             sat_obj = self._parse_tle_group(
-                lines[i].strip(),
+                name_line,
                 lines[i+1].strip(), 
                 lines[i+2].strip()
             )
@@ -46,6 +50,7 @@ class TLEParser:
             # add to df 
             self.df = pd.concat([self.df, pd.DataFrame([{
                 'satNo': sat_obj.sat_no,
+                'name': name,
                 'line1': sat_obj.line1,
                 'line2': sat_obj.line2,
                 'inclination': sat_obj.inclination,

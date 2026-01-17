@@ -1,4 +1,5 @@
 import pandas as pd
+from SatelliteClustering.update_cesium_assets.ionop_czml import ionop_czml
 from configs import PathConfig, ClusterConfig, OrbitalConstants
 from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
@@ -6,6 +7,12 @@ from graph import Grapher
 from clustering_algs.cluster_wrapper import ClusterWrapper
 from tools.density_estimation import DensityEstimator
 import numpy as np
+import sys
+from pathlib import Path
+
+# Add update_cesium_assets to path to import build_czml
+sys.path.append(str(Path(__file__).parent / 'update_cesium_assets' / 'live'))
+from build_czml import build_czml
 
 class SatelliteClusteringApp:
 
@@ -114,6 +121,61 @@ class SatelliteClusteringApp:
         df_hdb = df.copy()
         df_hdb['label'] = hdbscan_labels
         self.graph.plot_clusters(df_hdb, self.path_config.output_plot / "hdbscan_clusters.html")
+        
+        # Generate CZML for Cesium visualization
+        print("\nGenerating CZML for Cesium visualization...")
+        self.run_cesium(df.copy(), distance_matrix.copy())
+    
+    def run_cesium(self, df: pd.DataFrame = None, distance_matrix: np.ndarray = None):
+        """
+        Generate CZML file for Cesium visualization from clustering dataframe.
+        
+        Args:
+            df: Dataframe with satellite data. If None, will use filtered dataframe.
+            distance_matrix: Distance matrix. If None, will be computed from df.
+        """
+        # If df not provided, get the filtered dataframe
+        if df is None:
+            df = self.tle_parser.df
+            # filter by inclination and apogee range
+            df = df[
+                (df['inclination'] >= self.cluster_config.inclination_range[0]) &
+                (df['inclination'] <= self.cluster_config.inclination_range[1]) &
+                (df['apogee'] >= self.cluster_config.apogee_range[0]) &
+                (df['apogee'] <= self.cluster_config.apogee_range[1])
+            ].copy()
+        
+        # Get or compute distance matrix if needed
+        if distance_matrix is None:
+            distance_matrix, key = get_distance_matrix(df.copy())
+            df = self._reorder_dataframe(df.copy(), key.copy())
+        else:
+            # If distance_matrix provided but no key, we still need to ensure proper ordering
+            _, key = get_distance_matrix(df.copy())
+            df = self._reorder_dataframe(df.copy(), key.copy())
+        
+        # Ensure density is assigned if not present
+        if 'density' not in df.columns:
+            df = self.density_estimator.assign_density(df.copy(), distance_matrix.copy())
+        
+        # Ensure name column exists (fallback to satNo if not present)
+        if 'name' not in df.columns:
+            df['name'] = df['satNo']
+        
+        print(f"Generating CZML for {len(df)} satellites...")
+        
+        # Build CZML file
+        build_czml(df)
+        
+        ACCESSTOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5OTMwYjJlMS0yYjBhLTQwMmMtYjJkZi1mZWZiY2RiYTNmN2UiLCJpZCI6MjQwODIwLCJpYXQiOjE3MzgzMDM2ODl9.h1pXOgujWRPoS6ZFc5wL-l5_XJnSyUsPZym3ssZj7TQ'
+  
+        try:
+            ionop_czml(ACCESSTOKEN)
+
+        except Exception as e:
+            print(f"Error: {e}")
+        
+        print(f"CZML file generated successfully at update_cesium_assets/live/data/output.czml")
     
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""

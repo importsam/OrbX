@@ -27,15 +27,15 @@ class ClusterWrapper:
         print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
         self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
 
-        optics_labels = self.optics.run(distance_matrix.copy())
+        optics_labels = self.optics.run(distance_matrix.copy(), X.copy())
         print(f"OPTICS found {len(set(optics_labels))} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, optics_labels)
         
-        dbscan_labels = self.dbscan.run(distance_matrix.copy(), X)
+        dbscan_labels = self.dbscan.run(distance_matrix.copy(), X.copy())
         print(f"DBSCAN found {len(set(dbscan_labels))} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_labels)
-        
-        hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X)
+
+        hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X.copy())
         print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_labels)
 
