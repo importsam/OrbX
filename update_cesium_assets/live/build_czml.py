@@ -124,14 +124,24 @@ def build_czml(df):
                     'apogee': row['apogee'],
                     'inclination': row['inclination'],
                     'density': row['density'],
-                    # 'orbit_colour_r': point_color[0],
-                    # 'orbit_colour_g': point_color[1],
-                    # 'orbit_colour_b': point_color[2]
+                    'cluster': int(row['cluster']),
+                    'orbit_colour_r': int(row['orbit_colour_r']),
+                    'orbit_colour_g': int(row['orbit_colour_g']),
+                    'orbit_colour_b': int(row['orbit_colour_b']),
                 },
+
                 'point': {
-                    'color': {'rgba': [255, 255, 0, 255]}, 
-                    'pixelSize': 2
+                    'color': {
+                        'rgba': [
+                            int(row['orbit_colour_r']),
+                            int(row['orbit_colour_g']),
+                            int(row['orbit_colour_b']),
+                            255
+                        ]
+                    },
+                    'pixelSize': 3
                 }
+
             })
     
         except Exception as e:

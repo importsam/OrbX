@@ -160,37 +160,52 @@ class SatelliteClusteringApp:
             _, key = get_distance_matrix(df.copy())
             df = self._reorder_dataframe(df.copy(), key.copy())
             
-        # Verify the dataframe still has the correct number of rows after reordering
-        expected_count = len(key['idx_satNo_dict'])
-        if len(df) != expected_count:
-            print(f"WARNING: Dataframe count mismatch after reordering! Expected {expected_count}, got {len(df)}")
-        
-        print(f"Final dataframe before CZML generation: {len(df)} satellites")
-        
-        # Ensure density is assigned if not present
         if 'density' not in df.columns:
             df = self.density_estimator.assign_density(df.copy(), distance_matrix.copy())
         
-        # Ensure name column exists (fallback to satNo if not present)
         if 'name' not in df.columns:
             df['name'] = df['satNo']
+            
+        orbit_points = self.get_points(df.copy())
+                
+        def assign_cluster_labels(
+            df: pd.DataFrame,
+            labels: np.ndarray,
+            label_name: str = "cluster"
+        ) -> pd.DataFrame:
+            df = df.copy()
+            df[label_name] = labels
+            return df
         
-        # Final safety check: ensure we're only including satellites in the configured range
-        df_filtered = df[
-            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
-            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
-            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
-            (df['apogee'] <= self.cluster_config.apogee_range[1])
-        ].copy()
+        labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        df = assign_cluster_labels(df, labels)
         
-        if len(df_filtered) != len(df):
-            print(f"WARNING: Filtered out {len(df) - len(df_filtered)} satellites outside the configured range")
-            print(f"Before filter: {len(df)}, After filter: {len(df_filtered)}")
-            df = df_filtered
+        import matplotlib.cm as cm
+        import matplotlib.colors as mcolors
+        def cluster_colors(labels, cmap_name="tab20"):
+            unique = sorted(set(labels))
+            cmap = cm.get_cmap(cmap_name, len(unique))
+
+            color_map = {}
+            for i, lab in enumerate(unique):
+                if lab == -1:
+                    color_map[lab] = [150, 150, 150, 255]  # noise = gray
+                else:
+                    rgba = cmap(i)
+                    color_map[lab] = [
+                        int(rgba[0]*255),
+                        int(rgba[1]*255),
+                        int(rgba[2]*255),
+                        255
+                    ]
+            return color_map
         
-        print(f"Generating CZML for {len(df)} satellites...")
-        print(f"  - Inclination range: {self.cluster_config.inclination_range}")
-        print(f"  - Apogee range: {self.cluster_config.apogee_range}")
+        color_map = cluster_colors(df['cluster'])
+
+        df['cluster_color'] = df['cluster'].map(color_map)
+        df[['orbit_colour_r','orbit_colour_g','orbit_colour_b','orbit_colour_a']] = \
+            pd.DataFrame(df['cluster_color'].tolist(), index=df.index)
+        
         
         # Build CZML file
         build_czml(df)
