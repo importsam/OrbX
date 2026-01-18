@@ -9,7 +9,6 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# Add update_cesium_assets to path to import build_czml and ionop_czml
 update_cesium_assets_path = Path(__file__).parent / 'update_cesium_assets'
 sys.path.append(str(update_cesium_assets_path))
 sys.path.append(str(update_cesium_assets_path / 'live'))
@@ -54,7 +53,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        self.cluster_wrapper.run_all(distance_matrix, orbit_points)
+        self.cluster_wrapper.run_all_optimizer(distance_matrix, orbit_points)
 
     def run_graphs(self):
         # Get the satellite data into a dataframe 
@@ -206,7 +205,9 @@ class SatelliteClusteringApp:
         df[['orbit_colour_r','orbit_colour_g','orbit_colour_b','orbit_colour_a']] = \
             pd.DataFrame(df['cluster_color'].tolist(), index=df.index)
         
+        # only keep the first couple of clusters
         
+        # df = df[df['cluster'].isin([0, 1, 2])]
         # Build CZML file
         build_czml(df)
         
