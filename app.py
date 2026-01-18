@@ -1,5 +1,4 @@
 import pandas as pd
-from SatelliteClustering.update_cesium_assets.ionop_czml import ionop_czml
 from configs import PathConfig, ClusterConfig, OrbitalConstants
 from tle_parser import TLEParser
 from tools.distance_matrix import get_distance_matrix
@@ -10,9 +9,12 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# Add update_cesium_assets to path to import build_czml
-sys.path.append(str(Path(__file__).parent / 'update_cesium_assets' / 'live'))
+# Add update_cesium_assets to path to import build_czml and ionop_czml
+update_cesium_assets_path = Path(__file__).parent / 'update_cesium_assets'
+sys.path.append(str(update_cesium_assets_path))
+sys.path.append(str(update_cesium_assets_path / 'live'))
 from build_czml import build_czml
+from ionop_czml import ionop_czml
 
 class SatelliteClusteringApp:
 
@@ -137,6 +139,7 @@ class SatelliteClusteringApp:
         # If df not provided, get the filtered dataframe
         if df is None:
             df = self.tle_parser.df
+            print(f"Starting with {len(df)} satellites from TLE parser")
             # filter by inclination and apogee range
             df = df[
                 (df['inclination'] >= self.cluster_config.inclination_range[0]) &
@@ -144,15 +147,25 @@ class SatelliteClusteringApp:
                 (df['apogee'] >= self.cluster_config.apogee_range[0]) &
                 (df['apogee'] <= self.cluster_config.apogee_range[1])
             ].copy()
+            print(f"After filtering: {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
+        else:
+            print(f"Received dataframe with {len(df)} satellites")
         
         # Get or compute distance matrix if needed
         if distance_matrix is None:
             distance_matrix, key = get_distance_matrix(df.copy())
             df = self._reorder_dataframe(df.copy(), key.copy())
         else:
-            # If distance_matrix provided but no key, we still need to ensure proper ordering
+            # If distance_matrix provided, create key from the current df to ensure they match
             _, key = get_distance_matrix(df.copy())
             df = self._reorder_dataframe(df.copy(), key.copy())
+            
+        # Verify the dataframe still has the correct number of rows after reordering
+        expected_count = len(key['idx_satNo_dict'])
+        if len(df) != expected_count:
+            print(f"WARNING: Dataframe count mismatch after reordering! Expected {expected_count}, got {len(df)}")
+        
+        print(f"Final dataframe before CZML generation: {len(df)} satellites")
         
         # Ensure density is assigned if not present
         if 'density' not in df.columns:
@@ -162,7 +175,22 @@ class SatelliteClusteringApp:
         if 'name' not in df.columns:
             df['name'] = df['satNo']
         
+        # Final safety check: ensure we're only including satellites in the configured range
+        df_filtered = df[
+            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
+            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
+            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
+            (df['apogee'] <= self.cluster_config.apogee_range[1])
+        ].copy()
+        
+        if len(df_filtered) != len(df):
+            print(f"WARNING: Filtered out {len(df) - len(df_filtered)} satellites outside the configured range")
+            print(f"Before filter: {len(df)}, After filter: {len(df_filtered)}")
+            df = df_filtered
+        
         print(f"Generating CZML for {len(df)} satellites...")
+        print(f"  - Inclination range: {self.cluster_config.inclination_range}")
+        print(f"  - Apogee range: {self.cluster_config.apogee_range}")
         
         # Build CZML file
         build_czml(df)

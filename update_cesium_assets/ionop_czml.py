@@ -1,13 +1,17 @@
 import boto3
 import requests
 import time
+import os
+from pathlib import Path
 
 def ionop_czml(ACCESSTOKEN):
    
     ACCESSTOKEN = ACCESSTOKEN
     
     BASEURL     = 'https://api.cesium.com/v1/assets'
-    FILEPATH    = f'live/data/output.czml'
+    # Get the path relative to this file's location
+    # This file is in update_cesium_assets/, so we go to live/data/output.czml
+    FILEPATH    = os.path.join(os.path.dirname(__file__), 'live', 'data', 'output.czml')
 
     headers = {'Authorization': f'Bearer {ACCESSTOKEN}'}
 
