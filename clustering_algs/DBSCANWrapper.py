@@ -25,13 +25,15 @@ class DBSCANClusterer:
 
         unique_clusters = set(labels) - {-1}
         if len(unique_clusters) < 2:
+            print("!!!DBSCAN found less than 2 clusters, SET SCORE TO -1.0!!!")
             return -1.0, labels
-
         try:
             # CHANGE IF YOU NEED ANOTHER METRIC FOR QUALITY
-            score = self.quality_metrics.s_dbw_score_wrapper(X, labels)
+            score = self.quality_metrics.dbcv_score_wrapper(X, labels)
             return score, labels
-        except Exception:
+        except Exception as e:
+            print("!!!DBCV calculation failed, SET SCORE TO -1.0!!!\nError details:")
+            print(e)
             return -1.0, labels
 
     def _find_optimal_eps(self, distance_matrix, min_samples):
@@ -52,6 +54,7 @@ class DBSCANClusterer:
         )
 
         if knee.elbow is None:
+            print("!!!KneeLocator failed to find an elbow, using 90th percentile as eps!!!")
             return np.percentile(k_distances, 90)
 
         return k_distances[knee.elbow]
@@ -69,8 +72,8 @@ class DBSCANClusterer:
             eps = self._find_optimal_eps(distance_matrix, min_samples)
             score, labels = self._evaluate(X, distance_matrix, eps, min_samples)
 
-            # lower score is better clustering
-            if score < best_score:
+            # Higher score is better clustering
+            if score > best_score:
                 best_score = score
                 best_labels = labels
                 best_params = (eps, min_samples)

@@ -32,12 +32,12 @@ class OPTICSWrapper:
                 )
                 
                 labels = model.fit_predict(distance_matrix)
-                score = self.quality_metrics.s_dbw_score_wrapper(X, labels)
-                
-                print(f"Min Samples: {min_samples}, S_Dbw Score: {score}")
-                
-                # Lower score is better clustering
-                if score < best_score:
+                score = self.quality_metrics.dbcv_score_wrapper(X, labels)
+
+                print(f"Min Samples: {min_samples}, DBCV Score: {score}")
+
+                # Higher score is better clustering
+                if score > best_score:
                     best_score = score
                     best_min_samples = min_samples
                     
@@ -45,7 +45,7 @@ class OPTICSWrapper:
                 print(f"Error with Min Samples {min_samples}: {e}")
                 continue
         
-        print(f"\nBest Min Samples: {best_min_samples}, Best S_Dbw Score: {best_score}")
+        print(f"\nBest Min Samples: {best_min_samples}, Best DBCV Score: {best_score}")
         
         # Run again with best settings
         model = OPTICS(

@@ -1,13 +1,13 @@
 from sklearn.metrics import calinski_harabasz_score, silhouette_score, davies_bouldin_score
 import numpy as np
-from DBCV import DBCV
+from metrics.DBCV import DBCV
 from s_dbw import S_Dbw
 from viasckde import viasckde_score
 
 class QualityMetrics:
     
     def __init__(self):
-        self.dbcv = DBCV()
+        pass
     
     def quality_metrics(self, X: np.ndarray, distance_matrix: np.ndarray, labels: np.ndarray) -> dict:
         """Compute clustering quality metrics"""
@@ -21,12 +21,13 @@ class QualityMetrics:
             s_Dbw_score = self.s_dbw_score_wrapper(X, labels)
             viasckde = self.viasckde_score_wrapper(X, labels)
             
+            print("Clustering Quality Metrics:")
+            print(f"Primary - DBCV Score: {dbcv_score}")
+            print(f"Secondary - S_Dbw Score: {s_Dbw_score}\n")
+            print(f"Sanity - Viasckde Score: {viasckde}\n")
             print(f"Calinski-Harabasz Score: {ch_score}")
             print(f"Silhouette Score: {silhouette}")
             print(f"Davies-Bouldin Score: {db_score}")
-            print(f"DBCV Score: {dbcv_score}\n")
-            print(f"S_Dbw Score: {s_Dbw_score}\n")
-            print(f"Viasckde Score: {viasckde}\n")
             
             return {
                 'Calinski-Harabasz': ch_score,
@@ -55,7 +56,7 @@ class QualityMetrics:
     
     def dbcv_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute DBCV Score"""
-        return self.dbcv(X, labels)
+        return DBCV(X, labels)
     
     def s_dbw_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute S_Dbw Score"""

@@ -77,6 +77,7 @@ class ClusterWrapper:
         print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_labels)
         
+        
         return {
             "affinity": affinity_labels,
             "optics": optics_labels,
@@ -120,7 +121,6 @@ class ClusterWrapper:
         return kmeans_labels
     
     def run_spectral(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        from clustering_algs.SpectralWrapper import SpectralWrapper
 
         spectral_labels = self.spectral.run(distance_matrix.copy(), X.copy())
         print(f"Spectral Clustering found {len(set(spectral_labels))} clusters")

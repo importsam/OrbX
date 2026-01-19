@@ -58,13 +58,14 @@ class AffinityPropagationWrapper:
         if not results:
             raise RuntimeError("Affinity Propagation failed to find a valid clustering")
 
+        # We want the highest score, so we use max()
         best_pref, best_labels, best_k, best_score = max(
             results, key=lambda x: x[3]
         )
 
         print(
             f"Selected preference={best_pref:.4f}, "
-            f"clusters={best_k}, best CH score={best_score:.3f}"
+            f"clusters={best_k}, best DBCV score={best_score:.3f}"
         )
 
         return best_labels
@@ -83,8 +84,9 @@ def _test_preference(pref, similarity_matrix, X, damping, quality_metrics):
     n_clusters = len(np.unique(labels))
 
     if n_clusters < 2:
+        print("!!!Affinity Propagation found less than 2 clusters, skipping preference!!!")
         return None
 
-    score = quality_metrics.calinski_harabasz_score_wrapper(X, labels)
+    score = quality_metrics.dbcv_score_wrapper(X, labels)
 
     return pref, labels, n_clusters, score
