@@ -7,8 +7,8 @@ class HDBSCANClusterer:
 
     def __init__(
         self,
-        min_cluster_size_range=[300, 250, 200, 100, 50, 5],
-        min_samples_range=[5],
+        min_cluster_size_range=[2],
+        min_samples_range=[2],
     ):
         self.min_cluster_size_range = min_cluster_size_range
         self.min_samples_range = min_samples_range
@@ -26,7 +26,7 @@ class HDBSCANClusterer:
             min_samples=min_samples,
             metric="precomputed",
             cluster_selection_method="eom",
-            n_jobs=-1,
+            n_jobs=1,
         )
 
         labels = clusterer.fit_predict(distance_matrix)
@@ -37,6 +37,7 @@ class HDBSCANClusterer:
             return -1.0, labels
 
         try:
+            print("Started DBCV calculation...", flush=True)
             score = self.quality_metrics.dbcv_score_wrapper(X, labels)
             print(
                 f"min_cluster_size={min_cluster_size}, "

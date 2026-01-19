@@ -1,6 +1,6 @@
 from sklearn.metrics import calinski_harabasz_score, silhouette_score, davies_bouldin_score
 import numpy as np
-from metrics.DBCV import DBCV
+import dbcv
 from s_dbw import S_Dbw
 from viasckde import viasckde_score
 
@@ -56,7 +56,7 @@ class QualityMetrics:
     
     def dbcv_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute DBCV Score"""
-        return DBCV(X, labels)
+        return dbcv.dbcv(X, labels)
     
     def s_dbw_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute S_Dbw Score"""
