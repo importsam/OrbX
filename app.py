@@ -29,7 +29,7 @@ class SatelliteClusteringApp:
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
         self.density_estimator = DensityEstimator()
-        
+
     def run_metrics(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
@@ -53,7 +53,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        self.cluster_wrapper.run_all_optimizer(distance_matrix, orbit_points)
+        self.cluster_wrapper.run_spectral(distance_matrix, orbit_points)
 
     def run_graphs(self):
         # Get the satellite data into a dataframe 

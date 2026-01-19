@@ -6,6 +6,7 @@ from clustering_algs.agglomerative_clustering import AgglomerativeClustererWrapp
 from clustering_algs.DBSCANWrapper import DBSCANClusterer
 from clustering_algs.HDBSCANWrapper import HDBSCANClusterer
 from clustering_algs.KmeansWrapper import KMeansWrapper
+from clustering_algs.SpectralWrapper import SpectralWrapper
 from metrics.quality_metrics import QualityMetrics
 
 import numpy as np
@@ -20,6 +21,7 @@ class ClusterWrapper:
         self.hdbscan = HDBSCANClusterer()
         self.quality_metrics = QualityMetrics()
         self.kmeans = KMeansWrapper()
+        self.spectral = SpectralWrapper()
         
     def run_all(self, distance_matrix: np.ndarray, X: np.ndarray) -> None:
         
@@ -116,3 +118,12 @@ class ClusterWrapper:
         self.quality_metrics.quality_metrics(X, distance_matrix, kmeans_labels)
 
         return kmeans_labels
+    
+    def run_spectral(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
+        from clustering_algs.SpectralWrapper import SpectralWrapper
+
+        spectral_labels = self.spectral.run(distance_matrix.copy(), X.copy())
+        print(f"Spectral Clustering found {len(set(spectral_labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, spectral_labels)
+
+        return spectral_labels
