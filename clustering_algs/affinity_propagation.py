@@ -10,40 +10,48 @@ from sklearn.cluster import AffinityPropagation
 from metrics.quality_metrics import QualityMetrics 
 from models import ClusterResult
 class AffinityPropagationWrapper:
+    
+    
+    """
+        The problem here is that preference needs to be defined more uniquely for each 
+        orbit I feel. try using the density score for each as a preference.
+    
+    """
 
     def __init__(self):
         self.damping = 0.95
-        self.preference = 1
+        self.preference = -10
         self.quality_metrics = QualityMetrics()
         
     def run(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
         print("Running Affinity Propagation (preference sweep)...")
         
-        normaliser = np.std(distance_matrix) ** 2
-        similarity_matrix = (-distance_matrix / normaliser)
+        # normaliser = np.std(distance_matrix) ** 2
+        # similarity_matrix = (-distance_matrix / normaliser)
+        
+        similarity_matrix = -distance_matrix ** 2
 
         model = AffinityPropagation(
-            affinity='precomputed',
+            affinity='euclidean',
             damping=self.damping,
             preference=self.preference,
             max_iter=500,
             random_state=42
         )
     
-        labels = model.fit_predict(similarity_matrix)
+        labels = model.fit_predict(X)
 
         return labels
 
     def run_pref_optimization(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
         print("Running Affinity Propagation (parallel preference sweep)...")
 
-        normaliser = np.median(distance_matrix) ** 2
-        similarity_matrix = -distance_matrix / normaliser
+        similarity_matrix = -distance_matrix ** 2
 
         """-- this was mega clusters (15 for 2500 points)"""
-        # pref_min = np.min(similarity_matrix)
-        # pref_med = np.median(similarity_matrix)
-        # preferences = np.linspace(pref_min, pref_med, 25)
+        pref_min = np.min(similarity_matrix)
+        pref_med = np.median(similarity_matrix)
+        preferences = np.linspace(pref_min, pref_med, 25)
         
         # similarity_matrix is full (n x n), symmetric with diagonal (self-similarities)
         sim_vals = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
