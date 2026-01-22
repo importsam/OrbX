@@ -53,7 +53,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        cluster_result_dict = self.cluster_wrapper.run_all_optimizer(distance_matrix, orbit_points)
     
     def run_experiment(self):
         # Get the satellite data into a dataframe 
@@ -92,14 +92,14 @@ class SatelliteClusteringApp:
             cluster_result_dict: dict of ClusterResult objects from clustering algorithms
         """
         
-        affinity_results = cluster_result_dict["affinity_results"]
+        # affinity_results = cluster_result_dict["affinity_results"]
         optics_results = cluster_result_dict["optics_results"]
         dbscan_results = cluster_result_dict["dbscan_results"]
         hdbscan_results = cluster_result_dict["hdbscan_results"]
         
         # rank based on DBCV score
         results_list = [
-            ("Affinity Propagation", affinity_results),
+            # ("Affinity Propagation", affinity_results),
             ("OPTICS", optics_results),
             ("DBSCAN", dbscan_results),
             ("HDBSCAN", hdbscan_results)
@@ -132,6 +132,19 @@ class SatelliteClusteringApp:
             print("\nSkipped algorithms (no acceptable clustering found):")
             for name in skipped:
                 print(f" - {name}")
+                
+                
+        """
+        What we need this to do now is to characterise what the clusters look like inside. 
+        There are four characterisations of clusters:
+        Mega cluster - 100+ sats
+        Major cluster - 20-100
+        Minor cluster - 5-20 sats
+        Micro cluster - 2-5 sats
+        
+        For these, I need it to rank the top 50 and save in a csv the following:
+        Cluster ID, Tier, Size, Altitude Range
+        """
             
     def run_graphs(self):
         # Get the satellite data into a dataframe 

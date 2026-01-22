@@ -22,8 +22,8 @@ class Satellite:
 @dataclass 
 class ClusterResult:
     """Holds the best result of a clustering operation"""
-    labels: np.ndarray
-    n_clusters: int
-    n_noise: int
+    labels: np.ndarray = None
+    n_clusters: int = 0
+    n_noise: int = 0
     dbcv_score: float = None
     s_Dbw_score: float = None
