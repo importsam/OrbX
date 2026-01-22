@@ -33,6 +33,15 @@ class OPTICSWrapper:
                 )
                 
                 labels = model.fit_predict(distance_matrix)
+                
+                acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+                
+                if not acceptance["acceptable"]:
+                    print(
+                        f"Rejected ({acceptance['fail_reasons']})"
+                    )
+                    return None
+
                 score = self.quality_metrics.dbcv_score_wrapper(X, labels)
 
                 print(f"Min Samples: {min_samples}, DBCV Score: {score}")

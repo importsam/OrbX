@@ -73,6 +73,14 @@ class DBSCANClusterer:
             eps = self._find_optimal_eps(distance_matrix, min_samples)
             score, labels = self._evaluate(X, distance_matrix, eps, min_samples)
 
+            acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+
+            if not acceptance["acceptable"]:
+                print(
+                    f"Rejected ({acceptance['fail_reasons']})"
+                )
+                return None
+
             # Higher score is better clustering
             if score > best_score:
                 best_score = score

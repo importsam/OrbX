@@ -70,6 +70,14 @@ class HDBSCANClusterer:
                     min_cluster_size,
                     min_samples,
                 )
+                
+                acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+                
+                if not acceptance["acceptable"]:
+                    print(
+                        f"Rejected ({acceptance['fail_reasons']})"
+                    )
+                    return None
 
                 if score > best_score:
                     best_score = score

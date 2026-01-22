@@ -87,9 +87,9 @@ class ClusterWrapper:
             "dbscan_results": dbscan_results,
             "hdbscan_results": hdbscan_results
         }
-
+        
     def run_affinity(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
+        affinity_labels = self.affinity_propagation.run(distance_matrix.copy(), X.copy())
         print(f"Affinity Propagation found {len(set(affinity_labels))} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
         

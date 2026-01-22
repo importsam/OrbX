@@ -31,6 +31,31 @@ class SatelliteClusteringApp:
         self.density_estimator = DensityEstimator()
 
     def run_metrics(self):
+         # Get the satellite data into a dataframe 
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
+        df = df[
+            (df['inclination'] >= self.cluster_config.inclination_range[0]) &
+            (df['inclination'] <= self.cluster_config.inclination_range[1]) &
+            (df['apogee'] >= self.cluster_config.apogee_range[0]) &
+            (df['apogee'] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}")
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+        
+        # Clustering 
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+        # init the clustering algs
+        cluster_result_dict = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+    
+    def run_experiment(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
         # filter by inclination and apogee range
@@ -79,14 +104,35 @@ class SatelliteClusteringApp:
             ("DBSCAN", dbscan_results),
             ("HDBSCAN", hdbscan_results)
         ]
-        results_list.sort(key=lambda x: x[1].dbcv_score, reverse=True)
-        print("\nClustering Results Ranked by DBCV Score:")
-        for name, result in results_list:
-            print(f"{name}: Clusters={result.n_clusters}, Noise={result.n_noise}, DBCV Score={result.dbcv_score:.4f}, S_Dbw Score={result.s_Dbw_score:.4f}")
-            
-            
         
+        valid_results = [
+            (name, result)
+            for name, result in results_list
+            if result is not None
+        ]
+        
+        if not valid_results:
+            raise RuntimeError("No clustering algorithm produced a valid result")
 
+        valid_results.sort(key=lambda x: x[1].dbcv_score, reverse=True)
+        
+        print("\nClustering Results Ranked by DBCV Score:")
+
+        for name, result in valid_results:
+            print(
+                f"{name}: "
+                f"Clusters={result.n_clusters}, "
+                f"Noise={result.n_noise}, "
+                f"DBCV Score={result.dbcv_score:.4f}, "
+                f"S_Dbw Score={result.s_Dbw_score:.4f}"
+            )
+
+        skipped = [name for name, result in results_list if result is None]
+        if skipped:
+            print("\nSkipped algorithms (no acceptable clustering found):")
+            for name in skipped:
+                print(f" - {name}")
+            
     def run_graphs(self):
         # Get the satellite data into a dataframe 
         df = self.tle_parser.df
