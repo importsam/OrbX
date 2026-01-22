@@ -1,6 +1,7 @@
 from sklearn.cluster import OPTICS
 import numpy as np
 from metrics.quality_metrics import QualityMetrics
+from models import ClusterResult
 
 class OPTICSWrapper:
     def __init__(self):
@@ -19,11 +20,11 @@ class OPTICSWrapper:
         labels = model.fit_predict(distance_matrix)
         return labels
     
-    def run_pref_optimization(self, distance_matrix, X):
-        best_score = np.inf
+    def run_pref_optimization(self, distance_matrix, X) -> ClusterResult:
+        best_score = -np.inf
         best_min_samples = None
         
-        for min_samples in range(2, 30):
+        for min_samples in range(2, 10):
             try:
                 model = OPTICS(
                     min_samples=min_samples,
@@ -54,32 +55,10 @@ class OPTICSWrapper:
             metric='precomputed'
         )
         
-        return model.fit_predict(distance_matrix)
-    
-    # def run_parameter_test(self, distance_matrix, X):
-    #     for min_samples in range(2, 30):
-    #         try:
-    #             model = OPTICS(
-    #                 min_samples=min_samples,
-    #                 max_eps=self.max_eps,
-    #                 metric='precomputed'
-    #             )
-                
-    #             labels = model.fit_predict(distance_matrix)
-
-    #             dbcv_score = self.quality_metrics.quality_metrics(X, labels)
-                
-    #             print(f"Min Samples: {min_samples}, DBCV Score: {dbcv_score}")
-    #         except Exception as e:
-    #             print(f"Error with Min Samples {min_samples}: {e}")
-    #             continue
-                
-    # def run_X(self, X):
-    #     model = OPTICS(
-    #         min_samples=self.min_samples,
-    #         max_eps=self.max_eps,
-    #         metric='euclidean'
-    #     )
+        best_labels = model.fit_predict(distance_matrix)
         
-    #     labels = model.fit_predict(X)
-    #     return labels
+        cluster_result_obj = ClusterResult(best_labels, len(set(best_labels)), 
+                                           (best_labels == -1).sum(), best_score,
+                                           self.quality_metrics.s_dbw_score_wrapper(X, best_labels))
+
+        return cluster_result_obj

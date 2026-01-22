@@ -53,7 +53,39 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
+        cluster_result_dict = self.cluster_wrapper.run_all_optimizer(distance_matrix, orbit_points)
+        self.process_post_clustering(cluster_result_dict)
+        
+        return None
+        
+    
+    def process_post_clustering(self, cluster_result_dict):
+        """
+        Process the clustering results from each algorithm and prepare for visualization.
+        
+        Args:
+            cluster_result_dict: dict of ClusterResult objects from clustering algorithms
+        """
+        
+        affinity_results = cluster_result_dict["affinity_results"]
+        optics_results = cluster_result_dict["optics_results"]
+        dbscan_results = cluster_result_dict["dbscan_results"]
+        hdbscan_results = cluster_result_dict["hdbscan_results"]
+        
+        # rank based on DBCV score
+        results_list = [
+            ("Affinity Propagation", affinity_results),
+            ("OPTICS", optics_results),
+            ("DBSCAN", dbscan_results),
+            ("HDBSCAN", hdbscan_results)
+        ]
+        results_list.sort(key=lambda x: x[1].dbcv_score, reverse=True)
+        print("\nClustering Results Ranked by DBCV Score:")
+        for name, result in results_list:
+            print(f"{name}: Clusters={result.n_clusters}, Noise={result.n_noise}, DBCV Score={result.dbcv_score:.4f}, S_Dbw Score={result.s_Dbw_score:.4f}")
+            
+            
+        
 
     def run_graphs(self):
         # Get the satellite data into a dataframe 

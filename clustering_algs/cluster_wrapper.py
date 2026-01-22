@@ -8,6 +8,7 @@ from clustering_algs.HDBSCANWrapper import HDBSCANClusterer
 from clustering_algs.KmeansWrapper import KMeansWrapper
 from clustering_algs.SpectralWrapper import SpectralWrapper
 from metrics.quality_metrics import QualityMetrics
+from models import ClusterResult
 
 import numpy as np
 
@@ -55,34 +56,36 @@ class ClusterWrapper:
         # print(f"Star Clustering found {len(set(star_labels))} clusters")
         # self.quality_metrics.quality_metrics(X, star_labels)
         
-    def run_all_optimizer(self, distance_matrix: np.ndarray, X: np.ndarray) -> None:
+    def run_all_optimizer(self, distance_matrix: np.ndarray, X: np.ndarray):
         """
         What this will do is run all clustering algs with hyperparameter optimization
         against some elected quality metric
+        
+        Returns:
+            dict of ClusterResult objects for each clustering algorithm
         """
         
-        affinity_labels = self.affinity_propagation.run_pref_optimization(distance_matrix.copy(), X.copy())
-        print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
-        self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
+        affinity_results = self.affinity_propagation.run_pref_optimization(distance_matrix.copy(), X.copy())
+        print(f"Affinity Propagation found {len(set(affinity_results.labels))} clusters\n")
+        self.quality_metrics.quality_metrics(X, distance_matrix, affinity_results.labels)
 
-        optics_labels = self.optics.run_pref_optimization(distance_matrix.copy(), X.copy())
-        print(f"OPTICS found {len(set(optics_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, optics_labels)
+        optics_results = self.optics.run_pref_optimization(distance_matrix.copy(), X.copy())
+        print(f"OPTICS found {len(set(optics_results.labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
+
+        dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
+        print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_results.labels)
         
-        dbscan_labels = self.dbscan.run(distance_matrix.copy(), X.copy())
-        print(f"DBSCAN found {len(set(dbscan_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_labels)
-        
-        hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X.copy())
-        print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_labels)
-        
-        
+        hdbscan_results = self.hdbscan.run(distance_matrix.copy(), X.copy())
+        print(f"HDBSCAN found {len(set(hdbscan_results.labels) - {-1})} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_results.labels)
+
         return {
-            "affinity": affinity_labels,
-            "optics": optics_labels,
-            "dbscan": dbscan_labels,
-            "hdbscan": hdbscan_labels
+            "affinity_results": affinity_results,
+            "optics_results": optics_results,
+            "dbscan_results": dbscan_results,
+            "hdbscan_results": hdbscan_results
         }
 
     def run_affinity(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:

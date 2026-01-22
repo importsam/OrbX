@@ -17,3 +17,13 @@ class Satellite:
     def __post_init__(self):
         # Normalize satellite number
         self.sat_no = str(self.sat_no).replace('.0', '').zfill(5)
+        
+        
+@dataclass 
+class ClusterResult:
+    """Holds the best result of a clustering operation"""
+    labels: np.ndarray
+    n_clusters: int
+    n_noise: int
+    dbcv_score: float = None
+    s_Dbw_score: float = None

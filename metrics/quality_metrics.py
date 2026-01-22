@@ -13,7 +13,6 @@ class QualityMetrics:
         """Compute clustering quality metrics"""
         
         try:
-            
             ch_score = self.calinski_harabasz_score_wrapper(X, labels)
             silhouette = self.silhouette_score_wrapper(distance_matrix, labels)
             db_score = self.davies_bouldin_score_wrapper(X, labels)
@@ -55,9 +54,17 @@ class QualityMetrics:
         return davies_bouldin_score(X, labels)
     
     def dbcv_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
-        """Compute DBCV Score"""
-        return dbcv.dbcv(X, labels)
-    
+        """Compute DBCV Score
+        
+        We have to remove any duplicate points for dbcv to work properly
+        """
+        
+        X_unique, unique_idx = np.unique(X, axis=0, return_index=True)
+
+        labels_unique = labels[unique_idx]
+
+        return dbcv.dbcv(X_unique, labels_unique)
+
     def s_dbw_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute S_Dbw Score"""
         return S_Dbw(X, labels, centers_id=None, method='Tong', alg_noise='filter', centr='mean', nearest_centr=True, metric='euclidean')

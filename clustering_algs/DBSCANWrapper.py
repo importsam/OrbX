@@ -2,11 +2,12 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 from kneed import KneeLocator
 from metrics.quality_metrics import QualityMetrics
+from models import ClusterResult
 from tqdm import tqdm
 
 class DBSCANClusterer:
 
-    def __init__(self, min_samples_range=range(2, 30)):
+    def __init__(self, min_samples_range=range(2, 10)):
         self.min_samples_range = min_samples_range
         self.quality_metrics = QualityMetrics()
 
@@ -59,8 +60,8 @@ class DBSCANClusterer:
 
         return k_distances[knee.elbow]
 
-    def fit(self, distance_matrix: np.ndarray, X: np.ndarray):
-        best_score = np.inf
+    def fit(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
+        best_score = -np.inf
         best_labels = None
         best_params = None
 
@@ -90,5 +91,9 @@ class DBSCANClusterer:
             f"(noise points: {(best_labels == -1).sum()})"
         )
         print(f"Best DBCV score: {best_score:.4f}")
+        
+        cluster_result_obj = ClusterResult(best_labels, len(set(best_labels)), 
+                                           (best_labels == -1).sum(), best_score,
+                                           self.quality_metrics.s_dbw_score_wrapper(X, best_labels))
 
-        return best_labels
+        return cluster_result_obj

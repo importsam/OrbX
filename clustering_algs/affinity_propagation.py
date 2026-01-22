@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 from metrics.quality_metrics import QualityMetrics
-
+from models import ClusterResult
 class AffinityPropagationWrapper:
 
     def __init__(self):
@@ -33,7 +33,7 @@ class AffinityPropagationWrapper:
 
         return labels
 
-    def run_pref_optimization(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
+    def run_pref_optimization(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
         print("Running Affinity Propagation (parallel preference sweep)...")
 
         normaliser = np.std(distance_matrix) ** 2
@@ -68,7 +68,11 @@ class AffinityPropagationWrapper:
             f"clusters={best_k}, best DBCV score={best_score:.3f}"
         )
 
-        return best_labels
+        cluster_result_obj = ClusterResult(best_labels, len(set(best_labels)), 
+                                           (best_labels == -1).sum(), best_score,
+                                           self.quality_metrics.s_dbw_score_wrapper(X, best_labels))
+
+        return cluster_result_obj
 
 def _test_preference(pref, similarity_matrix, X, damping, quality_metrics):
     
