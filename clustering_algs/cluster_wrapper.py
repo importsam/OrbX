@@ -66,16 +66,18 @@ class ClusterWrapper:
         """
         
         affinity_results = self.affinity_propagation.run_pref_optimization(distance_matrix.copy(), X.copy())
-        print(f"Affinity Propagation found {len(set(affinity_results.labels))} clusters\n")
-        self.quality_metrics.quality_metrics(X, distance_matrix, affinity_results.labels)
+        if affinity_results:
+            print(f"Affinity Propagation found {len(set(affinity_results.labels))} clusters\n")
+            self.quality_metrics.quality_metrics(X, distance_matrix, affinity_results.labels)
 
         optics_results = self.optics.run_pref_optimization(distance_matrix.copy(), X.copy())
         print(f"OPTICS found {len(set(optics_results.labels))} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
 
         dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
-        print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_results.labels)
+        if dbscan_results:
+            print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
+            self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_results.labels)
         
         hdbscan_results = self.hdbscan.run(distance_matrix.copy(), X.copy())
         print(f"HDBSCAN found {len(set(hdbscan_results.labels) - {-1})} clusters")

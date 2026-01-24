@@ -8,6 +8,8 @@ from tools.density_estimation import DensityEstimator
 import numpy as np
 import sys
 from pathlib import Path
+from models import ClusterResult
+import os
 
 update_cesium_assets_path = Path(__file__).parent / 'update_cesium_assets'
 sys.path.append(str(update_cesium_assets_path))
@@ -79,12 +81,12 @@ class SatelliteClusteringApp:
         """
         # init the clustering algs
         cluster_result_dict = self.cluster_wrapper.run_all_optimizer(distance_matrix, orbit_points)
-        self.process_post_clustering(cluster_result_dict)
+        self.process_post_clustering(cluster_result_dict, df)
         
         return None
         
     
-    def process_post_clustering(self, cluster_result_dict):
+    def process_post_clustering(self, cluster_result_dict, df):
         """
         Process the clustering results from each algorithm and prepare for visualization.
         
@@ -145,6 +147,89 @@ class SatelliteClusteringApp:
         For these, I need it to rank the top 50 and save in a csv the following:
         Cluster ID, Tier, Size, Altitude Range
         """
+        
+        best_name, best_result = valid_results[0]
+
+        print(f"\nCharacterising clusters for algorithm: {best_name}")
+
+        self.save_cluster_characterisation(
+            df=df,
+            result=best_result,
+            out_path="data/cluster_characterisation.csv",
+            top_k=50,
+        )
+        
+    def save_cluster_characterisation(
+        self,
+        df: pd.DataFrame,
+        result: ClusterResult,
+        out_path: str = "data/cluster_characterisation.csv",
+        top_k: int = 50,
+    ):
+        
+        labels = result.labels
+
+        if len(df) != len(labels):
+            raise ValueError(
+                f"Label / dataframe mismatch: df={len(df)}, labels={len(labels)}"
+            )
+
+        df = df.copy()
+        df["cluster_id"] = labels
+        
+        # drop noise
+        df = df[df["cluster_id"] != -1]
+
+        cluster_rows = []
+
+        for cluster_id, g in df.groupby("cluster_id"):
+            size = len(g)
+            tier = self.cluster_tier(size)
+
+            if tier == "Ignore":
+                continue
+
+            altitude_min = g["apogee"].min()
+            altitude_max = g["apogee"].max()
+
+            cluster_rows.append({
+                "Cluster ID": int(cluster_id),
+                "Tier": tier,
+                "Size": size,
+                "Altitude Range (km)": f"{altitude_min:.1f} - {altitude_max:.1f}",
+                "Min Altitude (km)": altitude_min,
+                "Max Altitude (km)": altitude_max,
+            })
+
+        if not cluster_rows:
+            raise RuntimeError("No valid clusters found for characterisation")
+
+        clusters_df = pd.DataFrame(cluster_rows)
+
+        # Rank by size
+        clusters_df = clusters_df.sort_values(
+            by="Size", ascending=False
+        ).head(top_k)
+
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        clusters_df.to_csv(out_path, index=False)
+
+        print(f"\nSaved cluster characterisation → {out_path}")
+        print(f"Clusters saved: {len(clusters_df)}")
+
+        return clusters_df
+        
+    def cluster_tier(self, size: int) -> str:
+        if size >= 100:
+            return "Mega"
+        elif size >= 20:
+            return "Major"
+        elif size >= 5:
+            return "Minor"
+        elif size >= 2:
+            return "Micro"
+        else:
+            return "Ignore"
             
     def run_graphs(self):
         # Get the satellite data into a dataframe 
