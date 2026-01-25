@@ -1,16 +1,17 @@
 import numpy as np
 from sklearn.cluster import HDBSCAN
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
+from pathlib import Path
 
 
 class HDBSCANClusterer:
 
     def __init__(
         self,
-        min_cluster_size_range=range(2, 50),
+        min_cluster_size_range=[2],
         min_samples_range=range(2, 50),
     ):
         self.min_cluster_size_range = min_cluster_size_range
@@ -62,6 +63,11 @@ class HDBSCANClusterer:
         best_min_cluster_size = None
         best_min_samples = None
 
+        # Storage for plotting
+        min_samples_values = []
+        dbcv_scores = []
+        num_clusters = []
+
         for min_cluster_size in tqdm(
             self.min_cluster_size_range,
             desc="HDBSCAN min_cluster_size sweep",
@@ -76,10 +82,14 @@ class HDBSCANClusterer:
                 )
 
                 acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
-
                 if not acceptance["acceptable"]:
                     print(f"Rejected ({acceptance['fail_reasons']})")
-                    return None
+                    continue
+
+                # ---- Collect metrics ----
+                min_samples_values.append(min_samples)
+                dbcv_scores.append(score)
+                num_clusters.append(len(set(labels) - {-1}))
 
                 if score > best_score:
                     best_score = score
@@ -87,7 +97,7 @@ class HDBSCANClusterer:
                     best_min_cluster_size = min_cluster_size
                     best_min_samples = min_samples
 
-                print("Clusters:", len(np.unique(labels)))
+                print("Clusters:", num_clusters[-1])
 
         if best_labels is None:
             raise RuntimeError("HDBSCAN failed to find a valid clustering")
@@ -112,3 +122,45 @@ class HDBSCANClusterer:
         )
 
         return cluster_result_obj
+
+
+    def plot_dbcv_vs_min_samples(self, min_samples_values, dbcv_scores, num_clusters, best_min_cluster_size):
+
+        output_dir = Path("data")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        fig, ax1 = plt.subplots()
+
+        # Left axis: DBCV (blue)
+        ax1.plot(
+            min_samples_values,
+            dbcv_scores,
+            color="tab:blue",
+            linewidth=2,
+        )
+        ax1.set_xlabel("min_samples")
+        ax1.set_ylabel("DBCV score", color="tab:blue")
+        ax1.tick_params(axis="y", labelcolor="tab:blue")
+
+        # Right axis: number of clusters (orange)
+        ax2 = ax1.twinx()
+        ax2.plot(
+            min_samples_values,
+            num_clusters,
+            color="tab:orange",
+            linewidth=2,
+        )
+        ax2.set_ylabel("Number of clusters", color="tab:orange")
+        ax2.tick_params(axis="y", labelcolor="tab:orange")
+
+        fig.suptitle(
+            f"HDBSCAN: DBCV & #Clusters vs min_samples (min_cluster_size={best_min_cluster_size})"
+        )
+
+        output_path = output_dir / "hdbscan_dbcv_vs_clusters.png"
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=200)
+        plt.close(fig)
+
+
+        print(f"Saved plot to {output_path}")

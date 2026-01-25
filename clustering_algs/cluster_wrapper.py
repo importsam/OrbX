@@ -41,7 +41,6 @@ class ClusterWrapper:
         self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_labels)
 
         hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X.copy())
-        print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_labels)
 
         # agglomerative_labels = self.agglomerative.run(distance_matrix.copy())
