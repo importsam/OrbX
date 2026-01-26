@@ -200,7 +200,7 @@ class DBSCANClusterer:
         # =========================
         # Final reporting
         # =========================
-        print(f"Saved plot to {output_path}")
+        # print(f"Saved plot to {output_path}")
         print(
             f"Best DBSCAN params → eps={best_params[0]:.6f}, min_samples=2"
         )

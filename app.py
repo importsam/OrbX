@@ -104,15 +104,15 @@ class SatelliteClusteringApp:
         """
 
         # affinity_results = cluster_result_dict["affinity_results"]
-        # optics_results = cluster_result_dict["optics_results"]
-        # dbscan_results = cluster_result_dict["dbscan_results"]
+        optics_results = cluster_result_dict["optics_results"]
+        dbscan_results = cluster_result_dict["dbscan_results"]
         hdbscan_results = cluster_result_dict["hdbscan_results"]
 
         # rank based on DBCV score
         results_list = [
             # ("Affinity Propagation", affinity_results),
-            # ("OPTICS", optics_results),
-            # ("DBSCAN", dbscan_results),
+            ("OPTICS", optics_results),
+            ("DBSCAN", dbscan_results),
             ("HDBSCAN", hdbscan_results),
         ]
 
@@ -201,7 +201,6 @@ class SatelliteClusteringApp:
                     "Cluster ID": int(cluster_id),
                     "Tier": tier,
                     "Size": size,
-                    "Altitude Range (km)": f"{altitude_min:.1f} - {altitude_max:.1f}",
                     "Min Altitude (km)": altitude_min,
                     "Max Altitude (km)": altitude_max,
                 }
