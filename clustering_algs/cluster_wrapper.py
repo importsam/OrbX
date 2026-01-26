@@ -105,7 +105,7 @@ class ClusterWrapper:
         return affinity_labels
 
     def run_optics(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        optics_results = self.optics.run(distance_matrix.copy())
+        optics_results = self.optics.run(distance_matrix.copy(), X.copy())
         print(f"OPTICS found {len(set(optics_results.labels))} clusters")
         self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
 

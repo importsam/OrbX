@@ -3,64 +3,93 @@ import numpy as np
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
 
+
 class OPTICSWrapper:
     def __init__(self):
         self.min_samples_range = range(2, 10)
+
+        # xi sweep: smaller = more aggressive splitting
+        self.xi_values = np.geomspace(0.005, 0.2, 10)
+
         self.max_eps = np.inf
         self.quality_metrics = QualityMetrics()
-    
-    
+
     """
-    By default now, this will do the grid search
+    Grid search over (min_samples, xi)
     """
     def run(self, distance_matrix, X) -> ClusterResult:
         best_score = -np.inf
-        best_min_samples = None
+        best_params = None
+        best_labels = None
+
+        n_total = distance_matrix.shape[0]
 
         for min_samples in self.min_samples_range:
-            try:
-                model = OPTICS(
-                    min_samples=min_samples,
-                    max_eps=self.max_eps,
-                    metric='precomputed'
-                )
-                
-                labels = model.fit_predict(distance_matrix)
-                
-                acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
-                
-                if not acceptance["acceptable"]:
-                    print(
-                        f"Rejected ({acceptance['fail_reasons']})"
+            for xi in self.xi_values:
+                try:
+                    model = OPTICS(
+                        min_samples=min_samples,
+                        max_eps=self.max_eps,
+                        metric="precomputed",
+                        cluster_method="xi",
+                        xi=xi,
+                        n_jobs=-1,
                     )
-                    return None
 
-                score = self.quality_metrics.dbcv_score_wrapper(X, labels)
+                    labels = model.fit_predict(distance_matrix)
 
-                print(f"Min Samples: {min_samples}, DBCV Score: {score}")
+                    n_clusters = len(set(labels) - {-1})
+                    noise_count = (labels == -1).sum()
 
-                # Higher score is better clustering
-                if score > best_score:
-                    best_score = score
-                    best_min_samples = min_samples
-                    
-            except Exception as e:
-                print(f"Error with Min Samples {min_samples}: {e}")
-                continue
-        
-        print(f"\nBest Min Samples: {best_min_samples}, Best DBCV Score: {best_score}")
-        
-        # Run again with best settings
-        model = OPTICS(
-            min_samples=best_min_samples,
-            max_eps=self.max_eps,
-            metric='precomputed'
+                    acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+                    if not acceptance["acceptable"]:
+                        print(
+                            f"Rejected: min_samples={min_samples}, xi={xi:.4f} "
+                            f"({acceptance['fail_reasons']})"
+                        )
+                        continue
+
+                    score = self.quality_metrics.dbcv_score_wrapper(X, labels)
+
+                    print(
+                        f"min_samples={min_samples:2d}, "
+                        f"xi={xi:.4f}, "
+                        f"clusters={n_clusters:4d}, "
+                        f"noise={noise_count:4d}, "
+                        f"DBCV={score:.4f}"
+                    )
+
+                    if score > best_score:
+                        best_score = score
+                        best_params = (min_samples, xi)
+                        best_labels = labels
+
+                except Exception as e:
+                    print(
+                        f"Error: min_samples={min_samples}, xi={xi:.4f} → {e}"
+                    )
+                    continue
+
+        if best_labels is None:
+            raise RuntimeError("OPTICS failed to find a valid clustering")
+
+        best_min_samples, best_xi = best_params
+
+        print(
+            f"\nBest OPTICS params → min_samples={best_min_samples}, "
+            f"xi={best_xi:.4f}, "
+            f"DBCV={best_score:.4f}"
         )
-        
-        best_labels = model.fit_predict(distance_matrix)
-        
-        cluster_result_obj = ClusterResult(best_labels, len(set(best_labels)), 
-                                           (best_labels == -1).sum(), best_score,
-                                           self.quality_metrics.s_dbw_score_wrapper(X, best_labels))
 
-        return cluster_result_obj
+        print(
+            f"OPTICS found {len(set(best_labels) - {-1})} clusters "
+            f"(noise points: {(best_labels == -1).sum()})"
+        )
+
+        return ClusterResult(
+            best_labels,
+            len(set(best_labels) - {-1}),
+            (best_labels == -1).sum(),
+            best_score,
+            self.quality_metrics.s_dbw_score_wrapper(X, best_labels),
+        )
