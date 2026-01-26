@@ -112,12 +112,12 @@ class ClusterWrapper:
         return optics_labels
 
     def run_dbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        dbscan_labels = self.dbscan.run(distance_matrix.copy(), X.copy())
-        print(f"DBSCAN found {len(set(dbscan_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_labels)
+        dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
+        print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, dbscan_results.labels)
 
-        return dbscan_labels
-
+        return dbscan_results.labels
+    
     def run_hdbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
         hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X.copy())
         print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
