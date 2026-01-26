@@ -6,7 +6,7 @@ from models import ClusterResult
 
 class OPTICSWrapper:
     def __init__(self):
-        self.min_samples_range = range(2, 10)
+        self.min_samples_range = [3]
 
         # xi sweep: smaller = more aggressive splitting
         self.xi_values = np.geomspace(0.005, 0.2, 10)

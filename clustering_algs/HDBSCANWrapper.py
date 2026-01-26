@@ -81,10 +81,10 @@ class HDBSCANClusterer:
                     min_samples,
                 )
 
-                acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
-                if not acceptance["acceptable"]:
-                    print(f"Rejected ({acceptance['fail_reasons']})")
-                    continue
+                # acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+                # if not acceptance["acceptable"]:
+                #     print(f"Rejected ({acceptance['fail_reasons']})")
+                #     continue
 
                 # ---- Collect metrics ----
                 min_samples_values.append(min_samples)

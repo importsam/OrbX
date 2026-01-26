@@ -59,7 +59,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_affinity(
+        cluster_result_dict = self.cluster_wrapper.run_optics(
             distance_matrix, orbit_points
         )
 
@@ -104,15 +104,15 @@ class SatelliteClusteringApp:
         """
 
         # affinity_results = cluster_result_dict["affinity_results"]
-        optics_results = cluster_result_dict["optics_results"]
-        dbscan_results = cluster_result_dict["dbscan_results"]
+        # optics_results = cluster_result_dict["optics_results"]
+        # dbscan_results = cluster_result_dict["dbscan_results"]
         hdbscan_results = cluster_result_dict["hdbscan_results"]
 
         # rank based on DBCV score
         results_list = [
             # ("Affinity Propagation", affinity_results),
-            ("OPTICS", optics_results),
-            ("DBSCAN", dbscan_results),
+            # ("OPTICS", optics_results),
+            # ("DBSCAN", dbscan_results),
             ("HDBSCAN", hdbscan_results),
         ]
 
