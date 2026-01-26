@@ -71,18 +71,18 @@ class ClusterWrapper:
         #   print(f"Affinity Propagation found {len(set(affinity_results.labels))} clusters\n")
         #  self.quality_metrics.quality_metrics(X, distance_matrix, affinity_results.labels)
 
-        optics_results = self.optics.run_pref_optimization(
-            distance_matrix.copy(), X.copy()
-        )
-        print(f"OPTICS found {len(set(optics_results.labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
+        # optics_results = self.optics.run_pref_optimization(
+        #     distance_matrix.copy(), X.copy()
+        # )
+        # print(f"OPTICS found {len(set(optics_results.labels))} clusters")
+        # self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
 
-        dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
-        if dbscan_results:
-            print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
-            self.quality_metrics.quality_metrics(
-                X, distance_matrix, dbscan_results.labels
-            )
+        # dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
+        # if dbscan_results:
+        #     print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")
+        #     self.quality_metrics.quality_metrics(
+        #         X, distance_matrix, dbscan_results.labels
+        #     )
 
         hdbscan_results = self.hdbscan.run(distance_matrix.copy(), X.copy())
         print(f"HDBSCAN found {len(set(hdbscan_results.labels) - {-1})} clusters")
@@ -90,8 +90,8 @@ class ClusterWrapper:
 
         return {
             # "affinity_results": affinity_results,
-            "optics_results": optics_results,
-            "dbscan_results": dbscan_results,
+            # "optics_results": optics_results,
+            # "dbscan_results": dbscan_results,
             "hdbscan_results": hdbscan_results,
         }
 
@@ -119,12 +119,11 @@ class ClusterWrapper:
         return dbscan_results.labels
     
     def run_hdbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        hdbscan_labels = self.hdbscan.run(distance_matrix.copy(), X.copy())
-        print(f"HDBSCAN found {len(set(hdbscan_labels) - {-1})} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_labels)
+        hdbscan_result = self.hdbscan.run(distance_matrix.copy(), X.copy())
+        print(f"HDBSCAN found {len(set(hdbscan_result.labels) - {-1})} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_result.labels)
 
-        return hdbscan_labels
-
+        return hdbscan_result.labels
     def run_kmeans(self, distance_matrix: np.ndarray, X) -> np.ndarray:
         kmeans_labels = self.kmeans.run(distance_matrix.copy(), X.copy())
         print(f"KMeans found {len(set(kmeans_labels))} clusters")

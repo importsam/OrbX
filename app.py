@@ -268,46 +268,47 @@ class SatelliteClusteringApp:
         # hdbscan_labels = self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
 
         # if you want to run optimzation for each alg and then graph
-        labels_dict = self.cluster_wrapper.run_all_optimizer(
+        results_dict = self.cluster_wrapper.run_all_optimizer(
             distance_matrix.copy(), orbit_points.copy()
         )
-        affinity_labels = labels_dict["affinity"]
-        optics_labels = labels_dict["optics"]
-        dbscan_labels = labels_dict["dbscan"]
-        hdbscan_labels = labels_dict["hdbscan"]
+        # affinity_labels = labels_dict["affinity"]
+        # optics_labels = labels_dict["optics"]
+        # dbscan_labels = labels_dict["dbscan"]
+        hdbscan_result = results_dict["hdbscan_results"]
+        hdbscan_labels = hdbscan_result.labels
 
         # plot tsne graphs
-        self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
-        self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
-        self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
+        # self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
         self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
 
         # plot UMAP graphs
-        self.graph.plot_umap(orbit_points, df, labels=affinity_labels, name="affinity")
-        self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
-        self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        # self.graph.plot_umap(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
+        # self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
         self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
 
         # Plot clusters in apogee/inclination space
-        df_opt = df.copy()
-        df_opt["label"] = optics_labels
-        self.graph.plot_clusters(
-            df_opt, self.path_config.output_plot / "optics_clusters.html"
-        )
+        # df_opt = df.copy()
+        # df_opt["label"] = optics_labels
+        # self.graph.plot_clusters(
+        #     df_opt, self.path_config.output_plot / "optics_clusters.html"
+        # )
 
-        # now for affinity
-        df_aff = df.copy()
-        df_aff["label"] = affinity_labels
-        self.graph.plot_clusters(
-            df_aff, self.path_config.output_plot / "affinity_clusters.html"
-        )
+        # # now for affinity
+        # df_aff = df.copy()
+        # df_aff["label"] = affinity_labels
+        # self.graph.plot_clusters(
+        #     df_aff, self.path_config.output_plot / "affinity_clusters.html"
+        # )
 
-        # now for dbscan
-        df_db = df.copy()
-        df_db["label"] = dbscan_labels
-        self.graph.plot_clusters(
-            df_db, self.path_config.output_plot / "dbscan_clusters.html"
-        )
+        # # now for dbscan
+        # df_db = df.copy()
+        # df_db["label"] = dbscan_labels
+        # self.graph.plot_clusters(
+        #     df_db, self.path_config.output_plot / "dbscan_clusters.html"
+        # )
 
         df_hdb = df.copy()
         df_hdb["label"] = hdbscan_labels
@@ -316,8 +317,8 @@ class SatelliteClusteringApp:
         )
 
         # Generate CZML for Cesium visualization
-        print("\nGenerating CZML for Cesium visualization...")
-        self.run_cesium(df.copy(), distance_matrix.copy())
+        # print("\nGenerating CZML for Cesium visualization...")
+        # self.run_cesium(df.copy(), distance_matrix.copy())
 
     def run_cesium(self, df: pd.DataFrame = None, distance_matrix: np.ndarray = None):
         """
@@ -370,9 +371,17 @@ class SatelliteClusteringApp:
             df[label_name] = labels
             return df
 
-        labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        # SELECT CLUSTERING ALGORITHM HERE  
+        labels = self.cluster_wrapper.run_hdbscan(distance_matrix.copy(), orbit_points.copy())
         df = assign_cluster_labels(df, labels)
 
+        # KEEP ONLY TOP AND BOTTOM 5 CLUSTERS BY SIZE, exlcuding noise
+        cluster_sizes = df[df["cluster"] != -1]["cluster"].value_counts()
+        top_clusters = cluster_sizes.head(5).index.tolist()
+        bottom_clusters = cluster_sizes.tail(5).index.tolist()
+        selected_clusters = top_clusters + bottom_clusters
+        df = df[df["cluster"].isin(selected_clusters)].copy()
+        
         import matplotlib.cm as cm
         import matplotlib.colors as mcolors
 

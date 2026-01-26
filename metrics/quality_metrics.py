@@ -98,8 +98,8 @@ class QualityMetrics:
     def is_clustering_acceptable(
         labels: np.ndarray,
         *,
-        min_n_clusters: int = 20,
-        max_n_clusters: int = 1000,
+        min_n_clusters: int = 200,
+        max_n_clusters: int = 500,
         max_cluster_size_fraction: float = 0.25,
         min_noise_fraction: float = 0.00,
         max_noise_fraction: float = 1.00,
