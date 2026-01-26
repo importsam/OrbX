@@ -1,126 +1,147 @@
-from enum import unique
-from sklearn.cluster import AffinityPropagation
-import numpy as np
-from sklearn.metrics import silhouette_score
-# Add tqdm progress bar for preference sweep
-from tqdm import tqdm
-from joblib import Parallel, delayed
 import numpy as np
 from sklearn.cluster import AffinityPropagation
-from metrics.quality_metrics import QualityMetrics 
+from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
-class AffinityPropagationWrapper:
-    
-    
-    """
-        The problem here is that preference needs to be defined more uniquely for each 
-        orbit I feel. try using the density score for each as a preference.
-    
-    """
+from tools.density_estimation import DensityEstimator
 
+
+class AffinityPropagationWrapper:
     def __init__(self):
         self.damping = 0.95
-        self.preference = -10
         self.quality_metrics = QualityMetrics()
-        
-    def run(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        print("Running Affinity Propagation (preference sweep)...")
-        
-        # normaliser = np.std(distance_matrix) ** 2
-        # similarity_matrix = (-distance_matrix / normaliser)
-        
-        similarity_matrix = -distance_matrix ** 2
+        self.density_estimator = DensityEstimator()
 
-        model = AffinityPropagation(
-            affinity='euclidean',
-            damping=self.damping,
-            preference=self.preference,
-            max_iter=500,
-            random_state=42
-        )
-    
-        labels = model.fit_predict(X)
+    def run(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
+        print("Running Affinity Propagation with preference sweep...")
 
-        return labels
+        normalizer = np.std(distance_matrix) ** 2
+        similarity_matrix = -distance_matrix / normalizer
 
-    def run_pref_optimization(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
-        print("Running Affinity Propagation (parallel preference sweep)...")
+        sim_values = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
 
-        similarity_matrix = -distance_matrix ** 2
+        pref_min = sim_values.min()
+        pref_med = np.median(sim_values)
+        pref_max = sim_values.max()
 
-        """-- this was mega clusters (15 for 2500 points)"""
-        pref_min = np.min(similarity_matrix)
-        pref_med = np.median(similarity_matrix)
-        preferences = np.linspace(pref_min, pref_med, 25)
-        
-        # similarity_matrix is full (n x n), symmetric with diagonal (self-similarities)
-        sim_vals = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
+        # search range: from more negative than median up toward max
+        pref_max_safe = np.percentile(sim_values, 95)  # Don't go all the way to max
+        pref_grid = np.linspace(pref_min, pref_max_safe, 15)
 
-        p_min = np.percentile(sim_vals, 5)   # quite low
-        p_med = np.median(sim_vals)
-        p_max = np.percentile(sim_vals, 95)  # quite high
+        best_score = -np.inf
+        best_pref = None
+        best_labels = None
 
-        # To encourage *more* clusters, stay toward the lower end
-        preferences = np.linspace(p_min - (p_med - p_min), p_med, 40)
-
-
-        results = Parallel(
-            n_jobs=2,          # use all CPU cores
-            backend="loky"      # safe for sklearn
-        )(
-            delayed(_test_preference)(
-                pref, similarity_matrix, X, self.damping, self.quality_metrics
+        for pref in pref_grid:
+            model = AffinityPropagation(
+                affinity="precomputed",
+                damping=self.damping,
+                preference=pref,
+                max_iter=1000,
+                random_state=42,
             )
-            for pref in preferences
-        )
+            labels = model.fit_predict(similarity_matrix)
+            n_clusters = len(set(labels))
+            
+            # Skip if we hit the explosion zone
+            if n_clusters > 0.5 * len(distance_matrix):  # More than 50% are exemplars
+                print(f"[pref sweep] pref={pref:.3e}, clusters={n_clusters} - SKIPPED (too many)")
+                break  # Stop searching higher preferences
+            
+            print(f"[pref sweep] pref={pref:.3e}, clusters={n_clusters}")
 
-        results = [r for r in results if r is not None]
+            acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+            if not acceptance["acceptable"]:
+                continue
 
-        if not results:
-            print("Affinity Propagation: no acceptable clustering found")
+            dbcv_score = self.quality_metrics.dbcv_score_wrapper(X, labels)
+
+            if dbcv_score > best_score:
+                best_score = dbcv_score
+                best_pref = pref
+                best_labels = labels
+
+        if best_labels is None:
+            print("No acceptable scalar preference found.")
             return None
 
-        # We want the highest score, so we use max()
-        best_pref, best_labels, best_k, best_score = max(
-            results, key=lambda x: x[3]
+        print(
+            f"Best scalar preference: {best_pref:.3e}, "
+            f"DBCV={best_score:.4f}, "
+            f"clusters={len(set(best_labels))}"
         )
+
+        # if you still want density-based per-point preferences,
+        # re-center them around best_pref with a small adjustment:
+        eps = 1e-12
+        densities = self.density_estimator.density(
+            distance_matrix,
+            self.density_estimator.radius
+        )
+        dens_min, dens_max = densities.min(), densities.max()
+        dens_norm = (densities - dens_min) / (dens_max - dens_min + eps)
+
+        # small adjustment scale, not huge
+        sim_spread = np.percentile(sim_values, 75) - np.percentile(sim_values, 25)
+        adjust_scale = 0.1 * sim_spread
+
+        preferences = best_pref + adjust_scale * (dens_norm - 0.5)
 
         print(
-            f"Selected preference={best_pref:.4f}, "
-            f"clusters={best_k}, best DBCV score={best_score:.3f}"
+            f"Preference stats (final): "
+            f"min={preferences.min():.3e}, "
+            f"max={preferences.max():.3e}, "
+            f"median={np.median(preferences):.3e}"
         )
 
-        cluster_result_obj = ClusterResult(best_labels, len(set(best_labels)), 
-                                           (best_labels == -1).sum(), best_score,
-                                           self.quality_metrics.s_dbw_score_wrapper(X, best_labels))
-
-        return cluster_result_obj
-
-def _test_preference(pref, similarity_matrix, X, damping, quality_metrics):
-    
-    model = AffinityPropagation(
-        affinity='precomputed',
-        damping=damping,
-        preference=pref,
-        max_iter=1000,
-        random_state=42
-    )
-
-    labels = model.fit_predict(similarity_matrix)
-    n_clusters = len(np.unique(labels))
-
-    acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
-    
-    if not acceptance["acceptable"]:
-        print(
-            f"Rejected ({acceptance['fail_reasons']})"
+        model = AffinityPropagation(
+            affinity="precomputed",
+            damping=self.damping,
+            preference=preferences,
+            max_iter=1000,
+            random_state=42,
         )
-        return None
+        labels = model.fit_predict(similarity_matrix)
 
-    if n_clusters < 2:
-        print("!!!Affinity Propagation found less than 2 clusters, skipping preference!!!")
-        return None
+        n_clusters = len(set(labels))
+        noise_count = (labels == -1).sum()
 
-    score = quality_metrics.dbcv_score_wrapper(X, labels)
+        print(f"Affinity Propagation (final) found {n_clusters} clusters")
 
-    return pref, labels, n_clusters, score
+        acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+        if not acceptance["acceptable"] or n_clusters < 2:
+            print("Final AP result not acceptable.")
+            return None
+
+        dbcv_score = self.quality_metrics.dbcv_score_wrapper(X, labels)
+        print(f"DBCV score: {dbcv_score:.4f}")
+
+        return ClusterResult(
+            labels,
+            n_clusters,
+            noise_count,
+            dbcv_score,
+            self.quality_metrics.s_dbw_score_wrapper(X, labels),
+        )
+
+    def debug_pref_sweep(self, distance_matrix, damping=0.95):
+
+        similarity_matrix = -distance_matrix ** 2
+        sim_values = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
+
+        pref_min = sim_values.min()
+        pref_med = np.median(sim_values)
+        pref_max = sim_values.max()
+
+        print(f"sim stats: min={pref_min:.3e}, med={pref_med:.3e}, max={pref_max:.3e}")
+
+        for pref in np.linspace(pref_min, pref_max, 10):
+            model = AffinityPropagation(
+                affinity="precomputed",
+                damping=damping,
+                preference=pref,
+                max_iter=1000,
+                random_state=42,
+            )
+            labels = model.fit_predict(similarity_matrix)
+            n_clusters = len(set(labels))
+            print(f"pref={pref:.3e}, clusters={n_clusters}")
