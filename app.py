@@ -59,7 +59,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_dbscan(
+        cluster_result_dict = self.cluster_wrapper.run_optics(
             distance_matrix, orbit_points
         )
 

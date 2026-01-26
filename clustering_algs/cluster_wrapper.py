@@ -105,12 +105,12 @@ class ClusterWrapper:
         return affinity_labels
 
     def run_optics(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        optics_labels = self.optics.run(distance_matrix.copy())
-        print(f"OPTICS found {len(set(optics_labels))} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, optics_labels)
+        optics_results = self.optics.run(distance_matrix.copy())
+        print(f"OPTICS found {len(set(optics_results.labels))} clusters")
+        self.quality_metrics.quality_metrics(X, distance_matrix, optics_results.labels)
 
-        return optics_labels
-
+        return optics_results.labels
+    
     def run_dbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
         dbscan_results = self.dbscan.run(distance_matrix.copy(), X.copy())
         print(f"DBSCAN found {len(set(dbscan_results.labels))} clusters")

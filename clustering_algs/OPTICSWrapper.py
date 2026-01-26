@@ -5,26 +5,19 @@ from models import ClusterResult
 
 class OPTICSWrapper:
     def __init__(self):
-        self.min_samples = 5
+        self.min_samples_range = range(2, 10)
         self.max_eps = np.inf
         self.quality_metrics = QualityMetrics()
-
-    def run(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
-        model = OPTICS(
-            min_samples=self.min_samples,
-            max_eps=self.max_eps,
-            metric='precomputed',
-            n_jobs=-1
-        )
     
-        labels = model.fit_predict(distance_matrix)
-        return labels
     
-    def run_pref_optimization(self, distance_matrix, X) -> ClusterResult:
+    """
+    By default now, this will do the grid search
+    """
+    def run(self, distance_matrix, X) -> ClusterResult:
         best_score = -np.inf
         best_min_samples = None
-        
-        for min_samples in range(2, 10):
+
+        for min_samples in self.min_samples_range:
             try:
                 model = OPTICS(
                     min_samples=min_samples,
