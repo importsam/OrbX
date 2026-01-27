@@ -15,7 +15,7 @@ class ClusterConfig:
     
 @dataclass
 class PathConfig:
-    spacetrack_data: Path = Path('data/3le')
+    spacetrack_data: Path = Path('data/3le_1126')
     celestrak_data: Path = None
     udl_data: Path = None
     distance_matrix: Path = Path('data/distance_matrix.pkl')

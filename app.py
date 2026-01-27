@@ -59,7 +59,7 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_optics(
+        cluster_result_dict = self.cluster_wrapper.run_hdbscan(
             distance_matrix, orbit_points
         )
 
@@ -133,7 +133,7 @@ class SatelliteClusteringApp:
                 f"Clusters={result.n_clusters}, "
                 f"Noise={result.n_noise}, "
                 f"DBCV Score={result.dbcv_score:.4f}, "
-                f"S_Dbw Score={result.s_Dbw_score:.4f}"
+                # f"S_Dbw Score={result.s_Dbw_score:.4f}"
             )
 
         skipped = [name for name, result in results_list if result is None]
@@ -287,6 +287,95 @@ class SatelliteClusteringApp:
         # self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
         # self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
         self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+
+        # Plot clusters in apogee/inclination space
+        # df_opt = df.copy()
+        # df_opt["label"] = optics_labels
+        # self.graph.plot_clusters(
+        #     df_opt, self.path_config.output_plot / "optics_clusters.html"
+        # )
+
+        # # now for affinity
+        # df_aff = df.copy()
+        # df_aff["label"] = affinity_labels
+        # self.graph.plot_clusters(
+        #     df_aff, self.path_config.output_plot / "affinity_clusters.html"
+        # )
+
+        # # now for dbscan
+        # df_db = df.copy()
+        # df_db["label"] = dbscan_labels
+        # self.graph.plot_clusters(
+        #     df_db, self.path_config.output_plot / "dbscan_clusters.html"
+        # )
+
+        df_hdb = df.copy()
+        df_hdb["label"] = hdbscan_labels
+        self.graph.plot_clusters(
+            df_hdb, self.path_config.output_plot / "hdbscan_clusters.html"
+        )
+
+        # Generate CZML for Cesium visualization
+        # print("\nGenerating CZML for Cesium visualization...")
+        # self.run_cesium(df.copy(), distance_matrix.copy())
+
+    def run_graphs_supervised(self):
+        
+        # Get the satellite data into a dataframe
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(
+            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        )
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df.copy())
+        orbit_points = self.get_points(df.copy())
+        df = self._reorder_dataframe(df.copy(), key.copy())
+        df = self.density_estimator.assign_density(df.copy(), distance_matrix.copy())
+
+        # Clustering
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+
+        # If you want to run without optimzation for each alg and then graph
+        # affinity_labels = self.cluster_wrapper.run_affinity(distance_matrix, orbit_points)
+        # optics_labels = self.cluster_wrapper.run_optics(distance_matrix, orbit_points)
+        # dbscan_labels = self.cluster_wrapper.run_dbscan(distance_matrix, orbit_points)
+        hdbscan_labels = self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
+
+        # if you want to run optimzation for each alg and then graph
+        # results_dict = self.cluster_wrapper.run_all_optimizer(
+        #     distance_matrix.copy(), orbit_points.copy()
+        # )
+        
+        # affinity_labels = labels_dict["affinity"]
+        # optics_labels = labels_dict["optics"]
+        # dbscan_labels = labels_dict["dbscan"]
+        # hdbscan_result = results_dict["hdbscan_results"]
+        # hdbscan_labels = hdbscan_result.labels
+
+        # plot tsne graphs
+        # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
+        # self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        
+        print("Starting HDBSCAN supervised TSNE...")
+        self.graph.plot_tsne_supervised(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+
+        # plot UMAP graphs
+        # self.graph.plot_umap(orbit_points, df, labels=affinity_labels, name="affinity")
+        # self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
+        # self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
+        # self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
 
         # Plot clusters in apogee/inclination space
         # df_opt = df.copy()
@@ -494,3 +583,53 @@ class SatelliteClusteringApp:
         X = np.hstack([u, v])
 
         return X
+
+
+    def save_labels(self):
+        """ This will run everything per normal, then save the label data from each alg as a pkl
+        file in data/ for quicker retrieval later.
+        """
+        
+        # Get the satellite data into a dataframe
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(
+            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        )
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+
+        # Clustering
+        """
+        So here I want to use all the clustering algs and do comparative analysis of performance.
+        """
+        # init the clustering algs
+        cluster_result_dict = self.cluster_wrapper.run_all_optimizer(
+            distance_matrix, orbit_points
+        )
+        
+        dbscan_results = cluster_result_dict["dbscan_results"]
+        hdbscan_results = cluster_result_dict["hdbscan_results"]
+        optics_results = cluster_result_dict["optics_results"]
+        
+        import pickle
+        
+        # save all to data/
+        with open("data/cluster_results/dbscan_labels.pkl", "wb") as f:
+            pickle.dump(dbscan_results.labels, f)
+            
+        with open("data/cluster_results/hdbscan_labels.pkl", "wb") as f:
+            pickle.dump(hdbscan_results.labels, f)
+            
+        with open("data/cluster_results/optics_labels.pkl", "wb") as f:
+            pickle.dump(optics_results.labels, f)

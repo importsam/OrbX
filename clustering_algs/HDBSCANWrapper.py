@@ -12,7 +12,7 @@ class HDBSCANClusterer:
     def __init__(
         self,
         min_cluster_size_range=[2],
-        min_samples_range=range(2, 50),
+        min_samples_range=[3],
     ):
         self.min_cluster_size_range = min_cluster_size_range
         self.min_samples_range = min_samples_range
@@ -86,7 +86,6 @@ class HDBSCANClusterer:
                 #     print(f"Rejected ({acceptance['fail_reasons']})")
                 #     continue
 
-                # ---- Collect metrics ----
                 min_samples_values.append(min_samples)
                 dbcv_scores.append(score)
                 num_clusters.append(len(set(labels) - {-1}))
@@ -118,7 +117,7 @@ class HDBSCANClusterer:
             len(set(best_labels)),
             (best_labels == -1).sum(),
             best_score,
-            self.quality_metrics.s_dbw_score_wrapper(X, best_labels),
+            0.1
         )
 
         return cluster_result_obj

@@ -120,10 +120,11 @@ class ClusterWrapper:
     
     def run_hdbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
         hdbscan_result = self.hdbscan.run(distance_matrix.copy(), X.copy())
-        print(f"HDBSCAN found {len(set(hdbscan_result.labels) - {-1})} clusters")
-        self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_result.labels)
+        # print(f"HDBSCAN found {len(set(hdbscan_result.labels) - {-1})} clusters")
+        # self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_result.labels)
 
         return hdbscan_result.labels
+    
     def run_kmeans(self, distance_matrix: np.ndarray, X) -> np.ndarray:
         kmeans_labels = self.kmeans.run(distance_matrix.copy(), X.copy())
         print(f"KMeans found {len(set(kmeans_labels))} clusters")

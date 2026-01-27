@@ -94,5 +94,5 @@ class OPTICSWrapper:
             len(set(best_labels) - {-1}),
             (best_labels == -1).sum(),
             best_score,
-            self.quality_metrics.s_dbw_score_wrapper(X, best_labels),
+            1,
         )

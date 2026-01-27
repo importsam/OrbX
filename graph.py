@@ -186,6 +186,139 @@ class Grapher:
         fig.write_html(str(output_file), include_plotlyjs="cdn")
 
         print(f"t-SNE plot saved to {output_file}")
+        
+    def plot_tsne_supervised(
+        self,
+        X: np.ndarray,
+        df: pd.DataFrame,
+        name: str = "None",
+        labels: np.ndarray = None
+    ):
+        print("\nRunning t-SNE and generating interactive plot...\n")
+        
+        # Normalize density
+        df = df.copy()
+        df['density_norm'] = self._normalize_density(df)
+
+        tsne = TSNE(
+            n_components=2,
+            random_state=42,
+            init='pca',
+            perplexity=30
+        )
+        X_2d = tsne.fit_transform(X)
+
+        fig = go.Figure()
+
+        if labels is not None:
+            unique_labels = np.unique(labels)
+
+            for lbl in unique_labels:
+                mask = labels == lbl
+
+                # Identify Starlink satellites
+                starlink_mask = df.loc[mask, 'name'].str.contains(
+                    'STARLINK', case=False, na=False
+                )
+
+                fig.add_trace(go.Scatter(
+                    x=X_2d[mask, 0],
+                    y=X_2d[mask, 1],
+                    mode='markers',
+                    name=f'Cluster {lbl}',
+                    marker=dict(
+                        size=6,
+                        opacity=0.7,
+                        line=dict(
+                            width=np.where(starlink_mask, 2, 0),
+                            color='black'
+                        )
+                    ),
+                    hovertemplate=(
+                        "SatNo: %{customdata[5]}<br>"
+                        "Name: %{customdata[4]}<br>"
+                        "t-SNE 1: %{x}<br>"
+                        "t-SNE 2: %{y}<br>"
+                        f"Cluster: {lbl}<br>"
+                        "Inclination: %{customdata[0]}°<br>"
+                        "Apogee: %{customdata[1]} km<br>"
+                        "Density: %{customdata[2]:.4f}<br>"
+                        "Normalized Density: %{customdata[3]:.4f}"
+                        "<extra></extra>"
+                    ),
+                    customdata=df.loc[mask, [
+                        'inclination',
+                        'apogee',
+                        'density',
+                        'density_norm',
+                        'name',
+                        'satNo'
+                    ]].values
+                ))
+
+            title = f"t-SNE: Orbital Points by Clusters ({name})"
+
+        else:
+            starlink_mask = df['name'].str.contains(
+                'STARLINK', case=False, na=False
+            )
+
+            fig.add_trace(go.Scatter(
+                x=X_2d[:, 0],
+                y=X_2d[:, 1],
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    opacity=0.7,
+                    color=df['inclination'],
+                    colorscale='Viridis',
+                    colorbar=dict(title='Inclination (deg)'),
+                    line=dict(
+                        width=np.where(starlink_mask, 2, 0),
+                        color='black'
+                    )
+                ),
+                hovertemplate=(
+                    "SatNo: %{customdata[4]}<br>"
+                    "Name: %{customdata[3]}<br>"
+                    "t-SNE 1: %{x}<br>"
+                    "t-SNE 2: %{y}<br>"
+                    "Inclination: %{marker.color}°<br>"
+                    "Apogee: %{customdata[0]} km<br>"
+                    "Density: %{customdata[1]:.4f}<br>"
+                    "Normalized Density: %{customdata[2]:.4f}"
+                    "<extra></extra>"
+                ),
+                customdata=df[[
+                    'apogee',
+                    'density',
+                    'density_norm',
+                    'name',
+                    'satNo'
+                ]].values
+            ))
+
+            title = f"t-SNE: Orbital Points by Inclination ({name})"
+
+        fig.update_layout(
+            title=title,
+            xaxis_title="t-SNE Component 1",
+            yaxis_title="t-SNE Component 2",
+            template="plotly_white",
+            width=900,
+            height=700,
+            legend_title="Clusters"
+        )
+
+        output_file = (
+            self.path_config.output_plot
+            / f"tsne_orbital_points_{name if name else 'None'}_supervised.html"
+        )
+        fig.write_html(str(output_file), include_plotlyjs="cdn")
+
+        print(f"t-SNE plot saved to {output_file}")
+
+
     
     def plot_umap(
         self,
