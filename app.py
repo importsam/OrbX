@@ -371,7 +371,7 @@ class SatelliteClusteringApp:
             return df
 
         # SELECT CLUSTERING ALGORITHM HERE  
-        labels = self.cluster_wrapper.run_hdbscan(distance_matrix.copy(), orbit_points.copy())
+        labels = self.cluster_wrapper.run_optics(distance_matrix.copy(), orbit_points.copy())
         df = assign_cluster_labels(df, labels)
 
         # KEEP ONLY TOP AND BOTTOM 5 CLUSTERS BY SIZE, exlcuding noise

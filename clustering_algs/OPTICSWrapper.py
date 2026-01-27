@@ -2,13 +2,12 @@ from sklearn.cluster import OPTICS
 import numpy as np
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
-
+import pickle
 
 class OPTICSWrapper:
     def __init__(self):
         self.min_samples_range = [3]
 
-        # xi sweep: smaller = more aggressive splitting
         self.xi_values = np.geomspace(0.005, 0.2, 10)
 
         self.max_eps = np.inf
@@ -41,13 +40,13 @@ class OPTICSWrapper:
                     n_clusters = len(set(labels) - {-1})
                     noise_count = (labels == -1).sum()
 
-                    acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
-                    if not acceptance["acceptable"]:
-                        print(
-                            f"Rejected: min_samples={min_samples}, xi={xi:.4f} "
-                            f"({acceptance['fail_reasons']})"
-                        )
-                        continue
+                    # acceptance = QualityMetrics.is_clustering_acceptable(labels.copy())
+                    # if not acceptance["acceptable"]:
+                    #     print(
+                    #         f"Rejected: min_samples={min_samples}, xi={xi:.4f} "
+                    #         f"({acceptance['fail_reasons']})"
+                    #     )
+                    #     continue
 
                     score = self.quality_metrics.dbcv_score_wrapper(X, labels)
 
@@ -85,6 +84,10 @@ class OPTICSWrapper:
             f"OPTICS found {len(set(best_labels) - {-1})} clusters "
             f"(noise points: {(best_labels == -1).sum()})"
         )
+
+        # Save the labels as pkl  
+        with open("data/cluster_results/optics_labels.pkl", "wb") as f:
+            pickle.dump(best_labels, f)
 
         return ClusterResult(
             best_labels,
