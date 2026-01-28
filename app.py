@@ -19,7 +19,7 @@ sys.path.append(str(update_cesium_assets_path))
 sys.path.append(str(update_cesium_assets_path / "live"))
 from build_czml import build_czml
 from ionop_czml import ionop_czml
-
+from metrics.analysis import Analysis
 
 class SatelliteClusteringApp:
 
@@ -34,6 +34,7 @@ class SatelliteClusteringApp:
         self.cluster_wrapper = ClusterWrapper()
         self.orbital_constants = OrbitalConstants()
         self.density_estimator = DensityEstimator()
+        self.analysis = Analysis()
 
     def run_metrics(self):
         # Get the satellite data into a dataframe
@@ -109,8 +110,9 @@ class SatelliteClusteringApp:
             "optics_results": optics_obj,
         }
         
-        
         self.process_post_clustering(cluster_result_dict, df)
+        
+        self.analysis_graphs(cluster_result_dict)
 
         return None
 
@@ -181,6 +183,24 @@ class SatelliteClusteringApp:
                 out_path=f"data/cluster_characterisation_{name}.csv",
                 top_k=50,
             )
+
+    def analysis_graphs(self, cluster_result_dict):
+        
+        dbscan_result = cluster_result_dict["dbscan_results"]
+        hdbscan_result = cluster_result_dict["hdbscan_results"]
+        optics_result = cluster_result_dict["optics_results"]
+
+        dbscan_stats = self.analysis.cluster_size_summary(dbscan_result.labels)
+        hdbscan_stats = self.analysis.cluster_size_summary(hdbscan_result.labels)
+        optics_stats = self.analysis.cluster_size_summary(optics_result.labels)
+
+        sizes_dict = {
+            "DBSCAN": dbscan_stats["sizes"],
+            "HDBSCAN": hdbscan_stats["sizes"],
+            "OPTICS": optics_stats["sizes"],
+        }
+
+        self.analysis.plot_cluster_size_distributions(sizes_dict, log_x=True)
 
     def save_cluster_characterisation(
         self,
