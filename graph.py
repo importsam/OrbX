@@ -134,7 +134,7 @@ class Grapher:
                     customdata=df.loc[mask,
                                     ['inclination', 'apogee', 'density', 'density_norm']].values
                 ))
-            title = f"t-SNE: Orbital Points by Clusters ({name})"
+            title = f"Orbital Points by Clusters ({name})"
         else:
             fig.add_trace(go.Scatter(
                 x=X_2d[:, 0],
