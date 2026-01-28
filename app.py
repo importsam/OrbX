@@ -306,26 +306,31 @@ class SatelliteClusteringApp:
         # hdbscan_labels = self.cluster_wrapper.run_hdbscan(distance_matrix, orbit_points)
 
         # if you want to run optimzation for each alg and then graph
-        results_dict = self.cluster_wrapper.run_all_optimizer(
-            distance_matrix.copy(), orbit_points.copy()
-        )
+        # results_dict = self.cluster_wrapper.run_all_optimizer(
+        #     distance_matrix.copy(), orbit_points.copy()
+        # )
         # affinity_labels = labels_dict["affinity"]
-        # optics_labels = labels_dict["optics"]
-        # dbscan_labels = labels_dict["dbscan"]
-        hdbscan_result = results_dict["hdbscan_results"]
-        hdbscan_labels = hdbscan_result.labels
+        
+        hdbscan_results = pickle.load(open("data/cluster_results/hdbscan_obj.pkl", "rb"))
+        hdbscan_labels = hdbscan_results.labels
+        optics_results = pickle.load(open("data/cluster_results/optics_obj.pkl", "rb"))
+        optics_labels = optics_results.labels
+        dbscan_results = pickle.load(open("data/cluster_results/dbscan_obj.pkl", "rb"))
+        dbscan_labels = dbscan_results.labels
+        
+        
 
         # plot tsne graphs
         # self.graph.plot_tsne(orbit_points, df, labels=affinity_labels, name="affinity")
-        # self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="optics")
-        # self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="dbscan")
-        self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+        self.graph.plot_tsne(orbit_points, df, labels=optics_labels, name="OPTICS")
+        self.graph.plot_tsne(orbit_points, df, labels=dbscan_labels, name="DBSCAN")
+        self.graph.plot_tsne(orbit_points, df, labels=hdbscan_labels, name="HDBSCAN")
 
         # plot UMAP graphs
         # self.graph.plot_umap(orbit_points, df, labels=affinity_labels, name="affinity")
         # self.graph.plot_umap(orbit_points, df, labels=optics_labels, name="optics")
         # self.graph.plot_umap(orbit_points, df, labels=dbscan_labels, name="dbscan")
-        self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
+        # self.graph.plot_umap(orbit_points, df, labels=hdbscan_labels, name="hdbscan")
 
         # Plot clusters in apogee/inclination space
         # df_opt = df.copy()
@@ -348,11 +353,11 @@ class SatelliteClusteringApp:
         #     df_db, self.path_config.output_plot / "dbscan_clusters.html"
         # )
 
-        df_hdb = df.copy()
-        df_hdb["label"] = hdbscan_labels
-        self.graph.plot_clusters(
-            df_hdb, self.path_config.output_plot / "hdbscan_clusters.html"
-        )
+        # df_hdb = df.copy()
+        # df_hdb["label"] = hdbscan_labels
+        # self.graph.plot_clusters(
+        #     df_hdb, self.path_config.output_plot / "hdbscan_clusters.html"
+        # )
 
         # Generate CZML for Cesium visualization
         # print("\nGenerating CZML for Cesium visualization...")

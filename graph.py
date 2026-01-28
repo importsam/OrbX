@@ -6,8 +6,7 @@ from sklearn.manifold import TSNE
 import umap
 from configs import PathConfig
 import numpy as np
-
-
+import matplotlib.pyplot as plt
 class Grapher:
     """Creates visualizations of satellite clusters"""
     
@@ -89,15 +88,14 @@ class Grapher:
         return fig
     
     def plot_tsne(
-        self,
-        X: np.ndarray,
-        df: pd.DataFrame,
-        name: str = "None",
-        labels: np.ndarray = None
-    ):
+            self,
+            X: np.ndarray,
+            df: pd.DataFrame,
+            name: str = "None",
+            labels: np.ndarray = None
+        ):
         print("\nRunning t-SNE and generating interactive plot...\n")
-        
-        # Normalize density
+
         df = df.copy()
         df['density_norm'] = self._normalize_density(df)
 
@@ -109,12 +107,10 @@ class Grapher:
         )
         X_2d = tsne.fit_transform(X)
 
+        # --- Plotly HTML (unchanged) ---
         fig = go.Figure()
-
         if labels is not None:
-            # Colour by cluster labels
             unique_labels = np.unique(labels)
-
             for lbl in unique_labels:
                 mask = labels == lbl
                 fig.add_trace(go.Scatter(
@@ -122,10 +118,7 @@ class Grapher:
                     y=X_2d[mask, 1],
                     mode='markers',
                     name=f'Cluster {lbl}',
-                    marker=dict(
-                        size=6,
-                        opacity=0.7
-                    ),
+                    marker=dict(size=6, opacity=0.7),
                     text=df.loc[mask, 'satNo'],
                     hovertemplate=(
                         "SatNo: %{text}<br>"
@@ -138,13 +131,11 @@ class Grapher:
                         "Normalized Density: %{customdata[3]:.4f}"
                         "<extra></extra>"
                     ),
-                    customdata=df.loc[mask, ['inclination', 'apogee', 'density', 'density_norm']].values
+                    customdata=df.loc[mask,
+                                    ['inclination', 'apogee', 'density', 'density_norm']].values
                 ))
-
             title = f"t-SNE: Orbital Points by Clusters ({name})"
-
         else:
-            # Colour by inclination (continuous)
             fig.add_trace(go.Scatter(
                 x=X_2d[:, 0],
                 y=X_2d[:, 1],
@@ -169,7 +160,6 @@ class Grapher:
                 ),
                 customdata=df[['apogee', 'density', 'density_norm']].values
             ))
-
             title = f"t-SNE: Orbital Points by Inclination ({name})"
 
         fig.update_layout(
@@ -182,10 +172,49 @@ class Grapher:
             legend_title="Clusters"
         )
 
-        output_file = self.path_config.output_plot / f"tsne_orbital_points_{name if name else 'None'}.html"
-        fig.write_html(str(output_file), include_plotlyjs="cdn")
+        output_file_html = self.path_config.output_plot / f"tsne_orbital_points_{name if name else 'None'}.html"
+        fig.write_html(str(output_file_html), include_plotlyjs="cdn")
+        print(f"t-SNE plot saved to {output_file_html}")
 
-        print(f"t-SNE plot saved to {output_file}")
+        # --- Matplotlib PNG (no legend) ---
+        plt.figure(figsize=(9, 7), dpi=150)
+        if labels is not None:
+            unique_labels = np.unique(labels)
+            for lbl in unique_labels:
+                mask = labels == lbl
+                plt.scatter(
+                    X_2d[mask, 0],
+                    X_2d[mask, 1],
+                    s=10,
+                    alpha=0.7
+                    # no label=..., so no legend entries
+                )
+            # no plt.legend() call
+        else:
+            sc = plt.scatter(
+                X_2d[:, 0],
+                X_2d[:, 1],
+                c=df['inclination'],
+                cmap="viridis",
+                s=10,
+                alpha=0.7
+            )
+            cbar = plt.colorbar(sc)
+            cbar.set_label("Inclination (deg)")
+
+        plt.title(title)
+        plt.xlabel("t-SNE Component 1")
+        plt.ylabel("t-SNE Component 2")
+        plt.tight_layout()
+
+        output_file_png = self.path_config.output_plot / f"tsne_orbital_points_{name if name else 'None'}.png"
+        plt.savefig(output_file_png, dpi=150)
+        plt.close()
+        
+        print(f"t-SNE PNG saved to {output_file_png}")
+
+        # return plt
+
         
     def plot_tsne_supervised(
         self,
