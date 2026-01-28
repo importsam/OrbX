@@ -80,6 +80,8 @@ class QualityMetrics:
 
     def s_dbw_score_wrapper(self, X: np.ndarray, labels: np.ndarray) -> float:
         """Compute S_Dbw Score"""
+        print("Computing S_Dbw Score...")
+        
         return S_Dbw(
             X,
             labels,

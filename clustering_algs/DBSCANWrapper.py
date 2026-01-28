@@ -215,6 +215,6 @@ class DBSCANClusterer:
             len(set(best_labels) - {-1}),
             (best_labels == -1).sum(),
             best_score,
-            1,
+            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(X, best_labels)
         )
 

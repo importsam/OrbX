@@ -117,7 +117,7 @@ class HDBSCANClusterer:
             len(set(best_labels)),
             (best_labels == -1).sum(),
             best_score,
-            0.1
+            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(X, best_labels)
         )
 
         return cluster_result_obj

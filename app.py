@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
+import pickle
+        
 from clustering_algs.cluster_wrapper import ClusterWrapper
 from configs import ClusterConfig, OrbitalConstants, PathConfig
 from graph import Grapher
@@ -12,7 +13,7 @@ from models import ClusterResult
 from tle_parser import TLEParser
 from tools.density_estimation import DensityEstimator
 from tools.distance_matrix import get_distance_matrix
-
+from models import ClusterResult
 update_cesium_assets_path = Path(__file__).parent / "update_cesium_assets"
 sys.path.append(str(update_cesium_assets_path))
 sys.path.append(str(update_cesium_assets_path / "live"))
@@ -88,9 +89,27 @@ class SatelliteClusteringApp:
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
         # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_all_optimizer(
-            distance_matrix, orbit_points
-        )
+        # cluster_result_dict = self.cluster_wrapper.run_all_optimizer(
+        #     distance_matrix, orbit_points
+        # )
+        
+        # load in results 
+        with open("data/cluster_results/dbscan_obj.pkl", "rb") as f:
+            dbscan_obj = pickle.load(f)
+            
+        with open("data/cluster_results/hdbscan_obj.pkl", "rb") as f:
+            hdbscan_obj = pickle.load(f)
+            
+        with open("data/cluster_results/optics_obj.pkl", "rb") as f:
+            optics_obj = pickle.load(f)
+            
+        cluster_result_dict = {
+            "dbscan_results": dbscan_obj,
+            "hdbscan_results": hdbscan_obj,
+            "optics_results": optics_obj,
+        }
+        
+        
         self.process_post_clustering(cluster_result_dict, df)
 
         return None
@@ -585,7 +604,7 @@ class SatelliteClusteringApp:
         return X
 
 
-    def save_labels(self):
+    def save_obj(self):
         """ This will run everything per normal, then save the label data from each alg as a pkl
         file in data/ for quicker retrieval later.
         """
@@ -613,23 +632,46 @@ class SatelliteClusteringApp:
         """
         So here I want to use all the clustering algs and do comparative analysis of performance.
         """
-        # init the clustering algs
-        cluster_result_dict = self.cluster_wrapper.run_all_optimizer(
-            distance_matrix, orbit_points
+        
+        # load labels from pickle files
+        with open("data/cluster_results/dbscan_labels.pkl", "rb") as f:
+            dbscan_labels = pickle.load(f)
+        
+        dbscan_obj = ClusterResult(
+            dbscan_labels,
+            len(set(dbscan_labels)),
+            (dbscan_labels == -1).sum(),
+            self.cluster_wrapper.quality_metrics.dbcv_score_wrapper(orbit_points, dbscan_labels),
+            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(orbit_points, dbscan_labels)
         )
         
-        dbscan_results = cluster_result_dict["dbscan_results"]
-        hdbscan_results = cluster_result_dict["hdbscan_results"]
-        optics_results = cluster_result_dict["optics_results"]
+        with open("data/cluster_results/hdbscan_labels.pkl", "rb") as f:
+            hdbscan_labels = pickle.load(f)
         
-        import pickle
+        hdbscan_obj = ClusterResult(
+            hdbscan_labels,
+            len(set(hdbscan_labels)),
+            (hdbscan_labels == -1).sum(),
+            self.cluster_wrapper.quality_metrics.dbcv_score_wrapper(orbit_points, hdbscan_labels),
+            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(orbit_points, hdbscan_labels)
+        )
+
+        with open("data/cluster_results/optics_labels.pkl", "rb") as f:
+            optics_labels = pickle.load(f)
         
-        # save all to data/
-        with open("data/cluster_results/dbscan_labels.pkl", "wb") as f:
-            pickle.dump(dbscan_results.labels, f)
-            
-        with open("data/cluster_results/hdbscan_labels.pkl", "wb") as f:
-            pickle.dump(hdbscan_results.labels, f)
-            
-        with open("data/cluster_results/optics_labels.pkl", "wb") as f:
-            pickle.dump(optics_results.labels, f)
+        optics_obj = ClusterResult(
+            optics_labels,
+            len(set(optics_labels)),
+            (optics_labels == -1).sum(),
+            self.cluster_wrapper.quality_metrics.dbcv_score_wrapper(orbit_points, optics_labels),
+            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(orbit_points, optics_labels)
+        )
+        
+        with open("data/cluster_results/dbscan_obj.pkl", "wb") as f:
+            pickle.dump(dbscan_obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        with open("data/cluster_results/hdbscan_obj.pkl", "wb") as f:
+            pickle.dump(hdbscan_obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        with open("data/cluster_results/optics_obj.pkl", "wb") as f:
+            pickle.dump(optics_obj, f, protocol=pickle.HIGHEST_PROTOCOL)
