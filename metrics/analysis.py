@@ -98,50 +98,83 @@ class Analysis:
             print("No non-empty clusterings to plot.")
             return
 
+        # Use a modern color palette
+        colors = plt.cm.Set2(np.linspace(0, 1, len(algorithm_order)))
+        
+        # Set style
+        plt.style.use('seaborn-v0_8-darkgrid')
+        
         fig, axes = plt.subplots(
             nrows=2,
             ncols=1,
-            figsize=(7, 8),
+            figsize=(10, 9),
             constrained_layout=True,
         )
+        
+        fig.patch.set_facecolor('white')
 
         # --- Histogram of cluster sizes per algorithm ---
         ax_hist = axes[0]
-        for name in algorithm_order:
+        for i, name in enumerate(algorithm_order):
             sizes = np.asarray(sizes_dict[name])
             ax_hist.hist(
                 sizes,
-                bins="auto",
-                alpha=0.5,
+                bins=30,
+                alpha=0.65,
                 label=name,
+                color=colors[i],
+                edgecolor='white',
+                linewidth=0.5,
             )
 
         if log_x:
             ax_hist.set_xscale("log")
 
-        ax_hist.set_xlabel("Cluster size (number of orbits)")
-        ax_hist.set_ylabel("Count of clusters")
-        ax_hist.legend(title="Algorithm")
-        ax_hist.set_title("Cluster size distribution")
+        ax_hist.set_xlabel("Cluster Size (log)", fontsize=11, fontweight='semibold')
+        ax_hist.set_ylabel("Number of Clusters", fontsize=11, fontweight='semibold')
+        ax_hist.legend(title="Algorithm", framealpha=0.95, shadow=True, fontsize=10)
+        ax_hist.set_title("Cluster Size Distribution", fontsize=13, fontweight='bold', pad=15)
+        ax_hist.grid(True, alpha=0.3, linestyle='--')
+        ax_hist.spines['top'].set_visible(False)
+        ax_hist.spines['right'].set_visible(False)
 
         # --- Boxplot of cluster sizes per algorithm ---
         ax_box = axes[1]
         data = [np.asarray(sizes_dict[name]) for name in algorithm_order]
-        ax_box.boxplot(
+        
+        bp = ax_box.boxplot(
             data,
             labels=algorithm_order,
             showfliers=True,
+            patch_artist=True,
+            notch=True,
+            widths=0.6,
+            boxprops=dict(linewidth=1.5, alpha=0.8),
+            whiskerprops=dict(linewidth=1.5),
+            capprops=dict(linewidth=1.5),
+            medianprops=dict(linewidth=2, color='darkred'),
+            flierprops=dict(marker='o', markerfacecolor='gray', markersize=4, alpha=0.5),
         )
+        
+        # Color each box
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+        
         if log_x:
             ax_box.set_yscale("log")
-            ax_box.set_ylabel("Cluster size (log scale)")
+            ax_box.set_ylabel("Cluster Size (log)", fontsize=11, fontweight='semibold')
         else:
-            ax_box.set_ylabel("Cluster size")
+            ax_box.set_ylabel("Cluster Size", fontsize=11, fontweight='semibold')
 
-        ax_box.set_title("Cluster sizes (median, IQR, whiskers)")
+        ax_box.set_xlabel("Algorithm", fontsize=11, fontweight='semibold')
+        ax_box.set_title("Cluster Size Distribution (Median, IQR, Range)", fontsize=13, fontweight='bold', pad=15)
+        ax_box.grid(True, alpha=0.3, linestyle='--', axis='y')
+        ax_box.spines['top'].set_visible(False)
+        ax_box.spines['right'].set_visible(False)
+        ax_box.tick_params(axis='x', rotation=15)
 
         # Save
         out_path = self.output_dir / save_name
-        fig.savefig(out_path, dpi=200)
+        fig.savefig(out_path, dpi=300, bbox_inches='tight', facecolor='white')
         plt.close(fig)
         print(f"Saved cluster size distributions to {out_path}")

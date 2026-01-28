@@ -154,7 +154,7 @@ class SatelliteClusteringApp:
                 f"Clusters={result.n_clusters}, "
                 f"Noise={result.n_noise}, "
                 f"DBCV Score={result.dbcv_score:.4f}, "
-                # f"S_Dbw Score={result.s_Dbw_score:.4f}"
+                f"S_Dbw Score={result.s_Dbw_score:.4f}"
             )
 
         skipped = [name for name, result in results_list if result is None]
