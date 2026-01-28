@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import Counter
-
+from tools.density_estimation import DensityEstimator
 
 class Analysis:
     def __init__(self, output_dir: str = "data/analysis"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.density_estimator = DensityEstimator()
 
     def cluster_size_summary(self, labels: np.ndarray) -> dict:
         """
@@ -178,3 +179,94 @@ class Analysis:
         fig.savefig(out_path, dpi=300, bbox_inches='tight', facecolor='white')
         plt.close(fig)
         print(f"Saved cluster size distributions to {out_path}")
+            
+    def cluster_mean_densities(
+            self,
+            labels: np.ndarray,
+            density_estimator,
+            distance_matrix: np.ndarray,
+        ) -> dict:
+        """
+        Compute mean density per cluster (excluding noise).
+
+        Returns:
+            - cluster_ids: array of cluster labels (no noise)
+            - cluster_sizes: array of cluster sizes
+            - cluster_mean_density: array of mean density per cluster
+        """
+        
+        labels = np.asarray(labels)
+        densities = self.density_estimator.density(distance_matrix)
+
+        mask = labels != -1
+        labels_n = labels[mask]
+        dens_n = densities[mask]
+
+        if labels_n.size == 0:
+            return {
+                "cluster_ids": np.array([], dtype=int),
+                "cluster_sizes": np.array([], dtype=int),
+                "cluster_mean_density": np.array([], dtype=float),
+            }
+
+        unique_clusters = np.unique(labels_n)
+        cluster_ids = []
+        cluster_sizes = []
+        cluster_mean_density = []
+
+        for cid in unique_clusters:
+            cid_mask = labels_n == cid
+            cluster_ids.append(cid)
+            cluster_sizes.append(cid_mask.sum())
+            cluster_mean_density.append(dens_n[cid_mask].mean())
+
+        return {
+            "cluster_ids": np.asarray(cluster_ids),
+            "cluster_sizes": np.asarray(cluster_sizes),
+            "cluster_mean_density": np.asarray(cluster_mean_density),
+        }
+        
+    def plot_size_vs_density(
+        self,
+        size_density_dict: dict,
+        save_name: str = "cluster_size_vs_density.png",
+    ):
+        """
+        Scatter plot of cluster size vs mean density for one or more algorithms.
+
+        size_density_dict:
+            {
+              "HDBSCAN": (sizes_array, mean_density_array),
+              "OPTICS":  (sizes_array, mean_density_array),
+              ...
+            }
+        """
+        
+        plt.style.use('seaborn-v0_8-darkgrid')
+        fig, ax = plt.subplots(figsize=(8, 6))
+        colors = plt.cm.Set2(np.linspace(0, 1, len(size_density_dict)))
+
+        for (algo, (sizes, dens)), color in zip(size_density_dict.items(), colors):
+            sizes = np.asarray(sizes)
+            dens = np.asarray(dens)
+            ax.scatter(
+                sizes,
+                dens,
+                alpha=0.6,
+                s=15,
+                label=algo,
+                color=color,
+                edgecolor="none",
+            )
+
+        # ax.set_xscale("log")
+        # ax.set_yscale("log")
+        ax.set_xlabel("Cluster size (number of orbits, log)")
+        ax.set_ylabel("Mean local density (log)")
+        ax.set_title("Cluster size vs mean local density")
+        ax.legend(framealpha=0.95)
+
+        out_path = self.output_dir / save_name
+        fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+        print(f"Saved size-density plot to {out_path}")

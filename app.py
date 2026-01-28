@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 
+from metrics import analysis
 import numpy as np
 import pandas as pd
 import pickle
@@ -110,11 +111,12 @@ class SatelliteClusteringApp:
             "optics_results": optics_obj,
         }
         
-        self.process_post_clustering(cluster_result_dict, df)
+        # self.process_post_clustering(cluster_result_dict, df)
         
-        self.analysis_graphs(cluster_result_dict)
+        self.analysis_graphs(cluster_result_dict, distance_matrix)
 
         return None
+    
 
     def process_post_clustering(self, cluster_result_dict, df):
         """
@@ -184,23 +186,40 @@ class SatelliteClusteringApp:
                 top_k=50,
             )
 
-    def analysis_graphs(self, cluster_result_dict):
-        
-        dbscan_result = cluster_result_dict["dbscan_results"]
+    def analysis_graphs(self, cluster_result_dict, distance_matrix):
+
         hdbscan_result = cluster_result_dict["hdbscan_results"]
-        optics_result = cluster_result_dict["optics_results"]
+        
+        # Suppose you have:
+        # distance_matrix, hdbscan_result, optics_result, dbscan_result
 
-        dbscan_stats = self.analysis.cluster_size_summary(dbscan_result.labels)
-        hdbscan_stats = self.analysis.cluster_size_summary(hdbscan_result.labels)
-        optics_stats = self.analysis.cluster_size_summary(optics_result.labels)
+        hdb_sd = self.analysis.cluster_mean_densities(
+            hdbscan_result.labels,
+            self.density_estimator,
+            distance_matrix
+        )
 
-        sizes_dict = {
-            "DBSCAN": dbscan_stats["sizes"],
-            "HDBSCAN": hdbscan_stats["sizes"],
-            "OPTICS": optics_stats["sizes"],
+        size_density_dict = {
+            "HDBSCAN": (hdb_sd["cluster_sizes"], hdb_sd["cluster_mean_density"]),
         }
 
-        self.analysis.plot_cluster_size_distributions(sizes_dict, log_x=True)
+        self.analysis.plot_size_vs_density(size_density_dict)
+
+        # dbscan_result = cluster_result_dict["dbscan_results"]
+        # hdbscan_result = cluster_result_dict["hdbscan_results"]
+        # optics_result = cluster_result_dict["optics_results"]
+
+        # dbscan_stats = self.analysis.cluster_size_summary(dbscan_result.labels)
+        # hdbscan_stats = self.analysis.cluster_size_summary(hdbscan_result.labels)
+        # optics_stats = self.analysis.cluster_size_summary(optics_result.labels)
+
+        # sizes_dict = {
+        #     "DBSCAN": dbscan_stats["sizes"],
+        #     "HDBSCAN": hdbscan_stats["sizes"],
+        #     "OPTICS": optics_stats["sizes"],
+        # }
+
+        # self.analysis.plot_cluster_size_distributions(sizes_dict, log_x=True)
 
     def save_cluster_characterisation(
         self,

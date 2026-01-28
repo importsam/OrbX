@@ -4,7 +4,7 @@ class DensityEstimator:
     def __init__(self):
         self.radius = 100
     
-    def density(self, distance_matrix, r):
+    def density(self, distance_matrix, r=100):
         N_i = (distance_matrix <= r).sum(axis=1)
         V = (np.pi**3 / 6) * r**6
         densities = N_i / V
