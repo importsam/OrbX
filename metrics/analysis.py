@@ -193,20 +193,14 @@ class Analysis:
     def cluster_mean_densities(
             self,
             labels: np.ndarray,
-            density_estimator,
-            distance_matrix: np.ndarray,
+            densities: np.ndarray,   # <— change: pass densities directly
         ) -> dict:
         """
         Compute mean density per cluster (excluding noise).
-
-        Returns:
-            - cluster_ids: array of cluster labels (no noise)
-            - cluster_sizes: array of cluster sizes
-            - cluster_mean_density: array of mean density per cluster
         """
-        
+
         labels = np.asarray(labels)
-        densities = self.density_estimator.density(distance_matrix)
+        densities = np.asarray(densities)
 
         mask = labels != -1
         labels_n = labels[mask]

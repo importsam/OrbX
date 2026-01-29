@@ -71,7 +71,6 @@ class SatelliteClusteringApp:
     def run_experiment(self):
         # Get the satellite data into a dataframe
         df = self.tle_parser.df
-        # filter by inclination and apogee range
         df = df[
             (df["inclination"] >= self.cluster_config.inclination_range[0])
             & (df["inclination"] <= self.cluster_config.inclination_range[1])
@@ -85,9 +84,14 @@ class SatelliteClusteringApp:
 
         # Get or compute the distance matrix
         distance_matrix, key = get_distance_matrix(df)
+
+        # Reorder df to match distance_matrix
         orbit_points = self.get_points(df)
         df = self._reorder_dataframe(df, key)
-        df = self.density_estimator.assign_density(df.copy(), distance_matrix)
+
+        # SINGLE SOURCE OF TRUTH: compute densities once, aligned with df
+        densities = self.density_estimator.density(distance_matrix)
+        df["density"] = densities
         # Clustering
         """
         So here I want to use all the clustering algs and do comparative analysis of performance.
@@ -112,75 +116,29 @@ class SatelliteClusteringApp:
             "hdbscan_results": hdbscan_obj,
             "optics_results": optics_obj,
         }
-        
-        self.process_post_clustering(cluster_result_dict, df)
-        
-        self.analysis_graphs(cluster_result_dict, distance_matrix)
+
+        self.process_post_clustering(cluster_result_dict, df, distance_matrix)
+        self.analysis_graphs(cluster_result_dict, df, distance_matrix)
 
         return None
-    
+        
 
-    def process_post_clustering(self, cluster_result_dict, df):
-        """
-        Process the clustering results from each algorithm and prepare for visualization.
-
-        Args:
-            cluster_result_dict: dict of ClusterResult objects from clustering algorithms
-        """
-
-        # affinity_results = cluster_result_dict["affinity_results"]
+    def process_post_clustering(self, cluster_result_dict, df, distance_matrix):
         optics_results = cluster_result_dict["optics_results"]
         dbscan_results = cluster_result_dict["dbscan_results"]
         hdbscan_results = cluster_result_dict["hdbscan_results"]
 
-        # rank based on DBCV score
         results_list = [
-            # ("Affinity Propagation", affinity_results),
             ("OPTICS", optics_results),
             ("DBSCAN", dbscan_results),
             ("HDBSCAN", hdbscan_results),
         ]
 
-        valid_results = [
-            (name, result) for name, result in results_list if result is not None
-        ]
+        valid_results = [(name, result) for name, result in results_list if result is not None]
+        # ... print DBCV ranking ...
 
-        if not valid_results:
-            raise RuntimeError("No clustering algorithm produced a valid result")
-
-        valid_results.sort(key=lambda x: x[1].dbcv_score, reverse=True)
-
-        print("\nClustering Results Ranked by DBCV Score:")
-
+        # Save CSVs as before (size-ranked)
         for name, result in valid_results:
-            print(
-                f"{name}: "
-                f"Clusters={result.n_clusters}, "
-                f"Noise={result.n_noise}, "
-                f"DBCV Score={result.dbcv_score:.4f}, "
-                f"S_Dbw Score={result.s_Dbw_score:.4f}"
-            )
-
-        skipped = [name for name, result in results_list if result is None]
-        if skipped:
-            print("\nSkipped algorithms (no acceptable clustering found):")
-            for name in skipped:
-                print(f" - {name}")
-
-        """
-        What we need this to do now is to characterise what the clusters look like inside. 
-        There are four characterisations of clusters:
-        Mega cluster - 100+ sats
-        Major cluster - 20-100
-        Minor cluster - 5-20 sats
-        Micro cluster - 2-5 sats
-        
-        For these, I need it to rank the top 50 and save in a csv the following:
-        Cluster ID, Tier, Size, Altitude Range
-        """
-
-        for name, result in valid_results:
-
             self.save_cluster_characterisation(
                 df=df.copy(),
                 result=result,
@@ -188,6 +146,32 @@ class SatelliteClusteringApp:
                 top_k=50,
             )
 
+        # HDBSCAN only: top 20 by mean density
+        if hdbscan_results is None:
+            print("\nNo HDBSCAN result available for density ranking.")
+            return
+
+        # Full per-cluster stats (unsorted)
+        hdbscan_clusters_df = self.save_cluster_characterisation(
+            df=df.copy(),
+            result=hdbscan_results,
+            out_path="data/cluster_characterisation_HDBSCAN.csv",
+            # top_k=50,
+        )
+
+        print("\nTop 20 HDBSCAN clusters ranked by mean density:")
+        hdbscan_top20 = hdbscan_clusters_df.sort_values(
+            by="Mean Density", ascending=False
+        ).head(20)
+
+        for _, row in hdbscan_top20.iterrows():
+            print(
+                f"Cluster {int(row['Cluster ID'])} | "
+                f"Tier={row['Tier']} | "
+                f"Size={int(row['Size'])} | "
+                f"Mean density={row['Mean Density']:.6e} | "
+                f"Alt range={row['Min Altitude (km)']:.1f}–{row['Max Altitude (km)']:.1f} km"
+            )
 
 
     def save_cluster_characterisation(
@@ -195,9 +179,8 @@ class SatelliteClusteringApp:
         df: pd.DataFrame,
         result: ClusterResult,
         out_path: str = "data/cluster_characterisation.csv",
-        top_k: int = 50,
+        top_k: int = None,
     ):
-
         labels = result.labels
 
         if len(df) != len(labels):
@@ -208,18 +191,15 @@ class SatelliteClusteringApp:
         df = df.copy()
         df["cluster_id"] = labels
 
-        # drop noise
+        # Drop noise
         df = df[df["cluster_id"] != -1]
 
-        # Normalize the density and average for each cluster
-        df["normalized_density"] = (df["density"] - df["density"].min()) / (df["density"].max() - df["density"].min())
+        # df["density"] is already present from run_experiment
 
         cluster_rows = []
-
         for cluster_id, g in df.groupby("cluster_id"):
             size = len(g)
             tier = self.cluster_tier(size)
-
             if tier == "Ignore":
                 continue
 
@@ -233,8 +213,7 @@ class SatelliteClusteringApp:
                     "Size": size,
                     "Min Altitude (km)": altitude_min,
                     "Max Altitude (km)": altitude_max,
-                    "Density": g["density"].mean(),
-                    "Normalized Density": g["normalized_density"].mean(),
+                    "Mean Density": g["density"].mean(),
                 }
             )
 
@@ -243,35 +222,55 @@ class SatelliteClusteringApp:
 
         clusters_df = pd.DataFrame(cluster_rows)
 
-        # Rank by size
-        clusters_df = clusters_df.sort_values(by="Size", ascending=False).head(top_k)
-
+        # CSV stays as you had it (size-ranked)
+        if top_k is None:
+            top_k = len(clusters_df)
+        clusters_df_csv = clusters_df.sort_values(by="Size", ascending=False).head(top_k)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        clusters_df.to_csv(out_path, index=False)
+        clusters_df_csv.to_csv(out_path, index=False)
 
         print(f"\nSaved cluster characterisation → {out_path}")
-        print(f"Clusters saved: {len(clusters_df)}")
+        print(f"Clusters saved: {len(clusters_df_csv)}")
 
+        # Return the full unsorted frame for further in-memory use
         return clusters_df
-    
-    def analysis_graphs(self, cluster_result_dict, distance_matrix):
+
+
+        
+    def analysis_graphs(self, cluster_result_dict, df, distance_matrix):
 
         hdbscan_result = cluster_result_dict["hdbscan_results"]
-        
-        # Suppose you have:
-        # distance_matrix, hdbscan_result, optics_result, dbscan_result
 
         hdb_sd = self.analysis.cluster_mean_densities(
             hdbscan_result.labels,
-            self.density_estimator,
-            distance_matrix
+            df["density"].to_numpy(),
         )
+
+        # Build DataFrame from exactly what is plotted
+        hdb_df = pd.DataFrame({
+            "Cluster ID": hdb_sd["cluster_ids"],
+            "Size": hdb_sd["cluster_sizes"],
+            "Mean Density": hdb_sd["cluster_mean_density"],
+        })
+
+        # Find all clusters with mean density >= 8e-11
+        high = hdb_df[hdb_df["Mean Density"] >= 8e-11].sort_values(
+            by="Mean Density", ascending=False
+        )
+
+        print("\nAll HDBSCAN clusters with mean density >= 8e-11:")
+        for _, row in high.iterrows():
+            print(
+                f"Cluster {int(row['Cluster ID'])} | "
+                f"Size={int(row['Size'])} | "
+                f"Mean density={row['Mean Density']:.6e}"
+            )
 
         size_density_dict = {
             "HDBSCAN": (hdb_sd["cluster_sizes"], hdb_sd["cluster_mean_density"]),
         }
-
         self.analysis.plot_size_vs_density(size_density_dict)
+
 
         # dbscan_result = cluster_result_dict["dbscan_results"]
         # hdbscan_result = cluster_result_dict["hdbscan_results"]
