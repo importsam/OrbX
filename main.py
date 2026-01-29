@@ -9,6 +9,5 @@ if __name__ == "__main__":
         damping=0.95,
     )
 
-    # nothing is cached
     app = SatelliteClusteringApp(cluster_config)
-    app.run_experiment()
+    app.bootstrap_cluster_stability()

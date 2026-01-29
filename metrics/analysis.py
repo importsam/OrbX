@@ -3,13 +3,23 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import Counter
 from tools.density_estimation import DensityEstimator
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from clustering_algs.cluster_wrapper import ClusterWrapper
+import pickle 
+from tools.distance_matrix import get_distance_matrix
+from tle_parser import TLEParser
+from tools.density_estimation import DensityEstimator
 
 class Analysis:
     def __init__(self, output_dir: str = "data/analysis"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.density_estimator = DensityEstimator()
-
+        self.cluster_wrapper = ClusterWrapper()
+        self.tle_parser = TLEParser("Space-Track")
+        
     def cluster_size_summary(self, labels: np.ndarray) -> dict:
         """
         Compute size structure + coverage/noise stats for a single clustering.
@@ -270,3 +280,5 @@ class Analysis:
         fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
         plt.close(fig)
         print(f"Saved size-density plot to {out_path}")
+
+

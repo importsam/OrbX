@@ -21,6 +21,7 @@ sys.path.append(str(update_cesium_assets_path / "live"))
 from build_czml import build_czml
 from ionop_czml import ionop_czml
 from metrics.analysis import Analysis
+from sklearn.cluster import HDBSCAN
 
 class SatelliteClusteringApp:
 
@@ -719,3 +720,105 @@ class SatelliteClusteringApp:
 
         with open("data/cluster_results/optics_obj.pkl", "wb") as f:
             pickle.dump(optics_obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+            
+            
+    def data_labels_csv(self, X):
+        """
+        This will save the orbits as points (X) as a csv, along side the labels from each alg.
+        This is for the stability analysis, these csvs will be read in by an R script.
+        """
+        
+                # Get the satellite data into a dataframe
+        df = self.tle_parser.df
+        # filter by inclination and apogee range
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(
+            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        )
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+        
+        # load in the objects 
+        dbscan_results = pickle.load(open("data/cluster_results/dbscan_obj.pkl", "rb"))
+        optics_results = pickle.load(open("data/cluster_results/optics_obj.pkl", "rb"))
+        hdbscan_results = pickle.load(open("data/cluster_results/hdbscan_obj.pkl", "rb"))
+        
+        labels_dbscan = dbscan_results.labels
+        labels_optics = optics_results.labels
+        labels_hdb = hdbscan_results.labels
+        
+        pd.DataFrame(X).to_csv("X.csv", index=False)
+        pd.DataFrame({"hdbscan": labels_hdb,
+                    "optics": labels_optics,
+                    "dbscan": labels_dbscan}).to_csv("data/analysis/stability_pairs/labels.csv", index=False)
+        
+        
+        
+
+    def bootstrap_cluster_stability(self):
+        """
+        Perform bootstrap resampling to assess cluster stability.
+
+        Saves bootstrap clustering results to CSV files in 'stability_pairs' directory.
+        Each file contains two columns: 'ref' (reference labels) and 'boot' (bootstrap labels).
+        """
+        
+        df = self.tle_parser.df
+
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(
+            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        )
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+        X = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+        
+        hdbscan_results = pickle.load(open("data/cluster_results/hdbscan_obj.pkl", "rb"))
+
+        rng = np.random.default_rng(42)
+        B = 100
+        sample_frac = 0.7
+
+        # X: (n, d) from your pipeline
+        # distance_matrix: (n, n) used for clustering
+        # hdbscan_clusterer: your configured HDBSCAN object
+        labels_ref = hdbscan_results.labels
+        n = X.shape[0]
+
+        out_dir = Path("data/analysis/stability_pairs")
+        out_dir.mkdir(exist_ok=True)
+
+        for b in range(B):
+            idx = rng.choice(n, size=int(sample_frac * n), replace=False)
+            X_b = X[idx]
+            D_b = distance_matrix[np.ix_(idx, idx)]
+
+            labels_boot = HDBSCAN(
+                min_cluster_size=2,
+                min_samples=3,
+                metric="precomputed",
+            ).fit_predict(D_b)
+
+            df = pd.DataFrame({
+                "ref": labels_ref[idx],
+                "boot": labels_boot
+            })
+            
+            df.to_csv(out_dir / f"hdbscan_boot_{b:03d}.csv", index=False)
