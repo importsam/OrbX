@@ -10,4 +10,4 @@ if __name__ == "__main__":
     )
 
     app = SatelliteClusteringApp(cluster_config)
-    app.bootstrap_cluster_stability()
+    app.run_experiment()

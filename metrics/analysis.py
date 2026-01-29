@@ -271,9 +271,9 @@ class Analysis:
 
         # ax.set_xscale("log")
         # ax.set_yscale("log")
-        ax.set_xlabel("Cluster size (number of orbits, log)")
-        ax.set_ylabel("Mean local density (log)")
-        ax.set_title("Cluster size vs mean local density")
+        ax.set_xlabel("Cluster Size")
+        ax.set_ylabel("Mean Cluster Density")
+        ax.set_title("Cluster Size to Density Relationship (r=100)")
         ax.legend(framealpha=0.95)
 
         out_path = self.output_dir / save_name

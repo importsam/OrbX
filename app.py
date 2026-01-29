@@ -22,7 +22,7 @@ from build_czml import build_czml
 from ionop_czml import ionop_czml
 from metrics.analysis import Analysis
 from sklearn.cluster import HDBSCAN
-
+from tools.density_estimation import DensityEstimator
 class SatelliteClusteringApp:
 
     def __init__(self, cluster_config: ClusterConfig):
@@ -37,6 +37,7 @@ class SatelliteClusteringApp:
         self.orbital_constants = OrbitalConstants()
         self.density_estimator = DensityEstimator()
         self.analysis = Analysis()
+        self.density_estimator = DensityEstimator()
 
     def run_metrics(self):
         # Get the satellite data into a dataframe
@@ -86,7 +87,7 @@ class SatelliteClusteringApp:
         distance_matrix, key = get_distance_matrix(df)
         orbit_points = self.get_points(df)
         df = self._reorder_dataframe(df, key)
-
+        df = self.density_estimator.assign_density(df.copy(), distance_matrix)
         # Clustering
         """
         So here I want to use all the clustering algs and do comparative analysis of performance.
@@ -112,7 +113,7 @@ class SatelliteClusteringApp:
             "optics_results": optics_obj,
         }
         
-        # self.process_post_clustering(cluster_result_dict, df)
+        self.process_post_clustering(cluster_result_dict, df)
         
         self.analysis_graphs(cluster_result_dict, distance_matrix)
 
@@ -181,12 +182,78 @@ class SatelliteClusteringApp:
         for name, result in valid_results:
 
             self.save_cluster_characterisation(
-                df=df,
+                df=df.copy(),
                 result=result,
                 out_path=f"data/cluster_characterisation_{name}.csv",
                 top_k=50,
             )
 
+
+
+    def save_cluster_characterisation(
+        self,
+        df: pd.DataFrame,
+        result: ClusterResult,
+        out_path: str = "data/cluster_characterisation.csv",
+        top_k: int = 50,
+    ):
+
+        labels = result.labels
+
+        if len(df) != len(labels):
+            raise ValueError(
+                f"Label / dataframe mismatch: df={len(df)}, labels={len(labels)}"
+            )
+
+        df = df.copy()
+        df["cluster_id"] = labels
+
+        # drop noise
+        df = df[df["cluster_id"] != -1]
+
+        # Normalize the density and average for each cluster
+        df["normalized_density"] = (df["density"] - df["density"].min()) / (df["density"].max() - df["density"].min())
+
+        cluster_rows = []
+
+        for cluster_id, g in df.groupby("cluster_id"):
+            size = len(g)
+            tier = self.cluster_tier(size)
+
+            if tier == "Ignore":
+                continue
+
+            altitude_min = g["apogee"].min()
+            altitude_max = g["apogee"].max()
+
+            cluster_rows.append(
+                {
+                    "Cluster ID": int(cluster_id),
+                    "Tier": tier,
+                    "Size": size,
+                    "Min Altitude (km)": altitude_min,
+                    "Max Altitude (km)": altitude_max,
+                    "Density": g["density"].mean(),
+                    "Normalized Density": g["normalized_density"].mean(),
+                }
+            )
+
+        if not cluster_rows:
+            raise RuntimeError("No valid clusters found for characterisation")
+
+        clusters_df = pd.DataFrame(cluster_rows)
+
+        # Rank by size
+        clusters_df = clusters_df.sort_values(by="Size", ascending=False).head(top_k)
+
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        clusters_df.to_csv(out_path, index=False)
+
+        print(f"\nSaved cluster characterisation → {out_path}")
+        print(f"Clusters saved: {len(clusters_df)}")
+
+        return clusters_df
+    
     def analysis_graphs(self, cluster_result_dict, distance_matrix):
 
         hdbscan_result = cluster_result_dict["hdbscan_results"]
@@ -221,65 +288,6 @@ class SatelliteClusteringApp:
         # }
 
         # self.analysis.plot_cluster_size_distributions(sizes_dict, log_x=True)
-
-    def save_cluster_characterisation(
-        self,
-        df: pd.DataFrame,
-        result: ClusterResult,
-        out_path: str = "data/cluster_characterisation.csv",
-        top_k: int = 50,
-    ):
-
-        labels = result.labels
-
-        if len(df) != len(labels):
-            raise ValueError(
-                f"Label / dataframe mismatch: df={len(df)}, labels={len(labels)}"
-            )
-
-        df = df.copy()
-        df["cluster_id"] = labels
-
-        # drop noise
-        df = df[df["cluster_id"] != -1]
-
-        cluster_rows = []
-
-        for cluster_id, g in df.groupby("cluster_id"):
-            size = len(g)
-            tier = self.cluster_tier(size)
-
-            if tier == "Ignore":
-                continue
-
-            altitude_min = g["apogee"].min()
-            altitude_max = g["apogee"].max()
-
-            cluster_rows.append(
-                {
-                    "Cluster ID": int(cluster_id),
-                    "Tier": tier,
-                    "Size": size,
-                    "Min Altitude (km)": altitude_min,
-                    "Max Altitude (km)": altitude_max,
-                }
-            )
-
-        if not cluster_rows:
-            raise RuntimeError("No valid clusters found for characterisation")
-
-        clusters_df = pd.DataFrame(cluster_rows)
-
-        # Rank by size
-        clusters_df = clusters_df.sort_values(by="Size", ascending=False).head(top_k)
-
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        clusters_df.to_csv(out_path, index=False)
-
-        print(f"\nSaved cluster characterisation → {out_path}")
-        print(f"Clusters saved: {len(clusters_df)}")
-
-        return clusters_df
 
     def cluster_tier(self, size: int) -> str:
         if size >= 100:
