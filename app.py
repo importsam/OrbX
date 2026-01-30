@@ -170,9 +170,8 @@ class SatelliteClusteringApp:
                 f"Tier={row['Tier']} | "
                 f"Size={int(row['Size'])} | "
                 f"Mean density={row['Mean Density']:.6e} | "
-                f"Alt range={row['Min Altitude (km)']:.1f}–{row['Max Altitude (km)']:.1f} km"
+                f"Alt range={row['Min Altitude (km)']:.1f}-{row['Max Altitude (km)']:.1f} km"
             )
-
 
     def save_cluster_characterisation(
         self,
@@ -269,8 +268,18 @@ class SatelliteClusteringApp:
         size_density_dict = {
             "HDBSCAN": (hdb_sd["cluster_sizes"], hdb_sd["cluster_mean_density"]),
         }
+        
+        # Print top 10 clusters by size
+        print("\nTop 10 HDBSCAN clusters by size:")
+        top_10 = hdb_df.nlargest(10, "Size")
+        for _, row in top_10.iterrows():
+            print(
+                f"Cluster {int(row['Cluster ID'])} | "
+                f"Size={int(row['Size'])} | "
+                f"Mean density={row['Mean Density']:.6e}"
+            )
+        
         self.analysis.plot_size_vs_density(size_density_dict)
-
 
         # dbscan_result = cluster_result_dict["dbscan_results"]
         # hdbscan_result = cluster_result_dict["hdbscan_results"]
