@@ -1,0 +1,44 @@
+Orbit 1
+Satellite Number: 99999
+Line 1: 1 99999U 20042A   26027.13434208  .00000000  00000-0  10000-4 0  9990
+Line 2: 2 99999  97.6020 244.5384 0002214  88.6496 271.9396 15.06633386  1000
+Keplerian Elements:
+  Semi-major axis (a): 6921.623315 km
+  Eccentricity (e): 0.000221
+  Inclination (i): 97.602000 deg
+  Argument of Perigee (ω): 88.649600 deg
+  RAAN (Ω): 244.538400 deg
+--------------------------------------------------
+Orbit 2
+Satellite Number: 64850
+Line 1: 1 64850U 25152J   26027.13397895  .00009241  00000-0  64374-3 0  9993
+Line 2: 2 64850  97.6033 244.5352 0002162  88.2078 271.9396 15.05654153 29162
+Keplerian Elements:
+  Semi-major axis (a): 6924.626736 km
+  Eccentricity (e): 0.000216
+  Inclination (i): 97.603300 deg
+  Argument of Perigee (ω): 88.207800 deg
+  RAAN (Ω): 244.535200 deg
+--------------------------------------------------
+Orbit 3
+Satellite Number: 64851
+Line 1: 1 64851U 25152K   26027.14504678  .00011085  00000-0  77106-3 0  9990
+Line 2: 2 64851  97.6031 244.5185 0002032  90.4531 269.6928 15.05656988 29163
+Keplerian Elements:
+  Semi-major axis (a): 6924.618028 km
+  Eccentricity (e): 0.000203
+  Inclination (i): 97.603100 deg
+  Argument of Perigee (ω): 90.453100 deg
+  RAAN (Ω): 244.518500 deg
+--------------------------------------------------
+Orbit 4
+Satellite Number: 64846
+Line 1: 1 64846U 25152E   26027.11735808  .00008470  00000-0  59037-3 0  9999
+Line 2: 2 64846  97.6044 244.5494 0002198 115.1294 245.0161 15.05657713 29162
+Keplerian Elements:
+  Semi-major axis (a): 6924.615859 km
+  Eccentricity (e): 0.000220
+  Inclination (i): 97.604400 deg
+  Argument of Perigee (ω): 115.129400 deg
+  RAAN (Ω): 244.549400 deg
+--------------------------------------------------

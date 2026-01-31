@@ -173,6 +173,7 @@ class SatelliteClusteringApp:
                 f"Alt range={row['Min Altitude (km)']:.1f}-{row['Max Altitude (km)']:.1f} km"
             )
 
+
     def save_cluster_characterisation(
         self,
         df: pd.DataFrame,
