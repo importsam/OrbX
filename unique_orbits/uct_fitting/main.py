@@ -11,6 +11,9 @@ from app import SatelliteClusteringApp
 from tools.DMT import VectorizedKeplerianOrbit
 from tle_parser import TLEParser
 from configs import ClusterConfig, OrbitalConstants, PathConfig
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 """
 This file is used to process the given elset data into a distance matrix and save
@@ -134,14 +137,133 @@ class UCTFitting:
     
 
     def graph_tsne(self, df: pd.DataFrame):
-        pass
+        """
+        Diagnostic t-SNE plot showing a cluster and its synthetic void orbit.
+        """
 
+        df = df.copy()
+
+        # --- identify synthetic orbit ---
+        void_mask = df['satNo'] == '99999'
+        if void_mask.sum() != 1:
+            print("No unique synthetic orbit found for t-SNE plot.")
+            return
+
+        real_mask = ~void_mask
+
+        # --- build Keplerian distance matrix ---
+        line1 = df['line1'].values
+        line2 = df['line2'].values
+        orbits = VectorizedKeplerianOrbit(line1, line2)
+        D = VectorizedKeplerianOrbit.DistanceMetric(orbits, orbits)
+
+        # --- t-SNE on distance matrix ---
+        tsne = TSNE(
+            n_components=2,
+            metric="precomputed",
+            perplexity=min(10, len(df) - 1),
+            init="random",
+            random_state=42
+        )
+        
+        D = np.asarray(D)
+
+        # kill tiny negative roundoff
+        D[D < 0] = 0.0
+
+        # force exact zeros on diagonal
+        np.fill_diagonal(D, 0.0)
+        X_2d = tsne.fit_transform(D)
+
+        # ================================
+        # Plotly (interactive)
+        # ================================
+        fig = go.Figure()
+
+        # real cluster orbits
+        fig.add_trace(go.Scatter(
+            x=X_2d[real_mask, 0],
+            y=X_2d[real_mask, 1],
+            mode="markers",
+            name="Cluster orbits",
+            marker=dict(
+                size=6,
+                opacity=0.7,
+                color="rgba(100,100,100,0.6)"
+            ),
+            text=df.loc[real_mask, 'satNo'],
+            hovertemplate="SatNo: %{text}<extra></extra>"
+        ))
+
+        # synthetic orbit
+        fig.add_trace(go.Scatter(
+            x=X_2d[void_mask, 0],
+            y=X_2d[void_mask, 1],
+            mode="markers",
+            name="Synthetic void orbit",
+            marker=dict(
+                symbol="star",
+                size=18,
+                color="crimson",
+                line=dict(width=2, color="black")
+            ),
+            text=["Synthetic orbit (99999)"],
+            hovertemplate="%{text}<extra></extra>"
+        ))
+
+        fig.update_layout(
+            title="t-SNE diagnostic: cluster vs synthetic void orbit",
+            xaxis_title="t-SNE component 1",
+            yaxis_title="t-SNE component 2",
+            template="plotly_white",
+            width=800,
+            height=650,
+            legend=dict(itemsizing="constant")
+        )
+
+        out_html = "data/tsne_void_diagnostic.html"
+        fig.write_html(str(out_html), include_plotlyjs="cdn")
+        print(f"Saved t-SNE void diagnostic to {out_html}")
+
+        # ================================
+        # Matplotlib (paper-ready)
+        # ================================
+        plt.figure(figsize=(7, 6), dpi=150)
+
+        plt.scatter(
+            X_2d[real_mask, 0],
+            X_2d[real_mask, 1],
+            s=12,
+            alpha=0.6
+        )
+
+        plt.scatter(
+            X_2d[void_mask, 0],
+            X_2d[void_mask, 1],
+            s=160,
+            marker="*",
+            edgecolor="black",
+            linewidth=1.2,
+            zorder=5
+        )
+
+        plt.title("t-SNE: synthetic orbit in cluster void")
+        plt.xlabel("t-SNE component 1")
+        plt.ylabel("t-SNE component 2")
+        plt.tight_layout()
+
+        out_png = "data/tsne_void_diagnostic.png"
+        plt.savefig(out_png)
+        plt.close()
+
+        print(f"Saved t-SNE PNG to {out_png}")
 
     def czml_main(self):
 
 
         df = self.load_tle_dataframe_for_file()
         self.graph_tsne(df.copy())
+        
         if df is None or df.empty:
             print("No TLE data loaded. Quitting.")
             return
