@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from tools.distance_matrix import get_distance_matrix
-from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import get_optimum_orbit
+from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import get_optimum_orbit, get_maximally_separated_orbit
 from unique_orbits.uct_fitting.data_handling.build_czml import build_czml
 from unique_orbits.uct_fitting.data_handling.ionop_czml import ionop_czml
 from app import SatelliteClusteringApp
@@ -34,9 +34,9 @@ class UCTFitting:
             & (df["apogee"] <= self.cluster_config.apogee_range[1])
         ].copy()
 
-        print(
-            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
-        )
+        # print(
+        #     f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        # )
 
         # Get or compute the distance matrix
         distance_matrix, key = get_distance_matrix(df)
@@ -59,11 +59,17 @@ class UCTFitting:
         
         unique_labels, label_counts = np.unique(labels, return_counts=True)
         cluster_counts = dict(zip(unique_labels, label_counts))
-        print("\nCluster counts:")
-        print(cluster_counts)
+        # print("\nCluster counts:")
+        # print(cluster_counts)
 
         # Append optimized orbit for this dataset
-        df = get_optimum_orbit(df)
+        # df = get_optimum_orbit(df)
+        df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
+        
+        print("Void orbit diagnostics:")
+        print(f"  NN distance: {diagnostics['r_star']:.6f}")
+        print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
+        print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
         return df
 
     def filter_clusters(self, df: pd.DataFrame, target_size: int = 15) -> pd.DataFrame:
@@ -125,12 +131,17 @@ class UCTFitting:
                 f.write("-" * 50 + "\n")
         
         return test_rows
+    
+
+    def graph_tsne(self, df: pd.DataFrame):
+        pass
+
 
     def czml_main(self):
 
 
         df = self.load_tle_dataframe_for_file()
-
+        self.graph_tsne(df.copy())
         if df is None or df.empty:
             print("No TLE data loaded. Quitting.")
             return
