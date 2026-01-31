@@ -53,8 +53,6 @@ class UCTFitting:
 
         labels = hdbscan_obj.labels
         
-
-
         df['label'] = labels.astype(int)
         df['correlated'] = False
         
@@ -66,13 +64,14 @@ class UCTFitting:
         # print(cluster_counts)
 
         # Append optimized orbit for this dataset
-        # df = get_optimum_orbit(df)
-        df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
+        df = get_optimum_orbit(df)
         
-        print("Void orbit diagnostics:")
-        print(f"  NN distance: {diagnostics['r_star']:.6f}")
-        print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
-        print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
+        # df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
+        # print("Void orbit diagnostics:")
+        # print(f"  NN distance: {diagnostics['r_star']:.6f}")
+        # print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
+        # print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
+        
         return df
 
     def filter_clusters(self, df: pd.DataFrame, target_size: int = 15) -> pd.DataFrame:
@@ -136,7 +135,7 @@ class UCTFitting:
         return test_rows
     
 
-    def graph_tsne(self, df: pd.DataFrame):
+    def graph_tsne(self, df: pd.DataFrame, name: str = "tsne_avg_synthOrb_cluster"):
         """
         Diagnostic t-SNE plot showing a cluster and its synthetic void orbit.
         """
@@ -221,7 +220,7 @@ class UCTFitting:
             legend=dict(itemsizing="constant")
         )
 
-        out_html = "data/tsne_void_diagnostic.html"
+        out_html = f"data/tsne_{name}.html"
         fig.write_html(str(out_html), include_plotlyjs="cdn")
         print(f"Saved t-SNE void diagnostic to {out_html}")
 
@@ -247,19 +246,18 @@ class UCTFitting:
             zorder=5
         )
 
-        plt.title("t-SNE: synthetic orbit in cluster void")
+        plt.title("Synthetic Orbital Candidate in Cluster")
         plt.xlabel("t-SNE component 1")
         plt.ylabel("t-SNE component 2")
         plt.tight_layout()
 
-        out_png = "data/tsne_void_diagnostic.png"
+        out_png = f"data/tsne_{name}.png"
         plt.savefig(out_png)
         plt.close()
 
         print(f"Saved t-SNE PNG to {out_png}")
 
     def czml_main(self):
-
 
         df = self.load_tle_dataframe_for_file()
         self.graph_tsne(df.copy())

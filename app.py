@@ -122,7 +122,6 @@ class SatelliteClusteringApp:
 
         return None
         
-
     def process_post_clustering(self, cluster_result_dict, df, distance_matrix):
         optics_results = cluster_result_dict["optics_results"]
         dbscan_results = cluster_result_dict["dbscan_results"]
