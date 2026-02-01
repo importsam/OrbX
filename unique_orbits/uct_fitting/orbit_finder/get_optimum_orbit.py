@@ -416,7 +416,7 @@ def cluster_spacing_stats(kepler_list):
         "max": float(np.max(nn_dists)),
     }
 
-def evaluate_void_orbit(void_kepler, kepler_list):
+def evaluate_void_orbit(void_kepler, kepler_list, eps=1e-12):
     """
     Quantify how 'void-like' a synthetic orbit is.
     """
@@ -426,7 +426,12 @@ def evaluate_void_orbit(void_kepler, kepler_list):
     stats = cluster_spacing_stats(kepler_list)
 
     percentile = np.mean(stats["nn_distances"] < r_star) * 100
-    ratio_to_median = r_star / stats["median"]
+
+    median = stats["median"]
+    if median < eps:
+        ratio_to_median = np.inf   # or np.nan, depending on what you prefer
+    else:
+        ratio_to_median = r_star / median
 
     return {
         "r_star": float(r_star),
@@ -434,3 +439,4 @@ def evaluate_void_orbit(void_kepler, kepler_list):
         "ratio_to_median_spacing": float(ratio_to_median),
         "cluster_stats": stats,
     }
+

@@ -273,7 +273,7 @@ class UCTFitting:
         # df = self.load_tle_dataframe_for_file()
         
         df = self.load_hdbscan_labeled_dataframe()
-        cluster_sizes, percentiles, ratios = self.evaluate_void_over_cluster_sizes(df.copy())
+        cluster_sizes, percentiles, ratios, labels = self.evaluate_void_all_clusters(df.copy())
 
         self.plot_void_performance(cluster_sizes, percentiles, ratios)
         
@@ -370,6 +370,37 @@ class UCTFitting:
         print(f"Saved void performance plot to {out_path}")
         
         
+    def evaluate_void_all_clusters(self, df, min_cluster_size=2):
+        cluster_sizes = []
+        percentiles = []
+        ratios = []
+        labels = []
+
+        for label, df_cluster in df.groupby("label"):
+            if label == -1:
+                continue
+            N = len(df_cluster)
+            if N < min_cluster_size:
+                continue
+
+            _, diagnostics = get_maximally_separated_orbit(
+                df_cluster.copy(),
+                return_diagnostics=True
+            )
+
+            ratio = diagnostics["ratio_to_median_spacing"]
+            if not np.isfinite(ratio):
+                # skip degenerate clusters with median NN ~ 0
+                continue
+
+            cluster_sizes.append(N)
+            percentiles.append(diagnostics["percentile_vs_cluster"])
+            ratios.append(ratio)
+            labels.append(label)
+
+        return np.array(cluster_sizes), np.array(percentiles), np.array(ratios), np.array(labels)
+
+
     def select_one_cluster_per_size(self, df, min_cluster_size=2, random_state=10):
         """
         Returns a dict: {cluster_size: df_cluster}
