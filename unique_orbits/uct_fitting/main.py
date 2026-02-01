@@ -14,7 +14,8 @@ from configs import ClusterConfig, OrbitalConstants, PathConfig
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-
+import os
+import random
 """
 This file is used to process the given elset data into a distance matrix and save
 to disk.
@@ -258,15 +259,157 @@ class UCTFitting:
 
     def czml_main(self):
 
-        df = self.load_tle_dataframe_for_file()
-        self.graph_tsne(df.copy())
+        # df = self.load_tle_dataframe_for_file()
+        # self.graph_tsne(df.copy())
+        # if df is None or df.empty:
+        #     print("No TLE data loaded. Quitting.")
+        #     return
         
-        if df is None or df.empty:
-            print("No TLE data loaded. Quitting.")
-            return
+        # try:
+        #     self.test_keplerians(df.copy())
+        # except Exception as e:
+        #     print(f"Test keplerians failed: {e}")
         
-        try:
-            self.test_keplerians(df.copy())
-        except Exception as e:
-            print(f"Test keplerians failed: {e}")
+        # df = self.load_tle_dataframe_for_file()
         
+        df = self.load_hdbscan_labeled_dataframe()
+        cluster_sizes, percentiles, ratios = self.evaluate_void_over_cluster_sizes(df.copy())
+
+        self.plot_void_performance(cluster_sizes, percentiles, ratios)
+        
+    def load_hdbscan_labeled_dataframe(self) -> pd.DataFrame:
+        """
+        Loader for EXPERIMENT #2 ONLY.
+        Loads all clusters, no filtering, no synthetic orbits.
+        """
+
+        df = self.tle_parser.df
+
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0]) &
+            (df["inclination"] <= self.cluster_config.inclination_range[1]) &
+            (df["apogee"] >= self.cluster_config.apogee_range[0]) &
+            (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        distance_matrix, key = get_distance_matrix(df)
+        df = self.app._reorder_dataframe(df, key)
+
+        with open("data/cluster_results/hdbscan_obj.pkl", "rb") as f:
+            hdbscan_obj = pickle.load(f)
+
+        df["label"] = hdbscan_obj.labels.astype(int)
+        df["correlated"] = False
+        df["dataset"] = "dataset_name"
+
+        return df
+
+
+
+    def evaluate_void_over_cluster_sizes(self,
+        df,
+        min_cluster_size=2
+    ):
+        """
+        Experiment #2:
+        For each cluster size, evaluate ONE representative cluster.
+        """
+
+        clusters = self.select_one_cluster_per_size(
+            df,
+            min_cluster_size=min_cluster_size
+        )
+
+        cluster_sizes = []
+        percentiles = []
+        ratios = []
+
+        for N in sorted(clusters.keys()):
+            diagnostics = self.evaluate_void_for_cluster(
+                clusters[N]
+            )
+
+            cluster_sizes.append(N)
+            percentiles.append(diagnostics["percentile_vs_cluster"])
+            ratios.append(diagnostics["ratio_to_median_spacing"])
+
+        return cluster_sizes, percentiles, ratios
+
+
+
+    def plot_void_performance(self, cluster_sizes, percentiles, ratios,
+                            out_path="data/void_performance_vs_cluster_size.png"):
+        cluster_sizes = np.asarray(cluster_sizes)
+        percentiles = np.asarray(percentiles)
+        ratios = np.asarray(ratios)
+
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+        fig, ax1 = plt.subplots(figsize=(7, 5), dpi=150)
+
+        # Left y-axis: percentile
+        color1 = "tab:blue"
+        ax1.set_xlabel("Cluster size (N)")
+        ax1.set_ylabel("Void NN percentile (%)", color=color1)
+        ax1.plot(cluster_sizes, percentiles, marker="o", color=color1,
+                label="Percentile vs cluster size")
+        ax1.tick_params(axis="y", labelcolor=color1)
+        ax1.set_ylim(0, 100)
+
+        # Right y-axis: ratio R*/median
+        ax2 = ax1.twinx()
+        color2 = "tab:red"
+        ax2.set_ylabel(r"$R^\ast$ / median NN spacing", color=color2)
+        ax2.plot(cluster_sizes, ratios, marker="s", linestyle="--",
+                color=color2, label="Radius ratio vs cluster size")
+        ax2.tick_params(axis="y", labelcolor=color2)
+
+        fig.tight_layout()
+        fig.savefig(out_path)
+        plt.close(fig)
+        print(f"Saved void performance plot to {out_path}")
+        
+        
+    def select_one_cluster_per_size(self, df, min_cluster_size=2, random_state=10):
+        """
+        Returns a dict: {cluster_size: df_cluster}
+        Selects one random cluster for each cluster size (among all with that size).
+        """
+        rng = np.random.default_rng(random_state)
+
+        # group by label, collect sizes
+        label_groups = {label: grp.copy()
+                        for label, grp in df.groupby("label")
+                        if label != -1}  # skip noise
+
+        # map size -> list of labels with that size
+        size_to_labels = {}
+        for label, grp in label_groups.items():
+            N = len(grp)
+            if N < min_cluster_size:
+                continue
+            size_to_labels.setdefault(N, []).append(label)
+
+        clusters = {}
+        for N, labels in size_to_labels.items():
+            # pick one label at random among those with size N
+            chosen_label = rng.choice(labels)
+            clusters[N] = label_groups[chosen_label]
+
+        return clusters
+
+    def evaluate_void_for_cluster(self,
+        df_cluster
+    ):
+        """
+        Runs void-orbit optimization on a single cluster
+        and returns diagnostics only.
+        """
+
+        _, diagnostics = get_maximally_separated_orbit(
+            df_cluster.copy(),      # critical: isolate mutation
+            return_diagnostics=True
+        )
+
+        return diagnostics
+

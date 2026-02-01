@@ -275,7 +275,7 @@ def min_distance_to_catalog(x, kepler_list):
     return float(np.min(dmins))
 
 
-def sample_maxmin(kepler_list, bounds, n_samples=5000):
+def sample_maxmin(kepler_list, bounds, n_samples=10000):
     best_x = None
     best_r = -np.inf
 
