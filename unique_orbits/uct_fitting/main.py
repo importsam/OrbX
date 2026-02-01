@@ -64,13 +64,13 @@ class UCTFitting:
         # print(cluster_counts)
 
         # Append optimized orbit for this dataset
-        df = get_optimum_orbit(df)
+        # df = get_optimum_orbit(df)
         
-        # df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
-        # print("Void orbit diagnostics:")
-        # print(f"  NN distance: {diagnostics['r_star']:.6f}")
-        # print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
-        # print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
+        df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
+        print("Void orbit diagnostics:")
+        print(f"  NN distance: {diagnostics['r_star']:.6f}")
+        print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
+        print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
         
         return df
 
@@ -90,7 +90,6 @@ class UCTFitting:
 
         chosen_label = selected[0]
         return df[df['label'] == chosen_label].copy()
-            
 
     def test_keplerians(self, df):
         # Select only the row where satNo is '99999'

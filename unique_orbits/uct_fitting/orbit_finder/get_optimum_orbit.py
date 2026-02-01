@@ -307,24 +307,21 @@ def refine_maxmin(x0, kepler_list, bounds):
 
     return res.x, -res.fun
 
-
 def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
     """
     Find a synthetic orbit that maximizes distance to its nearest neighbour
     (largest empty ball in Keplerian element space).
     """
 
-    # --- collect real orbits ---
     all_keplers = [
         get_keplerian_array_from_tle(row)
         for _, row in df.iterrows()
     ]
 
     if len(all_keplers) < 2:
-        print("Not enough orbits for max–min optimization.")
+        print("Not enough orbits for max-min optimization.")
         return df
 
-    # --- bounds (same logic as get_optimum_orbit) ---
     min_a = min(k[0] for k in all_keplers)
     min_e = min(k[1] for k in all_keplers)
     min_i = min(k[2] for k in all_keplers)
@@ -386,15 +383,10 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
 
     test_orbit(df)
     
-    
-    
     if return_diagnostics:
         diagnostics = evaluate_void_orbit(x_star, all_keplers)
         return df, diagnostics
     return df
-    
-
-
 
 def cluster_spacing_stats(kepler_list):
     """
