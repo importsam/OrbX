@@ -129,22 +129,47 @@ def get_optimum_orbit(df):
     print("Optimized Keplerian Elements: {a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f; v: %.6f;}" % 
           tuple(optimum_keplerian))
 
+
+    # === CORRECT verification (same space as optimizer) ===
+    means_real = [mean_sq_distance_kepler(k, all_keplers) for k in all_keplers]
+    mean_opt  = mean_sq_distance_kepler(optimum_keplerian, all_keplers)
+
+    print(f"Optimized mean distance (Kepler space): {mean_opt:.6f}")
+    print(f"Best real mean distance (Kepler space): {min(means_real):.6f}")
+
+    if mean_opt <= min(means_real):
+        print("Kepler-space verification PASSED (Fréchet mean found).")
+    else:
+        print("Kepler-space verification FAILED (local minimum or convergence issue).")
+
+    # Kepler-space ranking (same metric and functional as optimizer)
+    kepler_candidates = all_keplers + [optimum_keplerian]
+    kepler_means      = [mean_sq_distance_kepler(k, all_keplers) for k in kepler_candidates]
+
+    order = np.argsort(kepler_means)
+    print("\nKepler-space ranking by mean *squared* distance:")
+    for rank, idx in enumerate(order, start=1):
+        label = "OPT" if idx == len(all_keplers) else f"REAL_{idx}"
+        print(f"{rank:2d}. {label}  mean_sq = {kepler_means[idx]:.6f}")
+
+
+
     # Verification: compare average distances
-    def verify_orbit(initial, optimized, others):
-        initial_complete = make_complete_orbit(initial)
-        optimized_complete = make_complete_orbit(optimized)
-        initial_orbit = VectorizedKeplerianOrbit(initial_complete)
-        optimized_orbit = VectorizedKeplerianOrbit(optimized_complete)
+    # def verify_orbit(initial, optimized, others):
+    #     initial_complete = make_complete_orbit(initial)
+    #     optimized_complete = make_complete_orbit(optimized)
+    #     initial_orbit = VectorizedKeplerianOrbit(initial_complete)
+    #     optimized_orbit = VectorizedKeplerianOrbit(optimized_complete)
         
-        initial_dists = []
-        optimized_dists = []
-        for k in others:
-            other_complete = make_complete_orbit(k)
-            other_orbit = VectorizedKeplerianOrbit(other_complete)
-            initial_dists.append(VectorizedKeplerianOrbit.DistanceMetric(initial_orbit, other_orbit))
-            optimized_dists.append(VectorizedKeplerianOrbit.DistanceMetric(optimized_orbit, other_orbit))
+    #     initial_dists = []
+    #     optimized_dists = []
+    #     for k in others:
+    #         other_complete = make_complete_orbit(k)
+    #         other_orbit = VectorizedKeplerianOrbit(other_complete)
+    #         initial_dists.append(VectorizedKeplerianOrbit.DistanceMetric(initial_orbit, other_orbit))
+    #         optimized_dists.append(VectorizedKeplerianOrbit.DistanceMetric(optimized_orbit, other_orbit))
         
-        return np.mean(initial_dists), np.mean(optimized_dists)
+    #     return np.mean(initial_dists), np.mean(optimized_dists)
 
     avg_initial, avg_optimized = verify_orbit(initial_keplerian, optimum_keplerian, all_keplers)
     print(f"Initial candidate average distance: {avg_initial:.6f}")
@@ -256,6 +281,17 @@ def verify_keplerian_elements(before_keplerians, after_keplerians):
         print("Verification successful: Keplerian elements are consistent before and after optimization.")
     else:
         print("Verification failed: Keplerian elements are inconsistent before and after optimization.")
+
+def mean_sq_distance_kepler(candidate_k, all_keplers):
+    cand_orbit = VectorizedKeplerianOrbit(make_complete_orbit(candidate_k))
+    d2 = []
+    for kepler in all_keplers:
+        other_orbit = VectorizedKeplerianOrbit(make_complete_orbit(kepler))
+        d = VectorizedKeplerianOrbit.DistanceMetric(cand_orbit, other_orbit)
+        d2.append(d**2)
+    return np.mean(d2)
+
+
 
 
 

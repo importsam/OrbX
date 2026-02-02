@@ -65,17 +65,11 @@ class UCTFitting:
         # print(cluster_counts)
 
         # Append optimized orbit for this dataset
-        # df = get_optimum_orbit(df)
-        
-        df, diagnostics = get_maximally_separated_orbit(df, return_diagnostics=True)
-        print("Void orbit diagnostics:")
-        print(f"  NN distance: {diagnostics['r_star']:.6f}")
-        print(f"  Percentile: {diagnostics['percentile_vs_cluster']:.1f}%")
-        print(f"  Ratio to median: {diagnostics['ratio_to_median_spacing']:.2f}×")
-        
+        df = get_optimum_orbit(df)
+    
         return df
 
-    def filter_clusters(self, df: pd.DataFrame, target_size: int = 15) -> pd.DataFrame:
+    def filter_clusters(self, df: pd.DataFrame, target_size: int = 16) -> pd.DataFrame:
         labels = df['label'].to_numpy()
         unique_labels, label_counts = np.unique(labels, return_counts=True)
         cluster_counts = dict(zip(unique_labels, label_counts))
@@ -259,23 +253,21 @@ class UCTFitting:
 
     def czml_main(self):
 
-        # df = self.load_tle_dataframe_for_file()
-        # self.graph_tsne(df.copy())
-        # if df is None or df.empty:
-        #     print("No TLE data loaded. Quitting.")
-        #     return
+        df = self.load_tle_dataframe_for_file()
+        self.graph_tsne(df.copy())
+        if df is None or df.empty:
+            print("No TLE data loaded. Quitting.")
+            return
         
-        # try:
-        #     self.test_keplerians(df.copy())
-        # except Exception as e:
-        #     print(f"Test keplerians failed: {e}")
+        try:
+            self.test_keplerians(df.copy())
+        except Exception as e:
+            print(f"Test keplerians failed: {e}")
         
-        # df = self.load_tle_dataframe_for_file()
-        
-        df = self.load_hdbscan_labeled_dataframe()
-        cluster_sizes, percentiles, ratios, labels = self.evaluate_void_all_clusters(df.copy())
+        # df = self.load_hdbscan_labeled_dataframe()
+        # cluster_sizes, percentiles, ratios, labels = self.evaluate_void_all_clusters(df.copy())
 
-        self.plot_void_performance(cluster_sizes, percentiles, ratios)
+        # self.plot_void_performance(cluster_sizes, percentiles, ratios)
         
     def load_hdbscan_labeled_dataframe(self) -> pd.DataFrame:
         """
