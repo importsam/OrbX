@@ -69,7 +69,7 @@ class UCTFitting:
     
         return df
 
-    def filter_clusters(self, df: pd.DataFrame, target_size: int = 16) -> pd.DataFrame:
+    def filter_clusters(self, df: pd.DataFrame, target_size: int = 15) -> pd.DataFrame:
         labels = df['label'].to_numpy()
         unique_labels, label_counts = np.unique(labels, return_counts=True)
         cluster_counts = dict(zip(unique_labels, label_counts))
@@ -240,7 +240,7 @@ class UCTFitting:
             zorder=5
         )
 
-        plt.title("Synthetic Orbital Candidate in Cluster")
+        plt.title("Frechet Mean Synthetic Orbit in Cluster")
         plt.xlabel("t-SNE component 1")
         plt.ylabel("t-SNE component 2")
         plt.tight_layout()

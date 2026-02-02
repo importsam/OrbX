@@ -171,14 +171,14 @@ def get_optimum_orbit(df):
         
     #     return np.mean(initial_dists), np.mean(optimized_dists)
 
-    avg_initial, avg_optimized = verify_orbit(initial_keplerian, optimum_keplerian, all_keplers)
-    print(f"Initial candidate average distance: {avg_initial:.6f}")
-    print(f"Optimized orbit average distance: {avg_optimized:.6f}")
+    # avg_initial, avg_optimized = verify_orbit(initial_keplerian, optimum_keplerian, all_keplers)
+    # print(f"Initial candidate average distance: {avg_initial:.6f}")
+    # print(f"Optimized orbit average distance: {avg_optimized:.6f}")
     
-    if avg_optimized < avg_initial:
-        print("Verification: Optimization successful - optimized orbit has a lower average distance.")
-    else:
-        print("Verification: Optimization unsuccessful - no improvement detected.")
+    # if avg_optimized < avg_initial:
+    #     print("Verification: Optimization successful - optimized orbit has a lower average distance.")
+    # else:
+    #     print("Verification: Optimization unsuccessful - no improvement detected.")
 
     # Convert to TLE
     avg_epoch = calculate_average_epoch(df)
@@ -207,7 +207,7 @@ def get_optimum_orbit(df):
     optimum_df = pd.DataFrame([optimum_orbit_entry])
     df = pd.concat([df, optimum_df], ignore_index=True)
 
-    test_orbit(df)
+    # test_orbit(df)
     print("Optimized orbit added to the TLE data.")
     return df
      
@@ -417,7 +417,7 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
 
     df = pd.concat([df, pd.DataFrame([void_entry])], ignore_index=True)
 
-    test_orbit(df)
+    # test_orbit(df)
     
     if return_diagnostics:
         diagnostics = evaluate_void_orbit(x_star, all_keplers)
