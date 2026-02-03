@@ -21,7 +21,32 @@ This file is used to process the given elset data into a distance matrix and sav
 to disk.
 """
 
-class UCTFitting:
+import pandas as pd
+import numpy as np
+
+from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import get_optimum_orbit, get_maximally_separated_orbit
+
+from app import SatelliteClusteringApp
+
+from tle_parser import TLEParser
+from configs import ClusterConfig
+
+
+import os
+
+"""
+This file is used to process the given elset data into a distance matrix and save
+to disk.
+"""
+
+from unique_orbits.uct_fitting.orbit_finder.frechet_orbit_finder import get_optimum_orbit
+from unique_orbits.uct_fitting.orbit_finder.void_orbit_finder import (
+    get_maximally_separated_orbit,
+)
+
+
+
+class SyntheticOrbits:
     def __init__(self, cluster_config: ClusterConfig):
         self.cluster_config = cluster_config
         self.tle_parser = TLEParser("Space-Track")
@@ -253,21 +278,59 @@ class UCTFitting:
 
     def czml_main(self):
 
-        df = self.load_tle_dataframe_for_file()
-        self.graph_tsne(df.copy())
-        if df is None or df.empty:
+        # 1) Load all clusters with labels, no synthetic orbits
+        df_all = self.load_hdbscan_labeled_dataframe()
+        if df_all is None or df_all.empty:
             print("No TLE data loaded. Quitting.")
             return
-        
-        try:
-            self.test_keplerians(df.copy())
-        except Exception as e:
-            print(f"Test keplerians failed: {e}")
-        
-        # df = self.load_hdbscan_labeled_dataframe()
-        # cluster_sizes, percentiles, ratios, labels = self.evaluate_void_all_clusters(df.copy())
 
-        # self.plot_void_performance(cluster_sizes, percentiles, ratios)
+        # 2) Run optimiser on every cluster and print diagnostics
+        results_df = self.evaluate_optimizer_all_clusters(df_all.copy(), min_cluster_size=2)
+
+        # 3) Optionally save summary to CSV for later analysis
+        os.makedirs("data", exist_ok=True)
+        results_df.to_csv("data/frechet_optimizer_summary.csv", index=False)
+        print("Saved optimiser summary to data/frechet_optimizer_summary.csv")
+        
+    def evaluate_optimizer_all_clusters(self, df, min_cluster_size=2):
+        """
+        Run Fréchet-mean optimisation on every cluster that meets the size threshold.
+        Prints per-cluster diagnostics (from get_optimum_orbit) to the console and
+        returns a summary DataFrame.
+        """
+        results = []
+
+        for label, df_cluster in df.groupby("label"):
+            if label == -1:
+                continue  # skip noise
+
+            N = len(df_cluster)
+            if N < min_cluster_size:
+                continue
+
+            print(f"\n=== Cluster label {label}, N = {N} ===")
+            try:
+                diagnostics = get_optimum_orbit(
+                    df_cluster.copy(),   # isolate mutations if return_diagnostics=False later
+                    return_diagnostics=True
+                )
+                # diagnostics already contains N, but we can overwrite to be explicit
+                diagnostics["label"] = label
+                diagnostics["N"] = N
+                results.append(diagnostics)
+
+            except Exception as e:
+                print(f"Optimizer failed for cluster {label}: {e}")
+                results.append({
+                    "label": label,
+                    "N": N,
+                    "error": str(e),
+                    "success": False,
+                })
+
+        return pd.DataFrame(results)
+
+        
         
     def load_hdbscan_labeled_dataframe(self) -> pd.DataFrame:
         """
@@ -436,3 +499,98 @@ class UCTFitting:
 
         return diagnostics
 
+
+    def run_frechet_all_clusters(self, min_cluster_size=2):
+        df_all = self.load_hdbscan_labeled_dataframe()
+        if df_all is None or df_all.empty:
+            print("No TLE data loaded.")
+            return
+
+        results = []
+        for label, df_cluster in df_all.groupby("label"):
+            if label == -1:
+                continue
+            N = len(df_cluster)
+            if N < min_cluster_size:
+                continue
+
+            print(f"\n=== Fréchet mean for cluster {label} (N={N}) ===")
+            try:
+                diagnostics = get_optimum_orbit(df_cluster.copy(), return_diagnostics=True)
+                diagnostics["label"] = label
+                diagnostics["N"] = N
+                results.append(diagnostics)
+            except Exception as e:
+                print(f"Fréchet optimisation failed for label {label}: {e}")
+                results.append({"label": label, "N": N, "error": str(e), "success": False})
+
+        results_df = pd.DataFrame(results)
+        os.makedirs("data", exist_ok=True)
+        results_df.to_csv("data/frechet_optimizer_summary.csv", index=False)
+        print("Saved Fréchet optimiser summary to data/frechet_optimizer_summary.csv")
+        return results_df
+
+    def run_void_all_clusters(self, min_cluster_size=2):
+        df_all = self.load_hdbscan_labeled_dataframe()
+        if df_all is None or df_all.empty:
+            print("No TLE data loaded.")
+            return
+
+        cluster_sizes = []
+        percentiles = []
+        ratios = []
+        labels = []
+
+        for label, df_cluster in df_all.groupby("label"):
+            if label == -1:
+                continue
+            N = len(df_cluster)
+            if N < min_cluster_size:
+                continue
+
+            print(f"\n=== Void orbit for cluster {label} (N={N}) ===")
+            _, diagnostics = get_maximally_separated_orbit(df_cluster.copy(), return_diagnostics=True)
+            ratio = diagnostics["ratio_to_median_spacing"]
+            if not np.isfinite(ratio):
+                continue
+
+            cluster_sizes.append(N)
+            percentiles.append(diagnostics["percentile_vs_cluster"])
+            ratios.append(ratio)
+            labels.append(label)
+
+        cluster_sizes = np.array(cluster_sizes)
+        percentiles = np.array(percentiles)
+        ratios = np.array(ratios)
+        labels = np.array(labels)
+
+        return cluster_sizes, percentiles, ratios, labels
+
+    def run_orbit_generator(self, mode="frechet_single"):
+        """
+        mode:
+          - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
+          - "frechet_all": run Frechet optimiser over all clusters (no plots)
+          - "void_all": run void optimiser over all clusters + performance plot
+        """
+        
+        if mode == "frechet_single":
+            df = self.load_tle_dataframe_for_file()  # filtered + single cluster + Frechet orbit
+            if df is None or df.empty:
+                print("No data.")
+                return
+            self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
+            # build_czml(df, ...)
+            return
+
+        if mode == "frechet_all":
+            self.run_frechet_all_clusters(min_cluster_size=2)
+            return
+
+        if mode == "void_all":
+            df_all = self.load_hdbscan_labeled_dataframe()
+            cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
+            self.plot_void_performance(cs, pct, rat)
+            return
+
+        print(f"Unknown mode '{mode}'")

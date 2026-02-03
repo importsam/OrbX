@@ -71,7 +71,7 @@ def calculate_average_epoch(df):
     average_timestamp = sum(timestamps) / len(timestamps)
     return datetime.fromtimestamp(average_timestamp, timezone.utc)
 
-def get_optimum_orbit(df):
+def get_optimum_orbit(df, return_diagnostics=False):
     """
     Find an optimized orbit that minimizes the average distance to all input orbits
     using multiple initial guesses.
@@ -180,6 +180,19 @@ def get_optimum_orbit(df):
     # else:
     #     print("Verification: Optimization unsuccessful - no improvement detected.")
 
+
+    diagnostics = {
+        "N": len(all_keplers),
+        "best_real_cost": min(means_real),
+        "optimized_cost": mean_opt,
+        "success": mean_opt <= min(means_real),
+    }
+
+    if return_diagnostics:
+        # For diagnostics-only use, do NOT build a TLE or modify df
+        return diagnostics
+
+
     # Convert to TLE
     avg_epoch = calculate_average_epoch(df)
     year_start = datetime(avg_epoch.year, 1, 1, tzinfo=timezone.utc)
@@ -201,15 +214,49 @@ def get_optimum_orbit(df):
         'line1': line1,
         'line2': line2,
         'correlated': True,
-        # preserve dataset tag if present in input df
-        'dataset': initial_candidate.get('dataset') if isinstance(initial_candidate, pd.Series) and 'dataset' in initial_candidate else None
+        'dataset': initial_candidate.get('dataset')
+                  if isinstance(initial_candidate, pd.Series) and 'dataset' in initial_candidate
+                  else None
     }
+
     optimum_df = pd.DataFrame([optimum_orbit_entry])
+    
     df = pd.concat([df, optimum_df], ignore_index=True)
 
-    # test_orbit(df)
     print("Optimized orbit added to the TLE data.")
+
     return df
+     
+     
+def evaluate_optimizer_all_clusters(self, df, min_cluster_size=2):
+    results = []
+
+    for label, df_cluster in df.groupby("label"):
+        if label == -1:
+            continue
+
+        N = len(df_cluster)
+        if N < min_cluster_size:
+            continue
+
+        try:
+            diagnostics = get_optimum_orbit(
+                df_cluster.copy(),
+                return_diagnostics=True
+            )
+            diagnostics["label"] = label
+            results.append(diagnostics)
+
+        except Exception as e:
+            results.append({
+                "label": label,
+                "N": N,
+                "error": str(e),
+                "success": False
+            })
+
+    return pd.DataFrame(results)
+
      
 def residuals_keplerian(x, other_keplers):
     

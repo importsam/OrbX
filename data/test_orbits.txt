@@ -10,35 +10,35 @@ Keplerian Elements:
   RAAN (Ω): 244.538400 deg
 --------------------------------------------------
 Orbit 2
-Satellite Number: 64860
-Line 1: 1 64860U 25152U   26027.15058631  .00004531  00000-0  31797-3 0  9998
-Line 2: 2 64860  97.6014 244.5281 0002306  70.7975 289.3501 15.05653619 29162
+Satellite Number: 64850
+Line 1: 1 64850U 25152J   26027.13397895  .00009241  00000-0  64374-3 0  9993
+Line 2: 2 64850  97.6033 244.5352 0002162  88.2078 271.9396 15.05654153 29162
 Keplerian Elements:
-  Semi-major axis (a): 6924.628292 km
-  Eccentricity (e): 0.000231
-  Inclination (i): 97.601400 deg
-  Argument of Perigee (ω): 70.797500 deg
-  RAAN (Ω): 244.528100 deg
+  Semi-major axis (a): 6924.626736 km
+  Eccentricity (e): 0.000216
+  Inclination (i): 97.603300 deg
+  Argument of Perigee (ω): 88.207800 deg
+  RAAN (Ω): 244.535200 deg
 --------------------------------------------------
 Orbit 3
-Satellite Number: 64845
-Line 1: 1 64845U 25152D   26027.15335179  .00006725  00000-0  46978-3 0  9990
-Line 2: 2 64845  97.6032 244.5089 0002031 100.2135 259.9321 15.05652247 29162
+Satellite Number: 64844
+Line 1: 1 64844U 25152C   26027.14227503  .00005950  00000-0  41611-3 0  9997
+Line 2: 2 64844  97.6037 244.5242 0001742  82.2175 277.9250 15.05658758 29162
 Keplerian Elements:
-  Semi-major axis (a): 6924.632581 km
-  Eccentricity (e): 0.000203
-  Inclination (i): 97.603200 deg
-  Argument of Perigee (ω): 100.213500 deg
-  RAAN (Ω): 244.508900 deg
+  Semi-major axis (a): 6924.612622 km
+  Eccentricity (e): 0.000174
+  Inclination (i): 97.603700 deg
+  Argument of Perigee (ω): 82.217500 deg
+  RAAN (Ω): 244.524200 deg
 --------------------------------------------------
 Orbit 4
-Satellite Number: 64846
-Line 1: 1 64846U 25152E   26027.11735808  .00008470  00000-0  59037-3 0  9999
-Line 2: 2 64846  97.6044 244.5494 0002198 115.1294 245.0161 15.05657713 29162
+Satellite Number: 64843
+Line 1: 1 64843U 25152B   26027.13950928  .00007369  00000-0  51425-3 0  9999
+Line 2: 2 64843  97.6021 244.5341 0001766  78.6981 281.4445 15.05659590 29165
 Keplerian Elements:
-  Semi-major axis (a): 6924.615859 km
-  Eccentricity (e): 0.000220
-  Inclination (i): 97.604400 deg
-  Argument of Perigee (ω): 115.129400 deg
-  RAAN (Ω): 244.549400 deg
+  Semi-major axis (a): 6924.609999 km
+  Eccentricity (e): 0.000177
+  Inclination (i): 97.602100 deg
+  Argument of Perigee (ω): 78.698100 deg
+  RAAN (Ω): 244.534100 deg
 --------------------------------------------------
