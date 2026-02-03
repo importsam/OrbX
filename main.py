@@ -10,8 +10,8 @@ if __name__ == "__main__":
         damping=0.95,
     )
     
-    # app = SatelliteClusteringApp(cluster_config)
-    # app.run_experiment()
+    app = SatelliteClusteringApp(cluster_config)
+    app.supervised_clustering()
     
-    syn_orbits = SyntheticOrbits(cluster_config)
-    syn_orbits.run_orbit_generator()
+    # syn_orbits = SyntheticOrbits(cluster_config)
+    # syn_orbits.run_orbit_generator()

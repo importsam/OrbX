@@ -37,7 +37,6 @@ class SatelliteClusteringApp:
         self.orbital_constants = OrbitalConstants()
         self.density_estimator = DensityEstimator()
         self.analysis = Analysis()
-        self.density_estimator = DensityEstimator()
 
     def run_metrics(self):
         # Get the satellite data into a dataframe
@@ -875,12 +874,159 @@ class SatelliteClusteringApp:
             
     def supervised_clustering(self):
         """ 
-        This single-handedly must validate the research as being something real.
-        No other function is more important.
+        Supervised validation: check whether Starlink shell-1 satellites
+        (≈53° / 550 km) that are in the same orbital planes (RAAN bins)
+        are also clustered together by HDBSCAN.
         """        
-        
-        # Load in the df and the clustering results.
+
         data_dict = self.load_data()
+        df = data_dict["orbit_df"].copy()
+        hdbscan_obj = data_dict["hdbscan_obj"]
+
+        labels_hdb = hdbscan_obj.labels
+        if len(labels_hdb) != len(df):
+            raise ValueError(
+                f"HDBSCAN label / dataframe mismatch: df={len(df)}, labels={len(labels_hdb)}"
+            )
+        df["hdb_label"] = labels_hdb
+
+        df["is_starlink"] = df["name"].str.startswith("STARLINK")
+        df["alt_km"] = df["apogee"]
+
+        df["shell"] = [
+            self.classify_shell(i, h)
+            for i, h in zip(df["inclination"].to_numpy(), df["alt_km"].to_numpy())
+        ]
+
+        shell1 = df[
+            (df["is_starlink"]) &
+            (df["shell"] == "Starlink_shell_53deg_550km") &
+            (df["hdb_label"] != -1)
+        ].copy()
+
+        if shell1.empty:
+            print("No Starlink shell-1 satellites found in current filter.")
+            return
+
+        print(f"Found {len(shell1)} Starlink shell-1 sats (53° / ~550 km, non-noise).")
+
+        # ---- plane IDs from RAAN bins ----
+        bin_width = 5.0
+        bins = np.arange(0.0, 360.0 + bin_width, bin_width)
+        shell1["raan_bin"] = np.digitize(shell1["raan"].to_numpy(), bins)
+        shell1["plane_id"] = shell1["raan_bin"] - 1  # 0-based
+
+        # ---- plane_summary ----
+        plane_summary_rows = []
+        for plane_id, g in shell1.groupby("plane_id"):
+            plane_size = len(g)
+            clusters = g["hdb_label"].to_numpy()
+            unique_clusters, counts = np.unique(clusters, return_counts=True)
+            max_cluster_sats = int(counts.max())
+            plane_summary_rows.append({
+                "plane_id": int(plane_id),
+                "n_sats": plane_size,
+                "n_clusters": len(unique_clusters),
+                "cluster_ids": list(np.sort(unique_clusters)),
+                "max_cluster_sats": max_cluster_sats,
+                "max_cluster_frac": max_cluster_sats / plane_size,
+            })
+
+        plane_summary = pd.DataFrame(plane_summary_rows).sort_values(
+            by="n_sats", ascending=False
+        )
+
+        print("\nStarlink shell-1 planes (RAAN bins) and their HDBSCAN cluster counts:")
+        for _, row in plane_summary.iterrows():
+            print(
+                f"Plane {row['plane_id']:2d} | "
+                f"N_sats={row['n_sats']:3d} | "
+                f"N_clusters={row['n_clusters']:2d} | "
+                f"max_cluster_frac={row['max_cluster_frac']:.3f} | "
+                f"Clusters={row['cluster_ids']}"
+            )
+
+        # ---- cluster_summary ----
+        cluster_summary_rows = []
+        for cluster_id, g in shell1.groupby("hdb_label"):
+            n_sats = len(g)
+            planes = g["plane_id"].to_numpy()
+            unique_planes, counts = np.unique(planes, return_counts=True)
+            max_plane_sats = int(counts.max())
+            cluster_summary_rows.append({
+                "cluster_id": int(cluster_id),
+                "n_sats": n_sats,
+                "n_planes": len(unique_planes),
+                "plane_ids": list(np.sort(unique_planes)),
+                "max_plane_sats": max_plane_sats,
+                "max_plane_frac": max_plane_sats / n_sats,
+                "mean_inc": float(g["inclination"].mean()),
+                "mean_alt": float(g["alt_km"].mean()),
+            })
+
+        cluster_summary = pd.DataFrame(cluster_summary_rows).sort_values(
+            by="n_sats", ascending=False
+        )
+
+        print("\nHDBSCAN clusters restricted to Starlink shell-1 and their plane spans:")
+        for _, row in cluster_summary.iterrows():
+            print(
+                f"Cluster {row['cluster_id']:4d} | "
+                f"N_sats={row['n_sats']:3d} | "
+                f"N_planes={row['n_planes']:2d} | "
+                f"max_plane_frac={row['max_plane_frac']:.3f} | "
+                f"Planes={row['plane_ids']} | "
+                f"⟨i⟩={row['mean_inc']:.3f} deg | "
+                f"⟨alt⟩={row['mean_alt']:.1f} km"
+            )
+
+        # ---- global fractions for your “tightened story” ----
+
+        # 1) “X% of satellites lie in clusters where ≥80% of members share the same RAAN plane.”
+        tight_clusters = cluster_summary[cluster_summary["max_plane_frac"] >= 0.8]
+        n_sats_in_tight_clusters = int(tight_clusters["n_sats"].sum())
+        total_shell1_sats = int(shell1.shape[0])
+        frac_sats_in_tight_clusters = n_sats_in_tight_clusters / total_shell1_sats
+
+        print(
+            f"\nShell-1 Starlinks: {frac_sats_in_tight_clusters*100:.1f}% of satellites "
+            f"({n_sats_in_tight_clusters}/{total_shell1_sats}) lie in HDBSCAN clusters "
+            f"where ≥80% of members share the same RAAN plane."
+        )
+
+        # 2) “Y of Z RAAN planes, a single HDBSCAN cluster contains ≥70% of that plane’s satellites.”
+        plane_good = plane_summary[plane_summary["max_cluster_frac"] >= 0.7]
+        Y = int(plane_good.shape[0])
+        Z = int(plane_summary.shape[0])
+
+        print(
+            f"For Starlink shell-1, {Y} of {Z} RAAN planes "
+            f"({Y/Z*100:.1f}%) have at least one HDBSCAN cluster containing "
+            f"≥70% of that plane's satellites."
+        )
+
+        # ---- save summaries ----
+        out_dir = Path("data/analysis/starlink_supervised")
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        plane_summary.to_csv(out_dir / "shell1_plane_vs_hdbscan.csv", index=False)
+        cluster_summary.to_csv(out_dir / "shell1_hdbscan_vs_planes.csv", index=False)
+
+        print("\nSaved supervised Starlink shell-1 summaries to:")
+        print(f"  {out_dir / 'shell1_plane_vs_hdbscan.csv'}")
+        print(f"  {out_dir / 'shell1_hdbscan_vs_planes.csv'}")
+
         
         
+    @staticmethod
+    def classify_shell(i_deg: float, alt_km: float) -> str:
+        """
+        Very simple shell classifier based on inclination and altitude.
+
+        For now we only care about the 53° / ~550 km shell (Starlink 'shell 1/4').
+        """
+        if 52.5 <= i_deg <= 53.5 and 530.0 <= alt_km <= 570.0:
+            return "Starlink_shell_53deg_550km"
+        return "other"
+
         
