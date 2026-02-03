@@ -9,7 +9,7 @@ if __name__ == "__main__":
         # inclination_range=(80, 100),
         damping=0.95,
     )
-
+    
     # app = SatelliteClusteringApp(cluster_config)
     # app.run_experiment()
     

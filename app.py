@@ -172,7 +172,6 @@ class SatelliteClusteringApp:
                 f"Alt range={row['Min Altitude (km)']:.1f}-{row['Max Altitude (km)']:.1f} km"
             )
 
-
     def save_cluster_characterisation(
         self,
         df: pd.DataFrame,
@@ -234,8 +233,6 @@ class SatelliteClusteringApp:
         # Return the full unsorted frame for further in-memory use
         return clusters_df
 
-
-        
     def analysis_graphs(self, cluster_result_dict, df, distance_matrix):
 
         hdbscan_result = cluster_result_dict["hdbscan_results"]
@@ -664,7 +661,6 @@ class SatelliteClusteringApp:
 
         return X
 
-
     def save_obj(self):
         """ This will run everything per normal, then save the label data from each alg as a pkl
         file in data/ for quicker retrieval later.
@@ -736,8 +732,7 @@ class SatelliteClusteringApp:
 
         with open("data/cluster_results/optics_obj.pkl", "wb") as f:
             pickle.dump(optics_obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-            
-            
+                
     def data_labels_csv(self, X):
         """
         This will save the orbits as points (X) as a csv, along side the labels from each alg.
@@ -777,9 +772,6 @@ class SatelliteClusteringApp:
                     "optics": labels_optics,
                     "dbscan": labels_dbscan}).to_csv("data/analysis/stability_pairs/labels.csv", index=False)
         
-        
-        
-
     def bootstrap_cluster_stability(self):
         """
         Perform bootstrap resampling to assess cluster stability.
@@ -838,3 +830,57 @@ class SatelliteClusteringApp:
             })
             
             df.to_csv(out_dir / f"hdbscan_boot_{b:03d}.csv", index=False)
+      
+    def load_data(self):
+        df = self.tle_parser.df
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        print(
+            f"Loaded {len(df)} satellites in range - inc: {self.cluster_config.inclination_range}, apogee: {self.cluster_config.apogee_range}"
+        )
+
+        # Get or compute the distance matrix
+        distance_matrix, key = get_distance_matrix(df)
+
+        # Reorder df to match distance_matrix
+        orbit_points = self.get_points(df)
+        df = self._reorder_dataframe(df, key)
+        
+        # load in the clustering labels 
+        with open("data/cluster_results/dbscan_obj.pkl", "rb") as f:
+            dbscan_obj = pickle.load(f)
+            
+        with open("data/cluster_results/hdbscan_obj.pkl", "rb") as f:
+            hdbscan_obj = pickle.load(f)
+            
+        with open("data/cluster_results/optics_obj.pkl", "rb") as f:
+            optics_obj = pickle.load(f)
+        
+        data_dict = {
+            "orbit_df": df,
+            "X": orbit_points,
+            "distance_matrix": distance_matrix, 
+            "key": key,
+            "hdbscan_obj": hdbscan_obj,
+            "dbscan_obj": dbscan_obj,
+            "optics_obj": optics_obj
+        }
+        
+        return data_dict
+            
+    def supervised_clustering(self):
+        """ 
+        This single-handedly must validate the research as being something real.
+        No other function is more important.
+        """        
+        
+        # Load in the df and the clustering results.
+        data_dict = self.load_data()
+        
+        
+        

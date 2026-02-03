@@ -1,12 +1,10 @@
 from pathlib import Path
 from math import pi
 import pandas as pd
-
 from models import Satellite
 from configs import OrbitalConstants, PathConfig
 
 class TLEParser:
-    
     def __init__(self, source: str):
         self.constants = OrbitalConstants()
         self.source = source # "Space-Track", "Celestrak", "UDL"
