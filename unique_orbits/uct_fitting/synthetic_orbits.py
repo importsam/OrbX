@@ -196,7 +196,23 @@ class SyntheticOrbits:
         # ================================
         fig = go.Figure()
 
-        # real cluster orbits
+        # synthetic orbit
+        fig.add_trace(go.Scatter(
+            x=X_2d[void_mask, 0],
+            y=X_2d[void_mask, 1],
+            mode="markers",
+            name="Synthetic void orbit",
+            marker=dict(
+                symbol="star",
+                size=14,
+                color="crimson",
+                line=dict(width=2, color="black")
+            ),
+            text=["Synthetic orbit (99999)"],
+            hovertemplate="%{text}<extra></extra>"
+        ))
+        
+        
         fig.add_trace(go.Scatter(
             x=X_2d[real_mask, 0],
             y=X_2d[real_mask, 1],
@@ -211,21 +227,7 @@ class SyntheticOrbits:
             hovertemplate="SatNo: %{text}<extra></extra>"
         ))
 
-        # synthetic orbit
-        fig.add_trace(go.Scatter(
-            x=X_2d[void_mask, 0],
-            y=X_2d[void_mask, 1],
-            mode="markers",
-            name="Synthetic void orbit",
-            marker=dict(
-                symbol="star",
-                size=18,
-                color="crimson",
-                line=dict(width=2, color="black")
-            ),
-            text=["Synthetic orbit (99999)"],
-            hovertemplate="%{text}<extra></extra>"
-        ))
+
 
         fig.update_layout(
             title="t-SNE diagnostic: cluster vs synthetic void orbit",
@@ -237,37 +239,51 @@ class SyntheticOrbits:
             legend=dict(itemsizing="constant")
         )
 
-        out_html = f"data/tsne_{name}.html"
+        out_html = f"data/{name}.html"
         fig.write_html(str(out_html), include_plotlyjs="cdn")
         print(f"Saved t-SNE void diagnostic to {out_html}")
 
-        # ================================
-        # Matplotlib (paper-ready)
-        # ================================
         plt.figure(figsize=(7, 6), dpi=150)
 
+        # First: real/input orbits (background)
         plt.scatter(
             X_2d[real_mask, 0],
             X_2d[real_mask, 1],
             s=12,
-            alpha=0.6
+            alpha=0.6,
+            color="tab:blue",
+            label="Input orbits",
         )
 
+        # Then: synthetic Fréchet mean (foreground star)
         plt.scatter(
             X_2d[void_mask, 0],
             X_2d[void_mask, 1],
-            s=160,
+            s=130,
             marker="*",
             edgecolor="black",
             linewidth=1.2,
-            zorder=5
+            color="crimson",
+            zorder=5,
+            label="Fréchet mean orbit",
         )
 
         plt.title("Frechet Mean Synthetic Orbit in Cluster")
         plt.xlabel("t-SNE component 1")
         plt.ylabel("t-SNE component 2")
-        plt.tight_layout()
+        plt.legend(loc="upper right")
+        
+        handles, labels = plt.gca().get_legend_handles_labels()
 
+        # put Fréchet mean first
+        order = [labels.index("Fréchet mean orbit"), labels.index("Input orbits")]
+        handles = [handles[i] for i in order]
+        labels = [labels[i] for i in order]
+
+        plt.legend(handles, labels, loc="upper right")
+        
+        plt.tight_layout()
+    
         out_png = f"data/tsne_{name}.png"
         plt.savefig(out_png)
         plt.close()
@@ -609,7 +625,7 @@ class SyntheticOrbits:
 
     # THIS IS THE MAIN FUNCTION!!!!!!
 
-    def run_orbit_generator(self, mode="frechet_all"):
+    def run_orbit_generator(self, mode="void"):
         """
         mode:
           - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
@@ -622,7 +638,7 @@ class SyntheticOrbits:
             if df is None or df.empty:
                 print("No data.")
                 return
-            # self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
+            self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
             print(df.head(10))
             
             # build_czml(df, ...)

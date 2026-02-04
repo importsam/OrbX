@@ -71,26 +71,38 @@ class SparseOrbits:
                 X_2d[hi, 0],
                 X_2d[hi, 1],
                 c="red",
-                s=30,            # marker size, as you set
+                s=30,
                 alpha=0.9,
                 edgecolor="black",
                 linewidths=0.5,
                 label="Most isolated orbits",
             )
 
-            # add satNo labels next to the highlighted points
             satnos = df.iloc[hi]["satNo"].astype(str).values
-            for (x, y, s) in zip(X_2d[hi, 0], X_2d[hi, 1], satnos):
+
+            for (idx, x, y, s) in zip(hi, X_2d[hi, 0], X_2d[hi, 1], satnos):
+                # default: bottom-left
+                offset = (-6, -5)
+                ha, va = "right", "top"
+
+                if s == "54880":
+                    # top-left for satNo 54880
+                    offset = (-6, 5)
+                    ha, va = "right", "bottom"
+
                 plt.annotate(
                     s,
                     (x, y),
                     textcoords="offset points",
-                    xytext=(4, 4),     # small offset so text is not on top of the marker
+                    xytext=offset,
+                    ha=ha,
+                    va=va,
                     fontsize=8,
                     color="black",
                 )
 
-        plt.title("Isolated Orbits in LEO (300-700km)")
+
+        plt.title("Isolated Orbits in LEO (300-700km, k=10)")
         plt.xlabel("t-SNE Component 1")
         plt.ylabel("t-SNE Component 2")
         if highlight_indices is not None:
