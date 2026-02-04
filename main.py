@@ -1,6 +1,7 @@
 from app import SatelliteClusteringApp
 from configs import ClusterConfig
 from unique_orbits.uct_fitting.synthetic_orbits import SyntheticOrbits
+from sparse_orbits import SparseOrbits
 
 if __name__ == "__main__":
 
@@ -9,9 +10,15 @@ if __name__ == "__main__":
         # inclination_range=(80, 100),
         damping=0.95,
     )
+
+    sparse_orbits = SparseOrbits()
+    sparse_orbits.graph_tsne()
     
-    app = SatelliteClusteringApp(cluster_config)
-    app.supervised_clustering()
+    # app = SatelliteClusteringApp(cluster_config)
+    # # app.supervised_clustering()
+    # app.run_experiment()
     
     # syn_orbits = SyntheticOrbits(cluster_config)
     # syn_orbits.run_orbit_generator()
+    
+    

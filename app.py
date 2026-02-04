@@ -116,7 +116,7 @@ class SatelliteClusteringApp:
             "optics_results": optics_obj,
         }
 
-        self.process_post_clustering(cluster_result_dict, df, distance_matrix)
+        # self.process_post_clustering(cluster_result_dict, df, distance_matrix)
         self.analysis_graphs(cluster_result_dict, df, distance_matrix)
 
         return None
@@ -277,21 +277,22 @@ class SatelliteClusteringApp:
         
         self.analysis.plot_size_vs_density(size_density_dict)
 
-        # dbscan_result = cluster_result_dict["dbscan_results"]
-        # hdbscan_result = cluster_result_dict["hdbscan_results"]
-        # optics_result = cluster_result_dict["optics_results"]
+        dbscan_result = cluster_result_dict["dbscan_results"]
+        hdbscan_result = cluster_result_dict["hdbscan_results"]
+        optics_result = cluster_result_dict["optics_results"]
 
-        # dbscan_stats = self.analysis.cluster_size_summary(dbscan_result.labels)
-        # hdbscan_stats = self.analysis.cluster_size_summary(hdbscan_result.labels)
-        # optics_stats = self.analysis.cluster_size_summary(optics_result.labels)
+        dbscan_stats = self.analysis.cluster_size_summary(dbscan_result.labels)
+        hdbscan_stats = self.analysis.cluster_size_summary(hdbscan_result.labels)
+        optics_stats = self.analysis.cluster_size_summary(optics_result.labels)
 
-        # sizes_dict = {
-        #     "DBSCAN": dbscan_stats["sizes"],
-        #     "HDBSCAN": hdbscan_stats["sizes"],
-        #     "OPTICS": optics_stats["sizes"],
-        # }
+        sizes_dict = {
+            "DBSCAN": dbscan_stats["sizes"],
+            "HDBSCAN": hdbscan_stats["sizes"],
+            "OPTICS": optics_stats["sizes"],
+        }
 
         # self.analysis.plot_cluster_size_distributions(sizes_dict, log_x=True)
+        self.analysis.plot_hdbscan_cluster_sizes(hdbscan_stats["sizes"], log_x=False, grouped=True)
 
     def cluster_tier(self, size: int) -> str:
         if size >= 100:

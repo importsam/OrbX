@@ -160,7 +160,7 @@ class Grapher:
                 ),
                 customdata=df[['apogee', 'density', 'density_norm']].values
             ))
-            title = f"t-SNE: Orbital Points by Inclination ({name})"
+            title = f"t-SNE: Orbital Points ({name})"
 
         fig.update_layout(
             title=title,

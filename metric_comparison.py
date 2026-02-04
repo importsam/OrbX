@@ -19,7 +19,7 @@ class MetricComparison:
             (df["inclination"] >= 0)
             & (df["inclination"] <= 180)
             & (df["apogee"] >= 300)
-            & (df["apogee"] <= 700)
+            & (df["apogee"] <= 2000)
         ].copy()
 
 
@@ -78,15 +78,13 @@ class MetricComparison:
         orbits = VectorizedKeplerianOrbit(line1, line2)
         D = VectorizedKeplerianOrbit.DistanceMetric(orbits, orbits)
         return np.asarray(D)
-        
-        
+     
     @staticmethod
     def pairwise_euclidean(points: np.ndarray) -> np.ndarray:
-
         
-        
-        return D
-            
+        diff = points[:, None, :] - points[None, :, :]
+        D = np.sqrt(np.sum(diff**2, axis=2))
+        return D            
             
     def main(self,
             labels_path="data/cluster_results/hdbscan_obj.pkl",
@@ -102,30 +100,27 @@ class MetricComparison:
             hdbscan_obj = pickle.load(f)
 
         # depending on how it was saved, use .labels_ or .labels
-        if hasattr(hdbscan_obj, "labels_"):
-            labels = hdbscan_obj.labels_
-        else:
-            labels = hdbscan_obj.labels
+        # if hasattr(hdbscan_obj, "labels_"):
+        #     labels = hdbscan_obj.labels_
+        # else:
+        #     labels = hdbscan_obj.labels
 
-        if len(labels) != len(df):
-            raise ValueError("Length of HDBSCAN labels does not match dataframe length.")
+        # if len(labels) != len(df):
+        #     raise ValueError("Length of HDBSCAN labels does not match dataframe length.")
 
-        df["label"] = labels
+        # df["label"] = labels
 
-        # 3) choose one cluster with at least n_sample_orbits orbits
-        cluster_sizes = df["label"].value_counts()
-        valid_clusters = cluster_sizes[cluster_sizes >= n_sample_orbits].index.tolist()
-        if not valid_clusters:
-            raise ValueError(f"No cluster with at least {n_sample_orbits} members.")
+        # sort whole catalog by apogee altitude
+        df_sorted = df.sort_values("apogee").reset_index(drop=True)
+        if len(df_sorted) < 3:
+            raise ValueError("Need at least 3 objects in the dataframe.")
 
-        chosen_cluster = np.random.choice(valid_clusters)
-        print(f"Chosen cluster label: {chosen_cluster}")
+        idx_min = 0
+        idx_max = len(df_sorted) - 1
+        idx_mid = len(df_sorted) // 2
 
-        cluster_df = df[df["label"] == chosen_cluster].reset_index(drop=True)
-
-        # 4) select n_sample_orbits orbits from this cluster
-        selected_df = cluster_df.sample(n=n_sample_orbits, random_state=42).reset_index(drop=True)
-        print(f"Selected satNos: {selected_df['satNo'].tolist()}")
+        selected_df = df_sorted.loc[[idx_min, idx_mid, idx_max]].reset_index(drop=True)
+        print(f"Selected satNos by apogee (global min, mid, max): {selected_df['satNo'].tolist()}")
 
         # 5) build distance matrices
         keps = self.keplerian_from_tle(selected_df)
@@ -166,8 +161,6 @@ class MetricComparison:
 
         return df_kep, df_dmt
 
-    
-    
 if __name__ == "__main__":
     mc = MetricComparison()
     mc.main() 

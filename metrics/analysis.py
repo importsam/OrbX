@@ -230,6 +230,139 @@ class Analysis:
             "cluster_mean_density": np.asarray(cluster_mean_density),
         }
         
+    def plot_hdbscan_cluster_sizes(
+        self,
+        hdbscan_sizes,
+        log_x: bool = True,
+        save_name: str = "hdbscan_cluster_sizes.png",
+        grouped: bool = False,
+    ):
+        """
+        Plot HDBSCAN cluster sizes.
+
+        If grouped=True, color bars by size class:
+            Micro: 2–4
+            Minor: 5–19
+            Major: 20–99
+            Mega:  100+
+        and show a legend for these classes.
+        """
+        sizes = np.asarray(hdbscan_sizes)
+        if sizes.size == 0:
+            print("No HDBSCAN clusters to plot.")
+            return
+
+        plt.style.use("seaborn-v0_8-darkgrid")
+        fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+        fig.patch.set_facecolor("white")
+
+        # Base histogram
+        counts, bin_edges, patches = ax.hist(
+            sizes,
+            bins=30,
+            alpha=0.9,
+            color="#4C72B0",
+            edgecolor="white",
+            linewidth=0.5,
+        )  # [web:37][web:40]
+
+        if grouped:
+            class_ranges = {
+                "Micro (2–4)":  (2, 5),
+                "Minor (5–19)": (5, 20),
+                "Major (20–49)": (20, 50),
+                "Mega (50+)":   (50, np.inf),
+            }
+
+            class_colors = {
+                "Micro (2–4)":  "#66c2a5",
+                "Minor (5–19)": "#fc8d62",
+                "Major (20–49)": "#8da0cb",
+                "Mega (50+)":   "#e78ac3",
+            }
+
+            # --- print counts per class ---
+            sizes_arr = np.asarray(sizes)
+            print("HDBSCAN cluster counts by size class:")
+            for label, (lo, hi) in class_ranges.items():
+                mask = (sizes_arr >= lo) & (sizes_arr < hi)
+                print(f"  {label}: {mask.sum()} clusters")
+
+            # --- color bins by class ---
+            bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+            for center, patch in zip(bin_centers, patches):
+                # default (if outside all ranges)
+                patch.set_facecolor("#cccccc")
+                for label, (lo, hi) in class_ranges.items():
+                    if lo <= center < hi:
+                        patch.set_facecolor(class_colors[label])
+                        patch.set_label(label)
+                        break
+
+            handles, labels = ax.get_legend_handles_labels()
+            seen = set()
+            uniq_handles, uniq_labels = [], []
+            for h, lab in zip(handles, labels):
+                if lab not in seen:
+                    seen.add(lab)
+                    uniq_handles.append(h)
+                    uniq_labels.append(lab)
+            ax.legend(
+                uniq_handles,
+                uniq_labels,
+                title="Cluster Class",
+                loc="upper right",
+                framealpha=0.95,
+            )
+
+
+            # For each bin, decide which class it belongs to by its bin center
+            bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+            for center, patch in zip(bin_centers, patches):
+                # Default color if no class matches (e.g. size < 2)
+                patch.set_facecolor("#cccccc")
+                for label, (lo, hi) in class_ranges.items():
+                    if lo <= center <= hi:
+                        patch.set_facecolor(class_colors[label])
+                        patch.set_label(label)  # will be deduplicated by legend
+                        break
+
+            # Legend in top-right corner
+            handles, labels = ax.get_legend_handles_labels()
+            # Deduplicate labels while preserving order
+            seen = set()
+            uniq_handles, uniq_labels = [], []
+            for h, lab in zip(handles, labels):
+                if lab not in seen:
+                    seen.add(lab)
+                    uniq_handles.append(h)
+                    uniq_labels.append(lab)
+            ax.legend(
+                uniq_handles,
+                uniq_labels,
+                title="Cluster Class",
+                loc="upper right",
+                framealpha=0.95,
+            )  # [web:56][web:59][web:62]
+
+        if log_x:
+            ax.set_xscale("log")
+
+        ax.set_xlabel("Cluster Size (log)" if log_x else "Cluster Size",
+                      fontsize=11, fontweight="semibold")
+        ax.set_ylabel("Number of Clusters", fontsize=11, fontweight="semibold")
+        ax.set_title("HDBSCAN Cluster Size Distribution",
+                    fontsize=13, fontweight="bold", pad=15)
+        ax.grid(True, alpha=0.3, linestyle="--")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        out_path = self.output_dir / save_name
+        fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+        print(f"Saved HDBSCAN cluster size histogram to {out_path}")
+
+        
     def plot_size_vs_density(
         self,
         size_density_dict: dict,
