@@ -44,8 +44,6 @@ from unique_orbits.uct_fitting.orbit_finder.void_orbit_finder import (
     get_maximally_separated_orbit,
 )
 
-
-
 class SyntheticOrbits:
     def __init__(self, cluster_config: ClusterConfig):
         self.cluster_config = cluster_config
@@ -507,6 +505,8 @@ class SyntheticOrbits:
             return
 
         results = []
+        synthetic_rows = []
+
         for label, df_cluster in df_all.groupby("label"):
             if label == -1:
                 continue
@@ -516,19 +516,58 @@ class SyntheticOrbits:
 
             print(f"\n=== Fréchet mean for cluster {label} (N={N}) ===")
             try:
+                # 1) diagnostics-only call
                 diagnostics = get_optimum_orbit(df_cluster.copy(), return_diagnostics=True)
                 diagnostics["label"] = label
                 diagnostics["N"] = N
                 results.append(diagnostics)
+
+                # 2) mutation call that appends synthetic orbit to this cluster
+                df_with_opt = get_optimum_orbit(df_cluster.copy(), return_diagnostics=False)
+                optimum_row = df_with_opt.iloc[-1]  # last row is the synthetic orbit
+
+                # keep same schema as df_all plus label
+                synthetic_rows.append(
+                    {
+                        "satNo": optimum_row["satNo"],
+                        "name": optimum_row["name"],
+                        "line1": optimum_row["line1"],
+                        "line2": optimum_row["line2"],
+                        "inclination": optimum_row.get("inclination"),
+                        "apogee": optimum_row.get("apogee"),
+                        "raan": optimum_row.get("raan"),
+                        "argument_of_perigee": optimum_row.get("argument_of_perigee"),
+                        "eccentricity": optimum_row.get("eccentricity"),
+                        "mean_motion": optimum_row.get("mean_motion"),
+                        "label": label,
+                        "correlated": optimum_row.get("correlated", True),
+                        "dataset": optimum_row.get("dataset", "frechet_synthetic"),
+                    }
+                )
             except Exception as e:
                 print(f"Fréchet optimisation failed for label {label}: {e}")
-                results.append({"label": label, "N": N, "error": str(e), "success": False})
+                results.append(
+                    {"label": label, "N": N, "error": str(e), "success": False}
+                )
 
+        # --- write summary CSV as before ---
         results_df = pd.DataFrame(results)
         os.makedirs("data", exist_ok=True)
         results_df.to_csv("data/frechet_optimizer_summary.csv", index=False)
         print("Saved Fréchet optimiser summary to data/frechet_optimizer_summary.csv")
-        return results_df
+
+        # --- build df_all_with_synthetics ---
+        if synthetic_rows:
+            synthetics_df = pd.DataFrame(synthetic_rows)
+            # ensure same column order as df_all where possible
+            cols = list(df_all.columns)
+            extra_cols = [c for c in synthetics_df.columns if c not in cols]
+            synthetics_df = synthetics_df[cols + extra_cols]
+            df_all_with_synth = pd.concat([df_all, synthetics_df], ignore_index=True)
+        else:
+            df_all_with_synth = df_all.copy()
+
+        return df_all_with_synth
 
     def run_void_all_clusters(self, min_cluster_size=2):
         df_all = self.load_hdbscan_labeled_dataframe()
@@ -566,7 +605,11 @@ class SyntheticOrbits:
 
         return cluster_sizes, percentiles, ratios, labels
 
-    def run_orbit_generator(self, mode="frechet_single"):
+
+
+    # THIS IS THE MAIN FUNCTION!!!!!!
+
+    def run_orbit_generator(self, mode="frechet_all"):
         """
         mode:
           - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
@@ -584,7 +627,7 @@ class SyntheticOrbits:
             return
 
         if mode == "frechet_all":
-            self.run_frechet_all_clusters(min_cluster_size=2)
+            df = self.run_frechet_all_clusters(min_cluster_size=2)
             return
 
         if mode == "void_all":
