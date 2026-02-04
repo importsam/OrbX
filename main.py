@@ -12,8 +12,8 @@ if __name__ == "__main__":
         damping=0.95,
     )
 
-    # sparse_orbits = SparseOrbits()
-    # sparse_orbits.graph_tsne()
+    sparse = SparseOrbits()
+    sparse.graph_tsne_with_isolated()
     
     # app = SatelliteClusteringApp(cluster_config)
     # # app.supervised_clustering()
@@ -22,8 +22,8 @@ if __name__ == "__main__":
     # syn_orbits = SyntheticOrbits(cluster_config)
     # syn_orbits.run_orbit_generator()
     
-    analysis = Analysis()
-    analysis.plot_variance_from_existing_frechet()
+    # analysis = Analysis()
+    # analysis.plot_variance_from_existing_frechet()
     
     
     
