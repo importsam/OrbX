@@ -489,7 +489,6 @@ class Analysis:
         cluster_sizes = np.asarray(cluster_sizes, dtype=float)
         cluster_vars = np.asarray(cluster_vars, dtype=float)
 
-        # NEW: save per-cluster variance CSV
         var_items = sorted(variances.items(), key=lambda x: x[0])
         var_df = pd.DataFrame(var_items, columns=["label", "within_cluster_variance"])
         out_csv = self.output_dir / "cluster_variances.csv"
