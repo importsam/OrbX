@@ -622,12 +622,17 @@ class SyntheticOrbits:
             if df is None or df.empty:
                 print("No data.")
                 return
-            self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
+            # self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
+            print(df.head(10))
+            
             # build_czml(df, ...)
             return
 
         if mode == "frechet_all":
             df = self.run_frechet_all_clusters(min_cluster_size=2)
+            # save as pkl
+            df.to_pickle("data/frechet_all_synth.pkl")
+            print("saved frechet all as pkl")
             return
 
         if mode == "void_all":

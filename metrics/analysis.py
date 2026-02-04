@@ -11,6 +11,7 @@ import pickle
 from tools.distance_matrix import get_distance_matrix
 from tle_parser import TLEParser
 from tools.density_estimation import DensityEstimator
+from tools.DMT import VectorizedKeplerianOrbit
 
 class Analysis:
     def __init__(self, output_dir: str = "data/analysis"):
@@ -362,11 +363,97 @@ class Analysis:
         plt.close(fig)
         print(f"Saved HDBSCAN cluster size histogram to {out_path}")
 
+                
+    def get_variance(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        For each cluster, treat the synthetic orbit as the mean and compute
+        the within-cluster variance (average squared distance to that mean),
+        then assign this variance back to all rows of that cluster in a new
+        column 'cluster_variance'.
+
+        Assumes:
+        - df has a 'label' column.
+        - df contains both real and synthetic orbits for each cluster.
+        - get_distance_matrix(df) returns (distance_matrix, key), where
+            key[i] is the satNo for row i in df and distance_matrix[i,j]
+            is the distance between those two orbits.
+        """
+        df = df.copy()
+
+        if "label" not in df.columns:
+            raise ValueError("DataFrame must contain a 'label' column.")
+
+        # Build distance matrix for the *entire* df so we can index by satNo
+        distance_matrix, key = get_distance_matrix(df)
+        key = np.asarray(key)  # satNos aligned with distance_matrix rows/cols
+
+        # Map satNo -> index in distance matrix
+        satno_to_idx = {str(s): i for i, s in enumerate(key)}
+
+        variances = {}
+
+        for label, df_cluster in df.groupby("label"):
+            if label == -1:
+                continue  # skip noise
+
+            # identify synthetic orbit row for this cluster
+            syn_mask = (df_cluster["name"] == "Optimized") | (df_cluster["satNo"] == "99999")
+            if not syn_mask.any():
+                print(f"No synthetic orbit found for cluster {label}; skipping variance.")
+                continue
+
+            syn_row = df_cluster.loc[syn_mask].iloc[0]
+            syn_satno = str(syn_row["satNo"])
+            if syn_satno not in satno_to_idx:
+                print(f"Synthetic satNo {syn_satno} not in key; skipping cluster {label}.")
+                continue
+            syn_idx = satno_to_idx[syn_satno]
+
+            # members excluding the synthetic orbit itself
+            members = df_cluster.loc[~syn_mask]
+            if members.empty:
+                print(f"No real members in cluster {label} after excluding synthetic; skipping.")
+                continue
+
+            # indices of real members in the global distance matrix
+            member_indices = []
+            for _, row in members.iterrows():
+                s = str(row["satNo"])
+                idx = satno_to_idx.get(s)
+                if idx is not None:
+                    member_indices.append(idx)
+                else:
+                    print(f"satNo {s} not found in key; skipping this member in cluster {label}.")
+
+            if not member_indices:
+                print(f"No valid members with indices for cluster {label}; skipping.")
+                continue
+
+            member_indices = np.asarray(member_indices, dtype=int)
+
+            # distances from each member to synthetic orbit
+            dists = distance_matrix[member_indices, syn_idx]
+            dists_sq = dists**2
+
+            var_label = float(np.mean(dists_sq))
+            variances[label] = var_label
+            print(
+                f"Cluster {label}: variance (mean squared distance to synthetic) = {var_label:.6e}"
+            )
+
+        # write back to df in a new column
+        df["cluster_variance"] = np.nan
+        for label, var in variances.items():
+            df.loc[df["label"] == label, "cluster_variance"] = var
+
+        return df
+
         
-    def plot_size_vs_density(
+        
+    def plot_size_vs_variance(
         self,
-        size_density_dict: dict,
         save_name: str = "cluster_size_vs_density.png",
+        
     ):
         """
         Scatter plot of cluster size vs mean density for one or more algorithms.
