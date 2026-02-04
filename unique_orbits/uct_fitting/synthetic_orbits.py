@@ -439,22 +439,31 @@ class SyntheticOrbits:
         print(f"Saved void performance plot to {out_path}")
         
         
-    def evaluate_void_all_clusters(self, df, min_cluster_size=2):
+    def evaluate_void_all_clusters(self, df, min_cluster_size=2, random_state=42):
+        """
+        For each cluster size N (>= min_cluster_size), randomly pick ONE cluster
+        of that size, run void optimisation on it, and return arrays of:
+        cluster_sizes, percentiles, ratios, labels
+        """
+        # 1) select one cluster per size
+        clusters = self.select_one_cluster_per_size(
+            df,
+            min_cluster_size=min_cluster_size,
+            random_state=random_state,
+        )
+
         cluster_sizes = []
         percentiles = []
         ratios = []
         labels = []
 
-        for label, df_cluster in df.groupby("label"):
-            if label == -1:
-                continue
-            N = len(df_cluster)
-            if N < min_cluster_size:
-                continue
+        # 2) run void optimiser on that single representative cluster for each size
+        for N in sorted(clusters.keys()):
+            df_cluster = clusters[N]
 
             _, diagnostics = get_maximally_separated_orbit(
                 df_cluster.copy(),
-                return_diagnostics=True
+                return_diagnostics=True,
             )
 
             ratio = diagnostics["ratio_to_median_spacing"]
@@ -465,9 +474,18 @@ class SyntheticOrbits:
             cluster_sizes.append(N)
             percentiles.append(diagnostics["percentile_vs_cluster"])
             ratios.append(ratio)
+
+            # record which label we used for this N (use the cluster's label)
+            label = int(df_cluster["label"].iloc[0])
             labels.append(label)
 
-        return np.array(cluster_sizes), np.array(percentiles), np.array(ratios), np.array(labels)
+        return (
+            np.array(cluster_sizes),
+            np.array(percentiles),
+            np.array(ratios),
+            np.array(labels),
+        )
+
 
 
     def select_one_cluster_per_size(self, df, min_cluster_size=2, random_state=10):
@@ -704,7 +722,7 @@ class SyntheticOrbits:
 
     # THIS IS THE MAIN FUNCTION!!!!!!
 
-    def run_orbit_generator(self, mode="void_single"):
+    def run_orbit_generator(self, mode="frechet_single"):
         """
         mode:
         - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
@@ -733,10 +751,10 @@ class SyntheticOrbits:
             self.run_void_single(target_size=15, n_samples=5000)
             return
 
-        if mode == "void_all":
-            df_all = self.load_hdbscan_labeled_dataframe()
-            cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
-            self.plot_void_performance(cs, pct, rat)
-            return
+        # if mode == "void_all":
+        #     df_all = self.load_hdbscan_labeled_dataframe()
+        #     cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
+        #     self.plot_void_performance(cs, pct, rat)
+        #     return
 
         print(f"Unknown mode '{mode}'")
