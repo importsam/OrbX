@@ -2,6 +2,7 @@ from app import SatelliteClusteringApp
 from configs import ClusterConfig
 from unique_orbits.uct_fitting.synthetic_orbits import SyntheticOrbits
 from sparse_orbits import SparseOrbits
+from metrics.analysis import Analysis
 
 if __name__ == "__main__":
 
@@ -18,7 +19,11 @@ if __name__ == "__main__":
     # # app.supervised_clustering()
     # app.run_experiment()
     
-    syn_orbits = SyntheticOrbits(cluster_config)
-    syn_orbits.run_orbit_generator()
+    # syn_orbits = SyntheticOrbits(cluster_config)
+    # syn_orbits.run_orbit_generator()
+    
+    analysis = Analysis()
+    analysis.plot_variance_from_existing_frechet()
+    
     
     

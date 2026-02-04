@@ -1016,9 +1016,7 @@ class SatelliteClusteringApp:
         print("\nSaved supervised Starlink shell-1 summaries to:")
         print(f"  {out_dir / 'shell1_plane_vs_hdbscan.csv'}")
         print(f"  {out_dir / 'shell1_hdbscan_vs_planes.csv'}")
-
-        
-        
+     
     @staticmethod
     def classify_shell(i_deg: float, alt_km: float) -> str:
         """

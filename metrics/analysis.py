@@ -363,40 +363,24 @@ class Analysis:
         plt.close(fig)
         print(f"Saved HDBSCAN cluster size histogram to {out_path}")
 
-                
-    def get_variance(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        For each cluster, treat the synthetic orbit as the mean and compute
-        the within-cluster variance (average squared distance to that mean),
-        then assign this variance back to all rows of that cluster in a new
-        column 'cluster_variance'.
-
-        Assumes:
-        - df has a 'label' column.
-        - df contains both real and synthetic orbits for each cluster.
-        - get_distance_matrix(df) returns (distance_matrix, key), where
-            key[i] is the satNo for row i in df and distance_matrix[i,j]
-            is the distance between those two orbits.
-        """
+                    
+    def get_variance(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         df = df.copy()
 
         if "label" not in df.columns:
             raise ValueError("DataFrame must contain a 'label' column.")
 
-        # Build distance matrix for the *entire* df so we can index by satNo
         distance_matrix, key = get_distance_matrix(df)
-        key = np.asarray(key)  # satNos aligned with distance_matrix rows/cols
+        satno_to_idx_raw = key["satNo_idx_dict"]
+        satno_to_idx = {str(k): int(v) for k, v in satno_to_idx_raw.items()}
 
-        # Map satNo -> index in distance matrix
-        satno_to_idx = {str(s): i for i, s in enumerate(key)}
 
         variances = {}
 
         for label, df_cluster in df.groupby("label"):
             if label == -1:
-                continue  # skip noise
+                continue
 
-            # identify synthetic orbit row for this cluster
             syn_mask = (df_cluster["name"] == "Optimized") | (df_cluster["satNo"] == "99999")
             if not syn_mask.any():
                 print(f"No synthetic orbit found for cluster {label}; skipping variance.")
@@ -409,13 +393,11 @@ class Analysis:
                 continue
             syn_idx = satno_to_idx[syn_satno]
 
-            # members excluding the synthetic orbit itself
             members = df_cluster.loc[~syn_mask]
             if members.empty:
                 print(f"No real members in cluster {label} after excluding synthetic; skipping.")
                 continue
 
-            # indices of real members in the global distance matrix
             member_indices = []
             for _, row in members.iterrows():
                 s = str(row["satNo"])
@@ -431,7 +413,6 @@ class Analysis:
 
             member_indices = np.asarray(member_indices, dtype=int)
 
-            # distances from each member to synthetic orbit
             dists = distance_matrix[member_indices, syn_idx]
             dists_sq = dists**2
 
@@ -441,58 +422,71 @@ class Analysis:
                 f"Cluster {label}: variance (mean squared distance to synthetic) = {var_label:.6e}"
             )
 
-        # write back to df in a new column
         df["cluster_variance"] = np.nan
         for label, var in variances.items():
             df.loc[df["label"] == label, "cluster_variance"] = var
 
-        return df
+        return df, variances
 
-        
+            
         
     def plot_size_vs_variance(
         self,
-        save_name: str = "cluster_size_vs_density.png",
-        
+        sizes: np.ndarray,
+        variances: np.ndarray,
+        save_name: str = "cluster_size_vs_variance.png",
     ):
-        """
-        Scatter plot of cluster size vs mean density for one or more algorithms.
-
-        size_density_dict:
-            {
-              "HDBSCAN": (sizes_array, mean_density_array),
-              "OPTICS":  (sizes_array, mean_density_array),
-              ...
-            }
-        """
-        
-        plt.style.use('seaborn-v0_8-darkgrid')
+        plt.style.use("seaborn-v0_8-darkgrid")
         fig, ax = plt.subplots(figsize=(8, 6))
-        colors = plt.cm.Set2(np.linspace(0, 1, len(size_density_dict)))
 
-        for (algo, (sizes, dens)), color in zip(size_density_dict.items(), colors):
-            sizes = np.asarray(sizes)
-            dens = np.asarray(dens)
-            ax.scatter(
-                sizes,
-                dens,
-                alpha=0.6,
-                s=15,
-                label=algo,
-                color=color,
-                edgecolor="none",
-            )
+        sizes = np.asarray(sizes)
+        variances = np.asarray(variances)
 
-        # ax.set_xscale("log")
-        # ax.set_yscale("log")
-        ax.set_xlabel("Cluster Size")
-        ax.set_ylabel("Mean Cluster Density")
-        ax.set_title("Cluster Size to Density Relationship (r=100)")
-        ax.legend(framealpha=0.95)
+        ax.scatter(
+            sizes,
+            variances,
+            alpha=0.7,
+            s=25,
+            color="C0",
+            edgecolor="none",
+        )
+
+        ax.set_xlabel("Cluster Size (real members)")
+        ax.set_ylabel("Within-cluster variance\n(mean squared distance to Fréchet orbit)")
+        ax.set_title("Cluster Size vs Within-Cluster Variance")
 
         out_path = self.output_dir / save_name
         fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
         plt.close(fig)
-        print(f"Saved size-density plot to {out_path}")
+        print(f"Saved size-variance plot to {out_path}")
 
 
+    def plot_variance_from_existing_frechet(self, pkl_path="data/frechet_all_synth.pkl"):
+        df = pd.read_pickle(pkl_path)
+        df_var, variances = self.get_variance(df)
+
+        cluster_sizes = []
+        cluster_vars = []
+
+        for label, df_cluster in df_var.groupby("label"):
+            if label == -1:
+                continue
+
+            syn_mask = (df_cluster["name"] == "Optimized") | (df_cluster["satNo"] == "99999")
+            members = df_cluster.loc[~syn_mask]
+
+            if members.empty:
+                continue
+
+            size = len(members)
+            var = members["cluster_variance"].iloc[0]
+            if np.isnan(var):
+                continue
+
+            cluster_sizes.append(size)
+            cluster_vars.append(var)
+
+        cluster_sizes = np.asarray(cluster_sizes, dtype=float)
+        cluster_vars = np.asarray(cluster_vars, dtype=float)
+
+        self.plot_size_vs_variance(cluster_sizes, cluster_vars)
