@@ -621,34 +621,116 @@ class SyntheticOrbits:
 
         return cluster_sizes, percentiles, ratios, labels
 
+    def load_single_cluster_with_void(
+        self,
+        target_size: int = 16,
+        n_samples: int = 5000,
+    ) -> tuple[pd.DataFrame, dict] | tuple[None, None]:
+        """
+        1) Load TLEs in the configured inc/apogee range.
+        2) Attach HDBSCAN labels.
+        3) Select one cluster with exactly target_size points.
+        4) Run max-min (void) optimisation on that cluster, append satNo=99999,
+        and return the augmented df plus diagnostics.
+        """
+        # base: same as load_tle_dataframe_for_file, but without Frechet
+        df = self.tle_parser.df
+
+        df = df[
+            (df["inclination"] >= self.cluster_config.inclination_range[0])
+            & (df["inclination"] <= self.cluster_config.inclination_range[1])
+            & (df["apogee"] >= self.cluster_config.apogee_range[0])
+            & (df["apogee"] <= self.cluster_config.apogee_range[1])
+        ].copy()
+
+        # build distance matrix and reorder to match the matrix
+        distance_matrix, key = get_distance_matrix(df)
+        df = self.app._reorder_dataframe(df, key)
+
+        df["dataset"] = "dataset_name"
+
+        with open("data/cluster_results/hdbscan_obj.pkl", "rb") as f:
+            hdbscan_obj = pickle.load(f)
+
+        labels = hdbscan_obj.labels
+        df["label"] = labels.astype(int)
+        df["correlated"] = False
+
+        # filter to one cluster with exactly target_size points
+        df_cluster = self.filter_clusters(df.copy(), target_size=target_size)
+
+        # run void optimiser on that one cluster
+        df_with_void, diagnostics = get_maximally_separated_orbit(
+            df_cluster.copy(),
+            n_samples=n_samples,
+            return_diagnostics=True,
+        )
+
+        return df_with_void, diagnostics
+
+    def filter_clusters(self, df: pd.DataFrame, target_size: int = 16) -> pd.DataFrame:
+        labels = df["label"].to_numpy()
+        unique_labels, label_counts = np.unique(labels, return_counts=True)
+        cluster_counts = dict(zip(unique_labels, label_counts))
+
+        selected = [
+            lbl for lbl, cnt in cluster_counts.items()
+            if lbl != -1 and cnt == target_size
+        ]
+
+        if not selected:
+            raise ValueError(f"No cluster with exactly {target_size} points found")
+
+        chosen_label = selected[0]
+        return df[df["label"] == chosen_label].copy()
+
+    def run_void_single(
+        self,
+        target_size: int = 16,
+        n_samples: int = 5000,
+    ):
+        df_with_void, diagnostics = self.load_single_cluster_with_void(
+            target_size=target_size,
+            n_samples=n_samples,
+        )
+
+        if df_with_void is None or df_with_void.empty:
+            print("No data / no suitable cluster for void_single.")
+            return
+
+        print("Void diagnostics:", diagnostics)
+        self.graph_tsne(df_with_void.copy(), name=f"void_cluster_N{target_size}")
 
 
     # THIS IS THE MAIN FUNCTION!!!!!!
 
-    def run_orbit_generator(self, mode="void"):
+    def run_orbit_generator(self, mode="void_single"):
         """
         mode:
-          - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
-          - "frechet_all": run Frechet optimiser over all clusters (no plots)
-          - "void_all": run void optimiser over all clusters + performance plot
+        - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
+        - "frechet_all": run Frechet optimiser over all clusters (no plots)
+        - "void_single": one cluster + maximally separated orbit + t-SNE
+        - "void_all": run void optimiser over all clusters + performance plot
         """
-        
+
         if mode == "frechet_single":
-            df = self.load_tle_dataframe_for_file()  # filtered + single cluster + Frechet orbit
+            df = self.load_tle_dataframe_for_file()
             if df is None or df.empty:
                 print("No data.")
                 return
             self.graph_tsne(df.copy(), name="tsne_frechet_cluster")
             print(df.head(10))
-            
-            # build_czml(df, ...)
             return
 
         if mode == "frechet_all":
             df = self.run_frechet_all_clusters(min_cluster_size=2)
-            # save as pkl
             df.to_pickle("data/frechet_all_synth.pkl")
             print("saved frechet all as pkl")
+            return
+
+        if mode == "void_single":
+            # choose whatever defaults you like, or pass them in from the caller
+            self.run_void_single(target_size=15, n_samples=5000)
             return
 
         if mode == "void_all":
