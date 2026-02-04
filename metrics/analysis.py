@@ -450,10 +450,10 @@ class Analysis:
             color="C0",
             edgecolor="none",
         )
-
-        ax.set_xlabel("Cluster Size (real members)")
-        ax.set_ylabel("Within-cluster variance\n(mean squared distance to Fréchet orbit)")
-        ax.set_title("Cluster Size vs Within-Cluster Variance")
+        
+        ax.set_xlabel("Cluster size")
+        ax.set_ylabel(r"Within-cluster variance $\sigma_c^2$")
+        ax.set_title(r"Within-cluster variance vs. cluster size")
 
         out_path = self.output_dir / save_name
         fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
