@@ -152,15 +152,25 @@ class SyntheticOrbits:
         return test_rows
     
 
-    def graph_tsne(self, df: pd.DataFrame, name: str = "tsne_avg_synthOrb_cluster"):
+    def graph_tsne(self, df: pd.DataFrame, name: str = "tsne_synthOrb_cluster", mode: str = "void"):
         """
-        Diagnostic t-SNE plot showing a cluster and its synthetic void orbit.
+        Diagnostic t-SNE plot showing a cluster and its synthetic orbit
+        (either Fréchet mean or void, depending on `mode`).
         """
+
+        if mode == "frechet":
+            orbit_label = "Fréchet mean orbit"
+            title = "Fréchet Mean Synthetic Orbit in Cluster"
+            plotly_title = "t-SNE diagnostic: cluster vs Fréchet mean orbit"
+        else:
+            orbit_label = "Max NN orbit"
+            title = "Maximally Separated Synthetic Orbit in Cluster"
+            plotly_title = "t-SNE diagnostic: cluster vs synthetic void orbit"
 
         df = df.copy()
 
         # --- identify synthetic orbit ---
-        void_mask = df['satNo'] == '99999'
+        void_mask = df["satNo"] == "99999"
         if void_mask.sum() != 1:
             print("No unique synthetic orbit found for t-SNE plot.")
             return
@@ -168,8 +178,8 @@ class SyntheticOrbits:
         real_mask = ~void_mask
 
         # --- build Keplerian distance matrix ---
-        line1 = df['line1'].values
-        line2 = df['line2'].values
+        line1 = df["line1"].values
+        line2 = df["line2"].values
         orbits = VectorizedKeplerianOrbit(line1, line2)
         D = VectorizedKeplerianOrbit.DistanceMetric(orbits, orbits)
 
@@ -179,9 +189,9 @@ class SyntheticOrbits:
             metric="precomputed",
             perplexity=min(10, len(df) - 1),
             init="random",
-            random_state=42
+            random_state=42,
         )
-        
+
         D = np.asarray(D)
 
         # kill tiny negative roundoff
@@ -197,56 +207,61 @@ class SyntheticOrbits:
         fig = go.Figure()
 
         # synthetic orbit
-        fig.add_trace(go.Scatter(
-            x=X_2d[void_mask, 0],
-            y=X_2d[void_mask, 1],
-            mode="markers",
-            name="Synthetic void orbit",
-            marker=dict(
-                symbol="star",
-                size=14,
-                color="crimson",
-                line=dict(width=2, color="black")
-            ),
-            text=["Synthetic orbit (99999)"],
-            hovertemplate="%{text}<extra></extra>"
-        ))
-        
-        
-        fig.add_trace(go.Scatter(
-            x=X_2d[real_mask, 0],
-            y=X_2d[real_mask, 1],
-            mode="markers",
-            name="Cluster orbits",
-            marker=dict(
-                size=6,
-                opacity=0.7,
-                color="rgba(100,100,100,0.6)"
-            ),
-            text=df.loc[real_mask, 'satNo'],
-            hovertemplate="SatNo: %{text}<extra></extra>"
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=X_2d[void_mask, 0],
+                y=X_2d[void_mask, 1],
+                mode="markers",
+                name=orbit_label,
+                marker=dict(
+                    symbol="star",
+                    size=14,
+                    color="crimson",
+                    line=dict(width=2, color="black"),
+                ),
+                text=[f"Synthetic orbit (99999) - {orbit_label}"],
+                hovertemplate="%{text}<extra></extra>",
+            )
+        )
 
-
+        # real cluster orbits
+        fig.add_trace(
+            go.Scatter(
+                x=X_2d[real_mask, 0],
+                y=X_2d[real_mask, 1],
+                mode="markers",
+                name="Cluster orbits",
+                marker=dict(
+                    size=6,
+                    opacity=0.7,
+                    color="rgba(100,100,100,0.6)",
+                ),
+                text=df.loc[real_mask, "satNo"],
+                hovertemplate="SatNo: %{text}<extra></extra>",
+            )
+        )
 
         fig.update_layout(
-            title="t-SNE diagnostic: cluster vs synthetic void orbit",
+            title=plotly_title,
             xaxis_title="t-SNE component 1",
             yaxis_title="t-SNE component 2",
             template="plotly_white",
             width=800,
             height=650,
-            legend=dict(itemsizing="constant")
+            legend=dict(itemsizing="constant"),
         )
 
         out_html = f"data/{name}.html"
         fig.write_html(str(out_html), include_plotlyjs="cdn")
-        print(f"Saved t-SNE void diagnostic to {out_html}")
+        print(f"Saved t-SNE diagnostic to {out_html}")
 
+        # ================================
+        # Matplotlib (static PNG)
+        # ================================
         plt.figure(figsize=(7, 6), dpi=150)
 
-        # First: real/input orbits (background)
-        plt.scatter(
+        # real/input orbits (background)
+        real_handle = plt.scatter(
             X_2d[real_mask, 0],
             X_2d[real_mask, 1],
             s=12,
@@ -255,8 +270,8 @@ class SyntheticOrbits:
             label="Input orbits",
         )
 
-        # Then: synthetic Fréchet mean (foreground star)
-        plt.scatter(
+        # synthetic orbit (foreground star)
+        void_handle = plt.scatter(
             X_2d[void_mask, 0],
             X_2d[void_mask, 1],
             s=130,
@@ -265,30 +280,28 @@ class SyntheticOrbits:
             linewidth=1.2,
             color="crimson",
             zorder=5,
-            label="Fréchet mean orbit",
+            label=orbit_label,
         )
 
-        plt.title("Frechet Mean Synthetic Orbit in Cluster")
+        plt.title(title)
         plt.xlabel("t-SNE component 1")
         plt.ylabel("t-SNE component 2")
-        plt.legend(loc="upper right")
-        
-        handles, labels = plt.gca().get_legend_handles_labels()
 
-        # put Fréchet mean first
-        order = [labels.index("Fréchet mean orbit"), labels.index("Input orbits")]
-        handles = [handles[i] for i in order]
-        labels = [labels[i] for i in order]
+        # Explicit legend order: synthetic first, then real orbits
+        plt.legend(
+            [void_handle, real_handle],
+            [orbit_label, "Input orbits"],
+            loc="upper right",
+        )
 
-        plt.legend(handles, labels, loc="upper right")
-        
         plt.tight_layout()
-    
+
         out_png = f"data/tsne_{name}.png"
         plt.savefig(out_png)
         plt.close()
 
         print(f"Saved t-SNE PNG to {out_png}")
+
 
     def czml_main(self):
 
@@ -428,7 +441,7 @@ class SyntheticOrbits:
         # Right y-axis: ratio R*/median
         ax2 = ax1.twinx()
         color2 = "tab:red"
-        ax2.set_ylabel(r"$R^\ast$ / median NN spacing", color=color2)
+        ax2.set_ylabel(r"$r(o_{max}) / median NN spacing", color=color2)
         ax2.plot(cluster_sizes, ratios, marker="s", linestyle="--",
                 color=color2, label="Radius ratio vs cluster size")
         ax2.tick_params(axis="y", labelcolor=color2)
@@ -720,9 +733,79 @@ class SyntheticOrbits:
         self.graph_tsne(df_with_void.copy(), name=f"void_cluster_N{target_size}")
 
 
+    def run_void_all_size_15(
+        self,
+        n_samples: int = 5000,
+        out_dir: str = "data/void_single_clusters",
+    ):
+        """
+        For every HDBSCAN cluster with exactly 15 members:
+        - run void optimisation (maximally separated orbit),
+        - append the void orbit (satNo=99999) to that cluster,
+        - run t-SNE plotting,
+        - save the satellite names for that cluster to a text file.
+        """
+        os.makedirs(out_dir, exist_ok=True)
+
+        # Load all labelled TLEs in the configured inc/apogee range
+        df_all = self.load_hdbscan_labeled_dataframe()
+        if df_all is None or df_all.empty:
+            print("No TLE data loaded.")
+            return
+
+        # count cluster sizes
+        labels = df_all["label"].to_numpy()
+        unique_labels, label_counts = np.unique(labels, return_counts=True)
+        cluster_counts = dict(zip(unique_labels, label_counts))
+
+        # select all non-noise clusters with exactly 15 members
+        target_size = 15
+        selected_labels = [
+            lbl for lbl, cnt in cluster_counts.items() if lbl != -1 and cnt == target_size
+        ]
+
+        if not selected_labels:
+            print(f"No clusters found with exactly {target_size} points.")
+            return
+
+        print(f"Found {len(selected_labels)} clusters with N={target_size}.")
+
+        for lbl in selected_labels:
+            df_cluster = df_all[df_all["label"] == lbl].copy()
+            print(f"\n=== Processing cluster label {lbl} (N={len(df_cluster)}) ===")
+
+            # run void optimiser for this cluster
+            df_with_void, diagnostics = get_maximally_separated_orbit(
+                df_cluster.copy(),
+                n_samples=n_samples,
+                return_diagnostics=True,
+            )
+
+            # t-SNE plot (HTML + PNG) for this cluster
+            tsne_name = f"void_cluster_label{lbl}_N{target_size}"
+            self.graph_tsne(df_with_void.copy(), name=tsne_name, mode="void")
+
+            # write satellite names (including void orbit) to an identifying file
+            names_path = os.path.join(
+                out_dir, f"cluster_label{lbl}_N{target_size}_names.txt"
+            )
+            with open(names_path, "w") as f:
+                f.write(f"Cluster label: {lbl}\n")
+                f.write(f"Cluster size (without void): {target_size}\n")
+                f.write(f"Total rows in file (including void): {len(df_with_void)}\n\n")
+                for idx, row in df_with_void.iterrows():
+                    f.write(
+                        f"{idx:04d}  satNo={row.get('satNo', ''):<8}  "
+                        f"name={row.get('name', '')}\n"
+                    )
+
+            print(f"Saved satellite names for cluster {lbl} to {names_path}")
+            print("Void diagnostics:", diagnostics)
+
+
     # THIS IS THE MAIN FUNCTION!!!!!!
 
-    def run_orbit_generator(self, mode="frechet_single"):
+    def run_orbit_generator(self, mode="void_all"):
         """
         mode:
         - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
@@ -751,10 +834,10 @@ class SyntheticOrbits:
             self.run_void_single(target_size=15, n_samples=5000)
             return
 
-        # if mode == "void_all":
-        #     df_all = self.load_hdbscan_labeled_dataframe()
-        #     cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
-        #     self.plot_void_performance(cs, pct, rat)
-        #     return
+        if mode == "void_all":
+            df_all = self.load_hdbscan_labeled_dataframe()
+            cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
+            self.plot_void_performance(cs, pct, rat)
+            return
 
         print(f"Unknown mode '{mode}'")

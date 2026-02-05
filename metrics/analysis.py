@@ -362,8 +362,7 @@ class Analysis:
         fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
         plt.close(fig)
         print(f"Saved HDBSCAN cluster size histogram to {out_path}")
-
-                    
+                 
     def get_variance(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         df = df.copy()
 
@@ -427,9 +426,7 @@ class Analysis:
             df.loc[df["label"] == label, "cluster_variance"] = var
 
         return df, variances
-
-            
-        
+ 
     def plot_size_vs_variance(
         self,
         sizes: np.ndarray,
@@ -461,7 +458,11 @@ class Analysis:
         print(f"Saved size-variance plot to {out_path}")
 
 
-    def plot_variance_from_existing_frechet(self, pkl_path="data/frechet_all_synth.pkl"):
+    def plot_variance_from_existing_frechet(
+        self,
+        pkl_path="data/frechet_all_synth.pkl",
+        top_k: int = 10,
+    ):
         df = pd.read_pickle(pkl_path)
         df_var, variances = self.get_variance(df)
 
@@ -489,10 +490,52 @@ class Analysis:
         cluster_sizes = np.asarray(cluster_sizes, dtype=float)
         cluster_vars = np.asarray(cluster_vars, dtype=float)
 
+        # ---- existing per-cluster variance CSV ----
         var_items = sorted(variances.items(), key=lambda x: x[0])
         var_df = pd.DataFrame(var_items, columns=["label", "within_cluster_variance"])
         out_csv = self.output_dir / "cluster_variances.csv"
         var_df.to_csv(out_csv, index=False)
         print(f"Saved cluster variances to {out_csv}")
 
+        # ---- NEW: rank clusters by variance ----
+        # Merge in cluster size (optional but usually handy)
+        size_map = {
+            int(label): int(size)
+            for label, size in zip(
+                df_var["label"].unique(),  # labels we saw above
+                cluster_sizes,
+            )
+        }
+        var_df["cluster_size"] = var_df["label"].map(size_map)
+
+        # Sort by variance descending and pick top_k clusters
+        var_df_sorted = var_df.sort_values(
+            by="within_cluster_variance", ascending=False
+        ).reset_index(drop=True)
+        top_clusters = var_df_sorted.head(top_k)
+
+        top_var_csv = self.output_dir / "top_clusters_by_variance.csv"
+        top_clusters.to_csv(top_var_csv, index=False)
+        print(f"Saved top {top_k} clusters by variance to {top_var_csv}")
+
+        # ---- NEW: CSV with satellite names in top clusters ----
+        # Keep only rows in df_var that belong to the selected cluster labels
+        top_labels = set(top_clusters["label"].tolist())
+        df_top = df_var[df_var["label"].isin(top_labels)].copy()
+
+        # If you want to exclude synthetic orbits here, do:
+        # syn_mask = (df_top["name"] == "Optimized") | (df_top["satNo"] == "99999")
+        # df_top = df_top.loc[~syn_mask].copy()
+
+        # Keep columns you care about; at minimum label, satNo, name
+        cols = ["label", "satNo", "name"]
+        extra_cols = [c for c in ["cluster_variance"] if c in df_top.columns]
+        cols.extend(extra_cols)
+
+        df_top_out = df_top[cols].sort_values(["label", "name", "satNo"])
+        satellites_csv = self.output_dir / "top_cluster_satellites.csv"
+        df_top_out.to_csv(satellites_csv, index=False)
+        print(f"Saved satellites for top {top_k} clusters to {satellites_csv}")
+
+        # ---- keep your existing plot ----
         self.plot_size_vs_variance(cluster_sizes, cluster_vars)

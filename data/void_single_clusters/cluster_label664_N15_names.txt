@@ -1,0 +1,20 @@
+Cluster label: 664
+Cluster size (without void): 15
+Total rows in file (including void): 16
+
+0000  satNo=59159     name=STARLINK-31182
+0001  satNo=63399     name=STARLINK-33531
+0002  satNo=63400     name=STARLINK-33652
+0003  satNo=63401     name=STARLINK-33707
+0004  satNo=63403     name=STARLINK-33676
+0005  satNo=63405     name=STARLINK-33708
+0006  satNo=63407     name=STARLINK-33694
+0007  satNo=63409     name=STARLINK-33693
+0008  satNo=63410     name=STARLINK-33677
+0009  satNo=63413     name=STARLINK-33670
+0010  satNo=63415     name=STARLINK-33664
+0011  satNo=63416     name=STARLINK-33649
+0012  satNo=63420     name=STARLINK-33698
+0013  satNo=63421     name=STARLINK-33606
+0014  satNo=63425     name=STARLINK-33608
+0015  satNo=99999     name=MaximallySeparated
