@@ -12,12 +12,11 @@ if __name__ == "__main__":
         damping=0.95,
     )
 
-    sparse = SparseOrbits()
-    sparse.graph_tsne_with_isolated()
+    # sparse = SparseOrbits()
+    # sparse.graph_tsne_with_isolated()
     
-    # app = SatelliteClusteringApp(cluster_config)
-    # # app.supervised_clustering()
-    # app.run_experiment()
+    app = SatelliteClusteringApp(cluster_config)
+    app.run_experiment()
     
     # syn_orbits = SyntheticOrbits(cluster_config)
     # syn_orbits.run_void_all_size_15()

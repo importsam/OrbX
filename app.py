@@ -23,6 +23,8 @@ from ionop_czml import ionop_czml
 from metrics.analysis import Analysis
 from sklearn.cluster import HDBSCAN
 from tools.density_estimation import DensityEstimator
+
+
 class SatelliteClusteringApp:
 
     def __init__(self, cluster_config: ClusterConfig):
@@ -117,7 +119,13 @@ class SatelliteClusteringApp:
         }
 
         # self.process_post_clustering(cluster_result_dict, df, distance_matrix)
-        self.analysis_graphs(cluster_result_dict, df, distance_matrix)
+        # self.analysis_graphs(cluster_result_dict, df, distance_matrix)
+        
+        hdbscan_labels = cluster_result_dict["hdbscan_results"].labels
+        df["cluster"] = hdbscan_labels
+        
+        
+        self.run_cesium(df=df, distance_matrix=distance_matrix, key=key)
 
         return None
         
@@ -485,7 +493,7 @@ class SatelliteClusteringApp:
         # print("\nGenerating CZML for Cesium visualization...")
         # self.run_cesium(df.copy(), distance_matrix.copy())
 
-    def run_cesium(self, df: pd.DataFrame = None, distance_matrix: np.ndarray = None):
+    def run_cesium(self, df: pd.DataFrame = None, distance_matrix: np.ndarray = None, key = None):
         """
         Generate CZML file for Cesium visualization from clustering dataframe.
 
@@ -516,7 +524,6 @@ class SatelliteClusteringApp:
             df = self._reorder_dataframe(df.copy(), key.copy())
         else:
             # If distance_matrix provided, create key from the current df to ensure they match
-            _, key = get_distance_matrix(df.copy())
             df = self._reorder_dataframe(df.copy(), key.copy())
 
         if "density" not in df.columns:
@@ -529,22 +536,13 @@ class SatelliteClusteringApp:
 
         orbit_points = self.get_points(df.copy())
 
-        def assign_cluster_labels(
-            df: pd.DataFrame, labels: np.ndarray, label_name: str = "cluster"
-        ) -> pd.DataFrame:
-            df = df.copy()
-            df[label_name] = labels
-            return df
+        if "cluster" not in df.columns:
+            raise ValueError("run_cesium expected df to already contain 'cluster' labels")
 
-        # SELECT CLUSTERING ALGORITHM HERE  
-        labels = self.cluster_wrapper.run_optics(distance_matrix.copy(), orbit_points.copy())
-        df = assign_cluster_labels(df, labels)
-
-        # KEEP ONLY TOP AND BOTTOM 5 CLUSTERS BY SIZE, exlcuding noise
+        # KEEP ONLY TOP 5 clusters
         cluster_sizes = df[df["cluster"] != -1]["cluster"].value_counts()
-        top_clusters = cluster_sizes.head(5).index.tolist()
-        bottom_clusters = cluster_sizes.tail(5).index.tolist()
-        selected_clusters = top_clusters + bottom_clusters
+        top_clusters = cluster_sizes.head(10).index.tolist()
+        selected_clusters = top_clusters
         df = df[df["cluster"].isin(selected_clusters)].copy()
         
         import matplotlib.cm as cm
@@ -576,7 +574,6 @@ class SatelliteClusteringApp:
         )
 
         # only keep the first couple of clusters
-
         # df = df[df['cluster'].isin([0, 1, 2])]
         # Build CZML file
         build_czml(df)
