@@ -177,3 +177,58 @@ class SparseOrbits:
 
         # t-SNE + highlight
         self._plot_tsne_png(X=X, df=df, name=name, highlight_indices=top_indices)
+
+        # histogram of k-NN isolation scores
+        self.plot_knn_histogram(
+            scores=scores,
+            k=10,               # or pass k as a parameter to graph_tsne_with_isolated
+            top_indices=top_indices,
+            name=name,
+        )
+
+
+    def plot_knn_histogram(
+        self,
+        scores: np.ndarray,
+        k: int = 10,
+        top_indices: np.ndarray | None = None,
+        name: str = "knn_hist",
+    ):
+        # keep only positive scores (log-scale requirement)
+        scores = scores[scores > 0]
+
+        vmin = scores.min()
+        vmax = scores.max()
+
+        # log-spaced bins
+        bins = np.logspace(np.log10(vmin), np.log10(vmax), 40)
+
+        plt.figure(figsize=(8, 5), dpi=150)
+
+        plt.hist(scores, bins=bins, color="tab:blue", alpha=0.7, edgecolor="black")
+
+        if top_indices is not None and len(top_indices) > 0:
+            for idx in np.asarray(top_indices, dtype=int):
+                if scores[idx] > 0:
+                    plt.axvline(
+                        scores[idx],
+                        color="red",
+                        linestyle="--",
+                        linewidth=1.2,
+                        alpha=0.9,
+                    )
+
+        plt.xscale("log")
+        plt.xlabel(f"Mean distance to 10-NN (log)")
+        plt.ylabel("Number of orbits")
+        plt.title(r"Distribution of Mean 10-NN Distances ($\rho_{k}$)")
+        plt.tight_layout()
+
+        output_file_png = (
+            self.path_config.output_plot
+            / f"knn_isolation_hist_{name if name else 'None'}.png"
+        )
+        plt.savefig(output_file_png, dpi=150)
+        plt.close()
+
+        print(f"k-NN isolation histogram saved to {output_file_png}")
