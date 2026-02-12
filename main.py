@@ -17,9 +17,19 @@ if __name__ == "__main__":
     
     # app = SatelliteClusteringApp(cluster_config)
     # app.run_experiment()
-    
+
+
+
+    """
+        mode:
+        - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
+        - "frechet_all": run Frechet optimiser over all clusters (no plots)
+        - "max_separation_single": one cluster + maximally separated orbit + t-SNE (png and html)
+        - "max_separation_all": run max_separation optimiser over all clusters + performance plot
+    """    
+
     syn_orbits = SyntheticOrbits(cluster_config)
-    syn_orbits.run_orbit_generator()
+    syn_orbits.run_orbit_generator(mode="max_separation_single")
     
     # analysis = Analysis()
     # analysis.plot_variance_from_existing_frechet()
