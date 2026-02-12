@@ -40,7 +40,7 @@ to disk.
 """
 
 from unique_orbits.uct_fitting.orbit_finder.frechet_orbit_finder import get_optimum_orbit
-from unique_orbits.uct_fitting.orbit_finder.void_orbit_finder import (
+from unique_orbits.uct_fitting.orbit_finder.max_separation_orbit_finder import (
     get_maximally_separated_orbit,
 )
 
@@ -152,10 +152,10 @@ class SyntheticOrbits:
         return test_rows
     
 
-    def graph_tsne(self, df: pd.DataFrame, name: str = "tsne_synthOrb_cluster", mode: str = "void"):
+    def graph_tsne(self, df: pd.DataFrame, name: str = "tsne_synthOrb_cluster", mode: str = "max_separation"):
         """
         Diagnostic t-SNE plot showing a cluster and its synthetic orbit
-        (either Fréchet mean or void, depending on `mode`).
+        (either Fréchet mean or max_separation, depending on `mode`).
         """
 
         if mode == "frechet":
@@ -165,17 +165,17 @@ class SyntheticOrbits:
         else:
             orbit_label = "Max NN orbit"
             title = "Maximally Separated Synthetic Orbit in Cluster"
-            plotly_title = "t-SNE diagnostic: cluster vs synthetic void orbit"
+            plotly_title = "t-SNE diagnostic: cluster vs synthetic max_separation orbit"
 
         df = df.copy()
 
         # --- identify synthetic orbit ---
-        void_mask = df["satNo"] == "99999"
-        if void_mask.sum() != 1:
+        max_separation_mask = df["satNo"] == "99999"
+        if max_separation_mask.sum() != 1:
             print("No unique synthetic orbit found for t-SNE plot.")
             return
 
-        real_mask = ~void_mask
+        real_mask = ~max_separation_mask
 
         # --- build Keplerian distance matrix ---
         line1 = df["line1"].values
@@ -209,8 +209,8 @@ class SyntheticOrbits:
         # synthetic orbit
         fig.add_trace(
             go.Scatter(
-                x=X_2d[void_mask, 0],
-                y=X_2d[void_mask, 1],
+                x=X_2d[max_separation_mask, 0],
+                y=X_2d[max_separation_mask, 1],
                 mode="markers",
                 name=orbit_label,
                 marker=dict(
@@ -271,9 +271,9 @@ class SyntheticOrbits:
         )
 
         # synthetic orbit (foreground star)
-        void_handle = plt.scatter(
-            X_2d[void_mask, 0],
-            X_2d[void_mask, 1],
+        max_separation_handle = plt.scatter(
+            X_2d[max_separation_mask, 0],
+            X_2d[max_separation_mask, 1],
             s=130,
             marker="*",
             edgecolor="black",
@@ -289,7 +289,7 @@ class SyntheticOrbits:
 
         # Explicit legend order: synthetic first, then real orbits
         plt.legend(
-            [void_handle, real_handle],
+            [max_separation_handle, real_handle],
             [orbit_label, "Input orbits"],
             loc="upper right",
         )
@@ -388,7 +388,7 @@ class SyntheticOrbits:
 
 
 
-    def evaluate_void_over_cluster_sizes(self,
+    def evaluate_max_separation_over_cluster_sizes(self,
         df,
         min_cluster_size=2
     ):
@@ -407,7 +407,7 @@ class SyntheticOrbits:
         ratios = []
 
         for N in sorted(clusters.keys()):
-            diagnostics = self.evaluate_void_for_cluster(
+            diagnostics = self.evaluate_max_separation_for_cluster(
                 clusters[N]
             )
 
@@ -419,8 +419,8 @@ class SyntheticOrbits:
 
 
 
-    def plot_void_performance(self, cluster_sizes, percentiles, ratios,
-                            out_path="data/void_performance_vs_cluster_size.png"):
+    def plot_max_separation_performance(self, cluster_sizes, percentiles, ratios,
+                            out_path="data/max_separation_performance_vs_cluster_size.png"):
         cluster_sizes = np.asarray(cluster_sizes)
         percentiles = np.asarray(percentiles)
         ratios = np.asarray(ratios)
@@ -432,7 +432,7 @@ class SyntheticOrbits:
         # Left y-axis: percentile
         color1 = "tab:blue"
         ax1.set_xlabel("Cluster size (N)")
-        ax1.set_ylabel("Void NN percentile (%)", color=color1)
+        ax1.set_ylabel("max_separation NN percentile (%)", color=color1)
         ax1.plot(cluster_sizes, percentiles, marker="o", color=color1,
                 label="Percentile vs cluster size")
         ax1.tick_params(axis="y", labelcolor=color1)
@@ -449,13 +449,13 @@ class SyntheticOrbits:
         fig.tight_layout()
         fig.savefig(out_path)
         plt.close(fig)
-        print(f"Saved void performance plot to {out_path}")
+        print(f"Saved max_separation performance plot to {out_path}")
         
         
-    def evaluate_void_all_clusters(self, df, min_cluster_size=2, random_state=42):
+    def evaluate_max_separation_all_clusters(self, df, min_cluster_size=2, random_state=42):
         """
         For each cluster size N (>= min_cluster_size), randomly pick ONE cluster
-        of that size, run void optimisation on it, and return arrays of:
+        of that size, run max_separation optimisation on it, and return arrays of:
         cluster_sizes, percentiles, ratios, labels
         """
         # 1) select one cluster per size
@@ -470,7 +470,7 @@ class SyntheticOrbits:
         ratios = []
         labels = []
 
-        # 2) run void optimiser on that single representative cluster for each size
+        # 2) run max_separation optimiser on that single representative cluster for each size
         for N in sorted(clusters.keys()):
             df_cluster = clusters[N]
 
@@ -529,11 +529,11 @@ class SyntheticOrbits:
 
         return clusters
 
-    def evaluate_void_for_cluster(self,
+    def evaluate_max_separation_for_cluster(self,
         df_cluster
     ):
         """
-        Runs void-orbit optimization on a single cluster
+        Runs max_separation-orbit optimization on a single cluster
         and returns diagnostics only.
         """
 
@@ -616,7 +616,7 @@ class SyntheticOrbits:
 
         return df_all_with_synth
 
-    def run_void_all_clusters(self, min_cluster_size=2):
+    def run_max_separation_all_clusters(self, min_cluster_size=2):
         df_all = self.load_hdbscan_labeled_dataframe()
         if df_all is None or df_all.empty:
             print("No TLE data loaded.")
@@ -634,7 +634,7 @@ class SyntheticOrbits:
             if N < min_cluster_size:
                 continue
 
-            print(f"\n=== Void orbit for cluster {label} (N={N}) ===")
+            print(f"\n=== max_separation orbit for cluster {label} (N={N}) ===")
             _, diagnostics = get_maximally_separated_orbit(df_cluster.copy(), return_diagnostics=True)
             ratio = diagnostics["ratio_to_median_spacing"]
             if not np.isfinite(ratio):
@@ -652,7 +652,7 @@ class SyntheticOrbits:
 
         return cluster_sizes, percentiles, ratios, labels
 
-    def load_single_cluster_with_void(
+    def load_single_cluster_with_max_separation(
         self,
         target_size: int = 16,
         n_samples: int = 5000,
@@ -661,7 +661,7 @@ class SyntheticOrbits:
         1) Load TLEs in the configured inc/apogee range.
         2) Attach HDBSCAN labels.
         3) Select one cluster with exactly target_size points.
-        4) Run max-min (void) optimisation on that cluster, append satNo=99999,
+        4) Run max-min (max_separation) optimisation on that cluster, append satNo=99999,
         and return the augmented df plus diagnostics.
         """
         # base: same as load_tle_dataframe_for_file, but without Frechet
@@ -690,14 +690,14 @@ class SyntheticOrbits:
         # filter to one cluster with exactly target_size points
         df_cluster = self.filter_clusters(df.copy(), target_size=target_size)
 
-        # run void optimiser on that one cluster
-        df_with_void, diagnostics = get_maximally_separated_orbit(
+        # run max_separation optimiser on that one cluster
+        df_with_max_separation, diagnostics = get_maximally_separated_orbit(
             df_cluster.copy(),
             n_samples=n_samples,
             return_diagnostics=True,
         )
 
-        return df_with_void, diagnostics
+        return df_with_max_separation, diagnostics
 
     def filter_clusters(self, df: pd.DataFrame, target_size: int = 16) -> pd.DataFrame:
         labels = df["label"].to_numpy()
@@ -715,33 +715,33 @@ class SyntheticOrbits:
         chosen_label = selected[0]
         return df[df["label"] == chosen_label].copy()
 
-    def run_void_single(
+    def run_max_separation_single(
         self,
         target_size: int = 16,
         n_samples: int = 5000,
     ):
-        df_with_void, diagnostics = self.load_single_cluster_with_void(
+        df_with_max_separation, diagnostics = self.load_single_cluster_with_max_separation(
             target_size=target_size,
             n_samples=n_samples,
         )
 
-        if df_with_void is None or df_with_void.empty:
-            print("No data / no suitable cluster for void_single.")
+        if df_with_max_separation is None or df_with_max_separation.empty:
+            print("No data / no suitable cluster for max_separation_single.")
             return
 
-        print("Void diagnostics:", diagnostics)
-        self.graph_tsne(df_with_void.copy(), name=f"void_cluster_N{target_size}")
+        print("max_separation diagnostics:", diagnostics)
+        self.graph_tsne(df_with_max_separation.copy(), name=f"max_separation_cluster_N{target_size}")
 
 
-    def run_void_all_size_15(
+    def run_max_separation_all_size_15(
         self,
         n_samples: int = 5000,
-        out_dir: str = "data/void_single_clusters",
+        out_dir: str = "data/max_separation_single_clusters",
     ):
         """
         For every HDBSCAN cluster with exactly 15 members:
-        - run void optimisation (maximally separated orbit),
-        - append the void orbit (satNo=99999) to that cluster,
+        - run max_separation optimisation (maximally separated orbit),
+        - append the max_separation orbit (satNo=99999) to that cluster,
         - run t-SNE plotting,
         - save the satellite names for that cluster to a text file.
         """
@@ -774,44 +774,44 @@ class SyntheticOrbits:
             df_cluster = df_all[df_all["label"] == lbl].copy()
             print(f"\n=== Processing cluster label {lbl} (N={len(df_cluster)}) ===")
 
-            # run void optimiser for this cluster
-            df_with_void, diagnostics = get_maximally_separated_orbit(
+            # run max_separation optimiser for this cluster
+            df_with_max_separation, diagnostics = get_maximally_separated_orbit(
                 df_cluster.copy(),
                 n_samples=n_samples,
                 return_diagnostics=True,
             )
 
             # t-SNE plot (HTML + PNG) for this cluster
-            tsne_name = f"void_cluster_label{lbl}_N{target_size}"
-            self.graph_tsne(df_with_void.copy(), name=tsne_name, mode="void")
+            tsne_name = f"max_separation_cluster_label{lbl}_N{target_size}"
+            self.graph_tsne(df_with_max_separation.copy(), name=tsne_name, mode="max_separation")
 
-            # write satellite names (including void orbit) to an identifying file
+            # write satellite names (including max_separation orbit) to an identifying file
             names_path = os.path.join(
                 out_dir, f"cluster_label{lbl}_N{target_size}_names.txt"
             )
             with open(names_path, "w") as f:
                 f.write(f"Cluster label: {lbl}\n")
-                f.write(f"Cluster size (without void): {target_size}\n")
-                f.write(f"Total rows in file (including void): {len(df_with_void)}\n\n")
-                for idx, row in df_with_void.iterrows():
+                f.write(f"Cluster size (without max_separation): {target_size}\n")
+                f.write(f"Total rows in file (including max_separation): {len(df_with_max_separation)}\n\n")
+                for idx, row in df_with_max_separation.iterrows():
                     f.write(
                         f"{idx:04d}  satNo={row.get('satNo', ''):<8}  "
                         f"name={row.get('name', '')}\n"
                     )
 
             print(f"Saved satellite names for cluster {lbl} to {names_path}")
-            print("Void diagnostics:", diagnostics)
+            print("max_separation diagnostics:", diagnostics)
 
 
     # THIS IS THE MAIN FUNCTION!!!!!!
 
-    def run_orbit_generator(self, mode="void_all"):
+    def run_orbit_generator(self, mode="max_separation_single"):
         """
         mode:
         - "frechet_single": one cluster + Frechet orbit + t-SNE/CZML
         - "frechet_all": run Frechet optimiser over all clusters (no plots)
-        - "void_single": one cluster + maximally separated orbit + t-SNE
-        - "void_all": run void optimiser over all clusters + performance plot
+        - "max_separation_single": one cluster + maximally separated orbit + t-SNE
+        - "max_separation_all": run max_separation optimiser over all clusters + performance plot
         """
 
         if mode == "frechet_single":
@@ -829,15 +829,15 @@ class SyntheticOrbits:
             print("saved frechet all as pkl")
             return
 
-        if mode == "void_single":
+        if mode == "max_separation_single":
             # choose whatever defaults you like, or pass them in from the caller
-            self.run_void_single(target_size=15, n_samples=5000)
+            self.run_max_separation_single(target_size=15, n_samples=5000)
             return
 
-        if mode == "void_all":
+        if mode == "max_separation_all":
             df_all = self.load_hdbscan_labeled_dataframe()
-            cs, pct, rat, lbl = self.run_void_all_clusters(min_cluster_size=2)
-            self.plot_void_performance(cs, pct, rat)
+            cs, pct, rat, lbl = self.run_max_separation_all_clusters(min_cluster_size=2)
+            self.plot_max_separation_performance(cs, pct, rat)
             return
 
         print(f"Unknown mode '{mode}'")

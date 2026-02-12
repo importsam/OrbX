@@ -15,14 +15,13 @@ if __name__ == "__main__":
     # sparse = SparseOrbits()
     # sparse.graph_tsne_with_isolated()
     
-    app = SatelliteClusteringApp(cluster_config)
-    app.run_experiment()
+    # app = SatelliteClusteringApp(cluster_config)
+    # app.run_experiment()
     
-    # syn_orbits = SyntheticOrbits(cluster_config)
-    # syn_orbits.run_void_all_size_15()
+    syn_orbits = SyntheticOrbits(cluster_config)
+    syn_orbits.run_orbit_generator()
     
     # analysis = Analysis()
     # analysis.plot_variance_from_existing_frechet()
-    
     
     
