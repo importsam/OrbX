@@ -1,4 +1,4 @@
 __pycache__/
 *.pkl
-*.html
 *.png
+data/*.html
