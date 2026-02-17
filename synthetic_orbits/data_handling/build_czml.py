@@ -87,23 +87,6 @@ def build_czml(df):
     epochStr, endTimeStr = map(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.%fZ'), [epochTime, endTime])
     czml = [{'id': 'document', 'version': '1.0'}]
     
-    # Generate a list of random bright colors, length = number of clusters.
-    def random_colors(n):
-        colors = []
-        for _ in range(n):
-            colors.append([
-                int(random() * 127 + 128),  # Red (128-255)
-                int(random() * 127 + 128),  # Green (128-255)
-                int(random() * 127 + 128),  # Blue (128-255)
-                255                         # Alpha (full opacity)
-            ])
-        return colors
-    
-    def get_random_color():
-        color = [int(random() * 255) for _ in range(3)]
-        color.append(255)
-        return color
-    
     for i, row in df.iterrows():
         
         correlated = row['correlated']
@@ -129,13 +112,15 @@ def build_czml(df):
             'position': {
                 'epoch': epochStr, 
                 'cartographicDegrees': coords, 
-                'interpolationDegree': 3,
+                'interpolationDegree': 5,
                 'interpolationAlgorithm': 'LAGRANGE'
             },
             'properties': {
+                'name': row['name'],
                 'satNo': row['satNo'],
-                'dataset': row.get('dataset', ''),
-                'prop_correlated': correlated,
+                'inclination': row['inclination'],
+                'apogee': row['apogee'],
+                'prop_correlated': row['correlated'],
                 'prop_orbitColor': {"rgba": color}
             },
             'point': {

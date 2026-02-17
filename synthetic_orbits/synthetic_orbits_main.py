@@ -813,7 +813,7 @@ class SyntheticOrbits:
             return
 
         cluster_sizes = non_noise["label"].value_counts()
-        top_labels = cluster_sizes.head(10).index
+        top_labels = cluster_sizes.head(1).index
         df_clusters = df_clusters[df_clusters["label"].isin(top_labels)].copy()
 
         if df_clusters.empty:
@@ -860,6 +860,13 @@ class SyntheticOrbits:
 
         # 4) Concatenate all augmented clusters into a single dataframe
         df_augmented = pd.concat(augmented_clusters, ignore_index=True)
+        
+        # print columns:
+        print("Columns in augmented dataframe:", df_augmented.columns.tolist())
+        
+        # print first row 
+        print("First row of augmented dataframe:")
+        print(df_augmented.iloc[0])
 
         print(
             f"Built augmented dataframe with {len(df_augmented)} rows "

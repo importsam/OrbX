@@ -7,7 +7,7 @@ def ionop_czml():
     ACCESSTOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5OTMwYjJlMS0yYjBhLTQwMmMtYjJkZi1mZWZiY2RiYTNmN2UiLCJpZCI6MjQwODIwLCJpYXQiOjE3MzgzMDM2ODl9.h1pXOgujWRPoS6ZFc5wL-l5_XJnSyUsPZym3ssZj7TQ'
     
     BASEURL     = 'https://api.cesium.com/v1/assets'
-    FILEPATH    = 'data/output.czml'
+    FILEPATH    = 'orbX/output.czml'
 
     headers = {'Authorization': f'Bearer {ACCESSTOKEN}'}
 

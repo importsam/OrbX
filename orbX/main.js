@@ -1,272 +1,312 @@
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function () {
     const loadingScreen = document.getElementById('loadingScreen');
     Cesium.Ion.defaultAccessToken = CONFIG.ACCESSTOKEN;
     
     const oauth2Token = Cesium.Ion.defaultAccessToken;
     const baseUrl = 'https://api.cesium.com/v1/assets';
-
+  
     async function fetchLatestAsset() {
         const params = new URLSearchParams({
             sortBy: 'DATE_ADDED',
             sortOrder: 'DESC',
             status: 'COMPLETE'
         });
-
+  
         const response = await fetch(`${baseUrl}?${params.toString()}`, {
             headers: {
                 'Authorization': `Bearer ${oauth2Token}`
             }
         });
-
+  
         if (!response.ok) {
             throw new Error(`Error fetching assets: ${response.statusText}`);
         }
-
+  
         const data = await response.json();
         return data.items[0];
     }   
-
+    
     const viewer = new Cesium.Viewer("cesiumContainer", {
         shouldAnimate: true,
         geocoder: false,
         sceneModePicker: false,
-        baseLayerPicker: false,
-        navigationHelpButton: false,
-        homeButton: false
+        baseLayerPicker: true,
+        navigationHelpButton: true,
+        homeButton: true
     });
-
+    if (CONFIG.DEBUG === true) {
+        window.viewer = viewer;
+    }
+    
     viewer.scene.globe.enableLighting = true;
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
-    const topBottomInfoBox = document.getElementById('topBottomInfoBox');
-
-    // on load or refresh, clear the search bar
-    // document.getElementById('searchInput').value = '';
-
+    
     let dataSource;
-    let highlightedEntities = [];
     try {
-        const latestAsset = await fetchLatestAsset();
-        const assetId = latestAsset.id;
-        
-        const resource = await Cesium.IonResource.fromAssetId(assetId);
-        dataSource = await Cesium.CzmlDataSource.load(resource);
+        // const latestAsset = await fetchLatestAsset();
+        // const assetId = latestAsset.id;
+        // const resource = await Cesium.IonResource.fromAssetId(assetId);
+        // dataSource = await Cesium.CzmlDataSource.load(resource);
+        dataSource = await Cesium.CzmlDataSource.load('output.czml');
         await viewer.dataSources.add(dataSource);
+        window.czmlDataSource = dataSource;
         viewer.clock.currentTime = Cesium.JulianDate.now();
         viewer.clock.multiplier = 50;
-
+  
         const step = 10;
-
         const animationViewModel = viewer.animation.viewModel;
-        animationViewModel.playForwardViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
+        animationViewModel.playForwardViewModel.command.beforeExecute.addEventListener(function() {
             viewer.clock.multiplier += step;
         });
-
-        animationViewModel.playReverseViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
+        animationViewModel.playReverseViewModel.command.beforeExecute.addEventListener(function() {
             viewer.clock.multiplier -= step;
         });
-
+  
         loadingScreen.style.display = 'none';
-
+        addLegend();
+        addDatasetChecklist();
+  
         const urlParams = new URLSearchParams(window.location.search);
         const idFromURL = urlParams.get('id');
         if (idFromURL) {
             performSearch(idFromURL);
         }
+  
+        dataSource.entities.values.forEach(entity => {
+            entity.show = true;
+            if (!entity.path) {
+                entity.show = true;
+                showEntityPath(entity);
+            } else {
+                entity.path.show = true;
+            }
+        });
 
-        // dataSource.entities.values.forEach(entity => entity.show = false);
+        // ===== Hover infoBox support =====
+        const infoBox = document.getElementById("infoBox");
+
+        function showCompressedInfo(entityData, mousePosition) {
+            const entityId = (typeof entityData === 'object' && entityData.id)
+                ? entityData.id
+                : entityData;
+
+            const entity = dataSource && dataSource.entities && dataSource.entities.getById
+                ? dataSource.entities.getById(entityId)
+                : null;
+
+            const now = viewer.clock.currentTime;
+            const offset = 10;
+
+            if (entity) {
+                infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
+                        <strong>Name:</strong> ${entity.properties.name || "N/A"} <br>
+                        <strong>NORAD ID:</strong> ${entity.properties.satNo} <br>
+                        <strong>Apogee:</strong> ${
+                            entity.properties && entity.properties.apogee
+                                ? entity.properties.apogee.getValue(now).toFixed(2)
+                                : "N/A"
+                        } km <br>
+                        <strong>Inclination: </strong> ${
+                            entity.properties && entity.properties.inclination
+                                ? entity.properties.inclination.getValue(now).toFixed(2)
+                                : "N/A"
+                        }° <br>
+                        <strong>Dataset:</strong> ${
+                            entity.properties && entity.properties.dataset
+                                ? entity.properties.dataset.getValue(now)
+                                : "N/A"
+                        } <br>
+                    </div>`;
+            } else {
+                infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
+            }
+
+            infoBox.style.display = 'inline-block';
+            infoBox.style.position = 'absolute';
+            infoBox.style.fontSize = '12px';
+            infoBox.style.width = '10%';
+            infoBox.style.zIndex = '9999';
+
+            infoBox.style.left = (mousePosition.x + offset) + 'px';
+            infoBox.style.top = (mousePosition.y + offset) + 'px';
+
+            const boxRect = infoBox.getBoundingClientRect();
+
+            if (boxRect.right > window.innerWidth) {
+                infoBox.style.left = (mousePosition.x - boxRect.width - offset) + 'px';
+            }
+            if (boxRect.bottom > window.innerHeight) {
+                infoBox.style.top = (mousePosition.y - boxRect.height - offset) + 'px';
+            }
+            if (boxRect.top < 0) {
+                infoBox.style.top = (mousePosition.y + offset) + 'px';
+            }
+        }
+
+        function hideCompressedInfo() {
+            infoBox.style.display = 'none';
+            infoBox.innerHTML = '';
+        }
+
+        viewer.screenSpaceEventHandler.setInputAction(function onMouseMove(movement) {
+            const pickedObject = viewer.scene.pick(movement.endPosition);
+            if (Cesium.defined(pickedObject) && pickedObject.id) {
+                showCompressedInfo(pickedObject.id, movement.endPosition);
+            } else {
+                hideCompressedInfo();
+            }
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+        // ===== end hover support =====
 
     } catch (error) {
         console.log(error);
     }
+    
+    function addLegend() {
+        const legend = document.createElement('div');
+        legend.style.position = 'absolute';
+        legend.style.top = '10px';
+        legend.style.left = '10px';
+        legend.style.background = 'rgba(0,0,0,0.6)';
+        legend.style.color = '#fff';
+        legend.style.padding = '8px 10px';
+        legend.style.borderRadius = '4px';
+        legend.style.fontFamily = 'sans-serif';
+        legend.style.fontSize = '12px';
+        legend.style.zIndex = '1000';
 
-    const infoBox = document.getElementById("infoBox");
+        const row = (colorCss, label) => {
+            const item = document.createElement('div');
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.margin = '4px 0';
+            const swatch = document.createElement('span');
+            swatch.style.display = 'inline-block';
+            swatch.style.width = '12px';
+            swatch.style.height = '12px';
+            swatch.style.marginRight = '8px';
+            swatch.style.border = '1px solid #ddd';
+            swatch.style.background = colorCss;
+            const text = document.createElement('span');
+            text.textContent = label;
+            item.appendChild(swatch);
+            item.appendChild(text);
+            return item;
+        };
 
-    // In showCompressedInfo, update infoBox styling so its width fits content and text is smaller.
-    function showCompressedInfo(entityData, mousePosition) {
-        // Extract the entity id from the passed object or use the id directly.
-        const entityId = (typeof entityData === 'object' && entityData.id) ? entityData.id : entityData;
-        
-        // Retrieve the entity from dataSource.
-        const entity = dataSource && dataSource.entities && dataSource.entities.getById
-            ? dataSource.entities.getById(entityId)
-            : null;
-        
-        const now = Cesium.JulianDate.now();
-        const offset = 10;
-    
-        // -----
-            
-        if (entity) {
-            
-            infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
-                    <strong>Name:</strong> ${entity.name || "N/A"} <br>
-                    <strong>NORAD ID:</strong> ${entity.id} <br>
-                    <strong>Apogee:</strong> ${entity.properties.apogee ? entity.properties.apogee.getValue(now).toFixed(2) : "N/A"} km <br>
-                    <strong>Inclination: </strong> ${entity.properties.inclination ? entity.properties.inclination.getValue(now).toFixed(2) : "N/A"}° <br>
-                    <strong>Density:</strong> ${entity.properties.density ? entity.properties.density.getValue(now).toExponential(2) : "N/A"} <br>
-                </div>`;
-        } else {
-            infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
-        }
-        
-        // Ensure the infoBox resizes to fit its content.
-        infoBox.style.display = 'inline-block';
-        infoBox.style.position = 'absolute';
-        infoBox.style.fontSize = '12px';
-        infoBox.style.width = '10%';
-        infoBox.style.zIndex = '9999'; // Bring the info box to the front
-    
-        // Initially position the infoBox to the right and below the cursor.
-        infoBox.style.left = (mousePosition.x + offset) + 'px';
-        infoBox.style.top = (mousePosition.y + offset) + 'px';
-    
-        // After rendering, adjust position if the box overflows the viewport.
-        const boxRect = infoBox.getBoundingClientRect();
-    
-        // Adjust horizontal position if overflowing right edge.
-        if (boxRect.right > window.innerWidth) {
-            infoBox.style.left = (mousePosition.x - boxRect.width - offset) + 'px';
-        }
-    
-        // Adjust vertical position: if the bottom overflows, place above the cursor.
-        if (boxRect.bottom > window.innerHeight) {
-            infoBox.style.top = (mousePosition.y - boxRect.height - offset) + 'px';
-        }
-        // Similarly, if the top is off screen, position below the cursor.
-        if (boxRect.top < 0) {
-            infoBox.style.top = (mousePosition.y + offset) + 'px';
-        }
+        legend.appendChild(row('#ffffff', 'Optimum orbit'));
+        legend.appendChild(row('#00ff00', 'Input TLE'));
+
+        document.body.appendChild(legend);
     }
 
-    function hideCompressedInfo() {
-        infoBox.style.display = 'none';
-        infoBox.innerHTML = '';
-    }
+    function addDatasetChecklist() {
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.top = '70px';
+        container.style.left = '10px';
+        container.style.background = 'rgba(0,0,0,0.6)';
+        container.style.color = '#fff';
+        container.style.padding = '8px 10px';
+        container.style.borderRadius = '4px';
+        container.style.fontFamily = 'sans-serif';
+        container.style.fontSize = '12px';
+        container.style.zIndex = '1000';
+        container.style.maxHeight = '40vh';
+        container.style.overflowY = 'auto';
 
-    viewer.screenSpaceEventHandler.setInputAction(function onMouseMove(movement) {
-        const pickedObject = viewer.scene.pick(movement.endPosition);
-        if (Cesium.defined(pickedObject) && pickedObject.id) {
-            showCompressedInfo(pickedObject.id, movement.endPosition);
-        } else {
-            hideCompressedInfo();
-        }
-    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+        const title = document.createElement('div');
+        title.textContent = 'Datasets';
+        title.style.marginBottom = '6px';
+        title.style.fontWeight = 'bold';
+        container.appendChild(title);
 
-    // ensure all entities are not shown
-
-    // initialise the model
-    removeEntities();
-    // document.getElementById('radio-leo').checked = true;
-    handleOrbitToggle();
-
-    // Define toggleOrbit to show/hide the orbit path.
-    function toggleOrbit(entityId, colour) {
-        const entity = dataSource && dataSource.entities && dataSource.entities.getById 
-            ? dataSource.entities.getById(entityId)
-            : null;
-        if (!entity) return;
-        if (entity.path) {
-            removeEntityPath(entity);
-        } else {
-            showEntityPath(entity, colour);
-        }
-    }
-
-    window.toggleOrbit = toggleOrbit;
-    
-    function showEntityPath(entity, colour) {
-        let orbit_colour;
-        
-        // Default color (yellow) to use when RGB properties are missing
-        const DEFAULT_COLOR = Cesium.Color.YELLOW;
-        
-        if (colour) {
-            // Use the passed colour if provided (for override cases)
-            orbit_colour = colour;
-        } else {
-            // Try to get the orbit colour from CZML properties, fallback to default if missing
-            if (entity.properties && 
-                entity.properties.orbit_colour_r && 
-                entity.properties.orbit_colour_g && 
-                entity.properties.orbit_colour_b) {
-                
-                const now = Cesium.JulianDate.now();
-                
-                try {
-                    let r = entity.properties.orbit_colour_r.getValue(now);
-                    let g = entity.properties.orbit_colour_g.getValue(now);
-                    let b = entity.properties.orbit_colour_b.getValue(now);
-
-                    // Validate RGB values
-                    if (typeof r === 'number' && typeof g === 'number' && typeof b === 'number' &&
-                        r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
-                        // Create Cesium Color from RGB values (0-255 range)
-                        orbit_colour = Cesium.Color.fromBytes(r, g, b, 255);
-                    } else {
-                        // Invalid RGB values, use default
-                        orbit_colour = DEFAULT_COLOR;
-                    }
-                } catch (error) {
-                    // Error getting RGB values, use default
-                    console.warn(`Failed to get RGB values for entity ${entity.id}: ${error.message}, using default color`);
-                    orbit_colour = DEFAULT_COLOR;
-                }
-            } else {
-                // RGB properties missing, use default color
-                orbit_colour = DEFAULT_COLOR;
-            }
-        }
-        
-        // Store the colour on the entity for later toggling
-        entity.orbitColor = orbit_colour; // Fixed typo: was orbitcolour
-        
-        // Create or update the entity path with the correct colour
-        if (entity.path) {
-            entity.path.material = new Cesium.ColorMaterialProperty(orbit_colour); // Fixed typo: was colourMaterialProperty
-            entity.path.width = 2;
-            entity.path.show = true;
-        } else {
-            entity.path = new Cesium.PathGraphics({
-                show: true,
-                material: new Cesium.ColorMaterialProperty(orbit_colour), // Fixed typo: was colourMaterialProperty
-                width: 2
-            });
-        }
-        
-        if (!viewer.entities.contains(entity)) {
-            viewer.entities.add(entity);
-        }
-        entity.show = true;
-    }
-
-    function removeEntityPath(entity) {
-        if (entity.path) {
-            entity.path = undefined;
-            viewer.entities.remove(entity);
-        }
-    }
-
-    function removeEntities() {
-        // Clear any manually added orbit paths
-        viewer.entities.removeAll();
-        
-        // Also hide dataSource entities if needed
-        dataSource.entities.values.forEach(entity => entity.show = false);
-    }
-
-    function handleOrbitToggle() {
-        removeEntities();
+        const dsSet = new Set();
         dataSource.entities.values.forEach(entity => {
-            try {
-                entity.show = true;
-                showEntityPath(entity);
-            } catch (error) {
-                // Log error but continue processing other entities
-                console.error(`Error showing orbit for entity ${entity.id}: ${error.message}`);
-                // Still show the entity even if orbit path fails
-                entity.show = true;
+            const dsProp = entity.properties && entity.properties.dataset;
+            if (dsProp) {
+                const val = dsProp.getValue(viewer.clock.currentTime);
+                if (val) dsSet.add(val);
             }
         });
+
+        const datasets = Array.from(dsSet).sort();
+        const state = {};
+
+        const applyFilter = () => {
+            dataSource.entities.values.forEach(entity => {
+                const dsProp = entity.properties && entity.properties.dataset;
+                const dsVal = dsProp ? dsProp.getValue(viewer.clock.currentTime) : undefined;
+                if (!dsVal || state[dsVal] === undefined) {
+                    entity.show = true;
+                } else {
+                    entity.show = !!state[dsVal];
+                }
+            });
+        };
+
+        datasets.forEach(ds => {
+            state[ds] = true;
+            const row = document.createElement('label');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '6px';
+            row.style.margin = '4px 0';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = true;
+            cb.addEventListener('change', () => {
+                state[ds] = cb.checked;
+                applyFilter();
+            });
+            const span = document.createElement('span');
+            span.textContent = ds;
+            row.appendChild(cb);
+            row.appendChild(span);
+            container.appendChild(row);
+        });
+
+        document.body.appendChild(container);
+    }
+
+    function showEntityPath(entity) {
+        console.log('showEntityPath called for entity:', entity.id || entity.name);
+        
+        let orbit_color = Cesium.Color.WHITE;
+
+        const currentTime = viewer.clock.currentTime;
+        let satNoValue = undefined;
+        if (entity.properties && entity.properties.satNo) {
+            satNoValue = entity.properties.satNo.getValue(currentTime);
+        }
+        if (satNoValue === '99999') {
+            console.log('satNo is 99999, setting to white');
+            orbit_color = Cesium.Color.WHITE;
+        } else {
+            orbit_color = Cesium.Color.GREEN;
+        }
+    
+        console.log('orbit_color:', orbit_color);
+    
+        if (!entity.path) {
+            entity.path = new Cesium.PathGraphics({
+                show: true,
+                material: new Cesium.ColorMaterialProperty(orbit_color),
+                width: 2
+            });
+            console.log('Created new path with orbit_color:', orbit_color);
+        } else {
+            entity.path.material = new Cesium.ColorMaterialProperty(orbit_color);
+            entity.path.width = 2;
+            entity.path.show = true;
+            console.log('Updated existing path with orbit_color:', orbit_color);
+        }
+    
+        if (!viewer.entities.contains(entity)) {
+            viewer.entities.add(entity);
+            console.log('Entity added to viewer:', entity.id || entity.name);
+        }
+        entity.show = true;
     }
 });
