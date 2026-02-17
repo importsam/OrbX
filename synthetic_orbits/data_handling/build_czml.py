@@ -107,19 +107,18 @@ def build_czml(df):
             color = [0, 255, 0, 255]
                 
         czml.append({
-            'id': i,
+            'id': str(row['satNo']),
+            'name': str(row['name']),
             'availability': f"{epochStr}/{endTimeStr}",
             'position': {
                 'epoch': epochStr, 
                 'cartographicDegrees': coords, 
-                'interpolationDegree': 5,
+                'interpolationDegree': 3,
                 'interpolationAlgorithm': 'LAGRANGE'
             },
             'properties': {
-                'name': row['name'],
-                'satNo': row['satNo'],
-                'inclination': row['inclination'],
                 'apogee': row['apogee'],
+                'inclination': row['inclination'],
                 'prop_correlated': row['correlated'],
                 'prop_orbitColor': {"rgba": color}
             },
@@ -133,7 +132,7 @@ def build_czml(df):
         
         
             
-    with open('data/output.czml', 'w') as file:
+    with open('orbX/output.czml', 'w') as file:
         json.dump(czml, file, indent=2, separators=(',', ': '))
     
 if __name__ == '__main__':

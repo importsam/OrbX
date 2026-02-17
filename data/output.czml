@@ -4,7 +4,8 @@
     "version": "1.0"
   },
   {
-    "id": 0,
+    "id": "67404",
+    "name": "STARLINK-36484",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -62,10 +63,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36484",
-      "satNo": "67404",
-      "inclination": 42.9999,
       "apogee": 355.73637823700346,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -89,7 +88,8 @@
     }
   },
   {
-    "id": 1,
+    "id": "67405",
+    "name": "STARLINK-36452",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -147,10 +147,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36452",
-      "satNo": "67405",
-      "inclination": 43.0001,
       "apogee": 355.54073096074535,
+      "inclination": 43.0001,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -174,7 +172,8 @@
     }
   },
   {
-    "id": 2,
+    "id": "67406",
+    "name": "STARLINK-36409",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -232,10 +231,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36409",
-      "satNo": "67406",
-      "inclination": 43.0,
       "apogee": 355.77451655512397,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -259,7 +256,8 @@
     }
   },
   {
-    "id": 3,
+    "id": "67407",
+    "name": "STARLINK-36510",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -317,10 +315,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36510",
-      "satNo": "67407",
-      "inclination": 43.0,
       "apogee": 355.98361413487606,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -344,7 +340,8 @@
     }
   },
   {
-    "id": 4,
+    "id": "67408",
+    "name": "STARLINK-36509",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -402,10 +399,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36509",
-      "satNo": "67408",
-      "inclination": 42.9999,
       "apogee": 355.76466164864695,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -429,7 +424,8 @@
     }
   },
   {
-    "id": 5,
+    "id": "67409",
+    "name": "STARLINK-36507",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -487,10 +483,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36507",
-      "satNo": "67409",
-      "inclination": 43.0,
       "apogee": 355.57312982459274,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -514,7 +508,8 @@
     }
   },
   {
-    "id": 6,
+    "id": "67410",
+    "name": "STARLINK-36508",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -572,10 +567,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36508",
-      "satNo": "67410",
-      "inclination": 43.0,
       "apogee": 355.5326148914378,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -599,7 +592,8 @@
     }
   },
   {
-    "id": 7,
+    "id": "67411",
+    "name": "STARLINK-36503",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -657,10 +651,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36503",
-      "satNo": "67411",
-      "inclination": 43.0,
       "apogee": 355.5387205541041,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -684,7 +676,8 @@
     }
   },
   {
-    "id": 8,
+    "id": "67412",
+    "name": "STARLINK-36446",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -742,10 +735,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36446",
-      "satNo": "67412",
-      "inclination": 43.0001,
       "apogee": 355.89420192317385,
+      "inclination": 43.0001,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -769,7 +760,8 @@
     }
   },
   {
-    "id": 9,
+    "id": "67413",
+    "name": "STARLINK-36442",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -827,10 +819,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36442",
-      "satNo": "67413",
-      "inclination": 42.9997,
       "apogee": 355.6510845808955,
+      "inclination": 42.9997,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -854,7 +844,8 @@
     }
   },
   {
-    "id": 10,
+    "id": "67414",
+    "name": "STARLINK-36506",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -912,10 +903,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36506",
-      "satNo": "67414",
-      "inclination": 42.9999,
       "apogee": 355.62396831665467,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -939,7 +928,8 @@
     }
   },
   {
-    "id": 11,
+    "id": "67415",
+    "name": "STARLINK-36468",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -997,10 +987,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36468",
-      "satNo": "67415",
-      "inclination": 42.9999,
       "apogee": 355.82643802448825,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1024,7 +1012,8 @@
     }
   },
   {
-    "id": 12,
+    "id": "67416",
+    "name": "STARLINK-36487",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1082,10 +1071,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36487",
-      "satNo": "67416",
-      "inclination": 42.9999,
       "apogee": 355.8053881337121,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1109,7 +1096,8 @@
     }
   },
   {
-    "id": 13,
+    "id": "67417",
+    "name": "STARLINK-36374",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1167,10 +1155,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36374",
-      "satNo": "67417",
-      "inclination": 43.0,
       "apogee": 355.82641390848437,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1194,7 +1180,8 @@
     }
   },
   {
-    "id": 14,
+    "id": "67418",
+    "name": "STARLINK-36455",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1252,10 +1239,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36455",
-      "satNo": "67418",
-      "inclination": 42.9999,
       "apogee": 355.6637739469456,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1279,7 +1264,8 @@
     }
   },
   {
-    "id": 15,
+    "id": "67419",
+    "name": "STARLINK-36424",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1337,10 +1323,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36424",
-      "satNo": "67419",
-      "inclination": 42.9997,
       "apogee": 355.5323634579023,
+      "inclination": 42.9997,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1364,7 +1348,8 @@
     }
   },
   {
-    "id": 16,
+    "id": "67420",
+    "name": "STARLINK-35564",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1422,10 +1407,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-35564",
-      "satNo": "67420",
-      "inclination": 42.9998,
       "apogee": 355.86837215054874,
+      "inclination": 42.9998,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1449,7 +1432,8 @@
     }
   },
   {
-    "id": 17,
+    "id": "67421",
+    "name": "STARLINK-36431",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1507,10 +1491,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36431",
-      "satNo": "67421",
-      "inclination": 43.0001,
       "apogee": 355.90264228990674,
+      "inclination": 43.0001,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1534,7 +1516,8 @@
     }
   },
   {
-    "id": 18,
+    "id": "67422",
+    "name": "STARLINK-36418",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1592,10 +1575,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36418",
-      "satNo": "67422",
-      "inclination": 42.9998,
       "apogee": 355.63463751937917,
+      "inclination": 42.9998,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1619,7 +1600,8 @@
     }
   },
   {
-    "id": 19,
+    "id": "67423",
+    "name": "STARLINK-36465",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1677,10 +1659,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36465",
-      "satNo": "67423",
-      "inclination": 43.0002,
       "apogee": 355.80061705521774,
+      "inclination": 43.0002,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1704,7 +1684,8 @@
     }
   },
   {
-    "id": 20,
+    "id": "67424",
+    "name": "STARLINK-36362",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1762,10 +1743,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36362",
-      "satNo": "67424",
-      "inclination": 43.0,
       "apogee": 355.742564187618,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1789,7 +1768,8 @@
     }
   },
   {
-    "id": 21,
+    "id": "67425",
+    "name": "STARLINK-36447",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1847,10 +1827,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36447",
-      "satNo": "67425",
-      "inclination": 43.0,
       "apogee": 355.68591392736323,
+      "inclination": 43.0,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1874,7 +1852,8 @@
     }
   },
   {
-    "id": 22,
+    "id": "67426",
+    "name": "STARLINK-36146",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -1932,10 +1911,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36146",
-      "satNo": "67426",
-      "inclination": 42.9999,
       "apogee": 355.85675515792985,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -1959,7 +1936,8 @@
     }
   },
   {
-    "id": 23,
+    "id": "67427",
+    "name": "STARLINK-36459",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2017,10 +1995,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36459",
-      "satNo": "67427",
-      "inclination": 42.9997,
       "apogee": 355.8705553709548,
+      "inclination": 42.9997,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2044,7 +2020,8 @@
     }
   },
   {
-    "id": 24,
+    "id": "67428",
+    "name": "STARLINK-36464",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2102,10 +2079,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36464",
-      "satNo": "67428",
-      "inclination": 42.9999,
       "apogee": 355.80032042681984,
+      "inclination": 42.9999,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2129,7 +2104,8 @@
     }
   },
   {
-    "id": 25,
+    "id": "67429",
+    "name": "STARLINK-36513",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2187,10 +2163,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36513",
-      "satNo": "67429",
-      "inclination": 42.9998,
       "apogee": 355.8486545118662,
+      "inclination": 42.9998,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2214,7 +2188,8 @@
     }
   },
   {
-    "id": 26,
+    "id": "67430",
+    "name": "STARLINK-36515",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2272,10 +2247,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36515",
-      "satNo": "67430",
-      "inclination": 42.9997,
       "apogee": 355.707524612925,
+      "inclination": 42.9997,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2299,7 +2272,8 @@
     }
   },
   {
-    "id": 27,
+    "id": "67431",
+    "name": "STARLINK-36443",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2357,10 +2331,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36443",
-      "satNo": "67431",
-      "inclination": 42.9998,
       "apogee": 355.7998540849313,
+      "inclination": 42.9998,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2384,7 +2356,8 @@
     }
   },
   {
-    "id": 28,
+    "id": "67432",
+    "name": "STARLINK-36460",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2442,10 +2415,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "STARLINK-36460",
-      "satNo": "67432",
-      "inclination": 42.9998,
       "apogee": 355.8358159638532,
+      "inclination": 42.9998,
       "prop_correlated": false,
       "prop_orbitColor": {
         "rgba": [
@@ -2469,68 +2440,67 @@
     }
   },
   {
-    "id": 29,
+    "id": "99999",
+    "name": "MaximallySeparated",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
       "cartographicDegrees": [
         0,
-        -59.632775200353684,
-        -2.9747021986953524,
-        356772.4152328983,
+        -57.1628933097555,
+        -5.257028623126727,
+        357120.3328833008,
         600,
-        -27.885328286892403,
-        -28.1155010088337,
-        358667.4875552717,
+        -24.6744827395012,
+        -29.951328213689496,
+        358857.66671653616,
         1200,
-        17.64479828403455,
-        -42.58969678913058,
-        359295.528261131,
+        22.191790358066704,
+        -42.87477422907673,
+        359376.1365820137,
         1800,
-        67.97350554133126,
-        -35.146408535840955,
-        359263.48756545305,
+        71.57444183421802,
+        -33.59563233227287,
+        359248.2479416276,
         2400,
-        103.42957494680411,
-        -12.335434504738622,
-        358107.7900909531,
+        105.98082337837182,
+        -10.101014938782237,
+        357939.795774615,
         3000,
-        132.73838374590792,
-        14.218289757797278,
-        355271.90236375644,
+        135.37935380115655,
+        16.40586091853649,
+        355002.4896185942,
         3600,
-        169.22995352991964,
-        36.4053961584718,
-        352098.12592972413,
+        173.09191738056623,
+        37.743534841815254,
+        351954.85437818477,
         4200,
-        -139.6468998734741,
-        42.18222359922861,
-        351136.15726181614,
+        -135.21323950045237,
+        41.56265279970318,
+        351301.03050025535,
         4800,
-        -95.28986015724976,
-        26.358829109169356,
-        353198.28894779313,
+        -92.28096966704153,
+        24.389542472199388,
+        353586.98944447405,
         5400,
-        -64.11289445533325,
-        0.8432781333241861,
-        356383.00558607624,
+        -61.65932329002693,
+        -1.4424593738143248,
+        356749.4825435815,
         6000,
-        -33.381124917228554,
-        -24.894556488115022,
-        358497.0771167791,
+        -30.35405015213529,
+        -26.843587341985877,
+        358708.28184348554,
         5492,
-        -59.632775200353684,
-        -2.9747021986953524,
-        356772.4152328983
+        -57.1628933097555,
+        -5.257028623126727,
+        357120.3328833008
       ],
       "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "MaximallySeparated",
-      "satNo": "99999",
-      "inclination": NaN,
       "apogee": NaN,
+      "inclination": NaN,
       "prop_correlated": true,
       "prop_orbitColor": {
         "rgba": [
@@ -2554,7 +2524,8 @@
     }
   },
   {
-    "id": 30,
+    "id": "99999",
+    "name": "Optimized",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
@@ -2612,10 +2583,8 @@
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "name": "Optimized",
-      "satNo": "99999",
-      "inclination": NaN,
       "apogee": NaN,
+      "inclination": NaN,
       "prop_correlated": true,
       "prop_orbitColor": {
         "rgba": [

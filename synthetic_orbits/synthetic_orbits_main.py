@@ -873,6 +873,33 @@ class SyntheticOrbits:
             f"from {len(top_labels)} clusters (original + max_separation + Fréchet)."
         )
         
+        # stick tape solution. Need to get the kep elements for the synthetic orbits
+        ######################
+        
+        # for each synthetic orbit
+        
+        for idx in df_augmented.index:
+            if df_augmented.loc[idx, "satNo"] == "99999":
+                print(f"Parsing synthetic orbit at index {idx} for Keplerian elements.")
+                
+                sat_obj = self.tle_parser._parse_tle_group(
+                    "Synthetic Orbit",
+                    df_augmented.iloc[idx]['line1'],
+                    df_augmented.iloc[idx]['line2']
+                )
+                
+                df_augmented.loc[idx, "inclination"] = sat_obj.inclination
+                df_augmented.loc[idx, "apogee"] = sat_obj.apogee
+                df_augmented.loc[idx, "raan"] = sat_obj.raan
+                df_augmented.loc[idx, "argument_of_perigee"] = sat_obj.argument_of_perigee
+                df_augmented.loc[idx, "eccentricity"] = sat_obj.eccentricity
+                df_augmented.loc[idx, "mean_motion"] = sat_obj.mean_motion        
+                
+                #
+        ######################
+        
+        
+        
         build_czml(df_augmented)
         ionop_czml()
         # return df_augmented

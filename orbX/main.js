@@ -100,23 +100,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             if (entity) {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
-                        <strong>Name:</strong> ${entity.properties.name || "N/A"} <br>
-                        <strong>NORAD ID:</strong> ${entity.properties.satNo} <br>
-                        <strong>Apogee:</strong> ${
-                            entity.properties && entity.properties.apogee
-                                ? entity.properties.apogee.getValue(now).toFixed(2)
-                                : "N/A"
-                        } km <br>
-                        <strong>Inclination: </strong> ${
-                            entity.properties && entity.properties.inclination
-                                ? entity.properties.inclination.getValue(now).toFixed(2)
-                                : "N/A"
-                        }° <br>
-                        <strong>Dataset:</strong> ${
-                            entity.properties && entity.properties.dataset
-                                ? entity.properties.dataset.getValue(now)
-                                : "N/A"
-                        } <br>
+                        <strong>Name:</strong> ${entity.name} <br>
+                        <strong>NORAD ID:</strong> ${entity.satNo} <br>
+                        <strong>Apogee:</strong> ${entity.properties.apogee} km <br>
+                        <strong>Inclination: </strong> ${entity.properties.inclination}° <br>
                     </div>`;
             } else {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
