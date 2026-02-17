@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 from orekit.pyhelpers import datetime_to_absolutedate
 from scipy.optimize import minimize
 
-from unique_orbits.uct_fitting.orbit_finder.DMT import VectorizedKeplerianOrbit
-from unique_orbits.uct_fitting.orbit_finder.optimum_orbit_tle import convert_kep_to_tle
+from synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
+from synthetic_orbits.orbit_finder.optimum_orbit_tle import convert_kep_to_tle
 
 def get_keplerian_array_from_tle(row):
     line1_array = np.array([row["line1"]])

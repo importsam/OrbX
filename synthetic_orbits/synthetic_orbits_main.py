@@ -4,45 +4,29 @@ import pickle
 import pandas as pd
 import numpy as np
 from tools.distance_matrix import get_distance_matrix
-from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import get_optimum_orbit, get_maximally_separated_orbit
-from unique_orbits.uct_fitting.data_handling.build_czml import build_czml
-from unique_orbits.uct_fitting.data_handling.ionop_czml import ionop_czml
+from synthetic_orbits.orbit_finder.get_optimum_orbit import get_optimum_orbit, get_maximally_separated_orbit
+from synthetic_orbits.data_handling.build_czml import build_czml
+from synthetic_orbits.data_handling.ionop_czml import ionop_czml
 from app import SatelliteClusteringApp
 from tools.DMT import VectorizedKeplerianOrbit
 from tle_parser import TLEParser
-from configs import ClusterConfig, OrbitalConstants, PathConfig
+from configs import ClusterConfig
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import os
-import random
-"""
-This file is used to process the given elset data into a distance matrix and save
-to disk.
-"""
-
 import pandas as pd
 import numpy as np
 
-from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import get_optimum_orbit, get_maximally_separated_orbit
+from synthetic_orbits.orbit_finder.frechet_orbit_finder import get_optimum_orbit
+from synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_maximally_separated_orbit
 
 from app import SatelliteClusteringApp
 
 from tle_parser import TLEParser
 from configs import ClusterConfig
 
-
 import os
-
-"""
-This file is used to process the given elset data into a distance matrix and save
-to disk.
-"""
-
-from unique_orbits.uct_fitting.orbit_finder.frechet_orbit_finder import get_optimum_orbit
-from unique_orbits.uct_fitting.orbit_finder.max_separation_orbit_finder import (
-    get_maximally_separated_orbit,
-)
 
 class SyntheticOrbits:
     def __init__(self, cluster_config: ClusterConfig):
@@ -803,6 +787,90 @@ class SyntheticOrbits:
             print("max_separation diagnostics:", diagnostics)
 
 
+    def run_cesium_generator(self):
+        """
+        Build a dataframe that, for the top 10 largest clusters (by size),
+        includes both the Fréchet-mean synthetic orbit and the maximally
+        separated synthetic orbit appended to each cluster.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing only the top-10 clusters, each augmented with
+            their max-separation and Fréchet synthetic orbits.
+        """
+        # 1) Load all labelled TLEs in the configured inc/apogee range
+        df_clusters = self.load_hdbscan_labeled_dataframe()
+        if df_clusters is None or df_clusters.empty:
+            print("No TLE data loaded.")
+            return
+
+        # 2) Keep only non-noise, then the top-10 labels by cluster size
+        df_clusters = df_clusters.copy()
+        non_noise = df_clusters[df_clusters["label"] != -1]
+        if non_noise.empty:
+            print("No non-noise clusters found.")
+            return
+
+        cluster_sizes = non_noise["label"].value_counts()
+        top_labels = cluster_sizes.head(10).index
+        df_clusters = df_clusters[df_clusters["label"].isin(top_labels)].copy()
+
+        if df_clusters.empty:
+            print("No clusters left after filtering to top 10.")
+            return
+
+        print(f"Using top {len(top_labels)} clusters: {list(top_labels)}")
+
+        augmented_clusters = []
+
+        # 3) For each of these clusters, append max_separation and Fréchet orbits
+        for label, df_cluster in df_clusters.groupby("label"):
+            N = len(df_cluster)
+            print(f"\n=== Processing cluster {label} (N={N}) ===")
+
+            # --- Maximally separated synthetic orbit ---
+            try:
+                df_with_max_sep, diag_max = get_maximally_separated_orbit(
+                    df_cluster.copy(),
+                    return_diagnostics=True,
+                )
+                print(
+                    f"  max_separation OK; "
+                    f"percentile={diag_max.get('percentile_vs_cluster')}, "
+                    f"ratio={diag_max.get('ratio_to_median_spacing')}"
+                )
+            except Exception as e:
+                print(f"  max_separation failed for label {label}: {e}")
+                df_with_max_sep = df_cluster.copy()
+
+            # --- Fréchet mean synthetic orbit ---
+            try:
+                # This should append a Frechet synthetic orbit row (usually satNo=99999 or similar)
+                df_with_frechet = get_optimum_orbit(
+                    df_with_max_sep.copy(),
+                    return_diagnostics=False,
+                )
+                print("  Fréchet optimisation OK.")
+            except Exception as e:
+                print(f"  Fréchet optimisation failed for label {label}: {e}")
+                df_with_frechet = df_with_max_sep.copy()
+
+            augmented_clusters.append(df_with_frechet)
+
+        # 4) Concatenate all augmented clusters into a single dataframe
+        df_augmented = pd.concat(augmented_clusters, ignore_index=True)
+
+        print(
+            f"Built augmented dataframe with {len(df_augmented)} rows "
+            f"from {len(top_labels)} clusters (original + max_separation + Fréchet)."
+        )
+        
+        build_czml(df_augmented)
+        ionop_czml()
+        # return df_augmented
+        
+        
     # THIS IS THE MAIN FUNCTION!!!!!!
 
     def run_orbit_generator(self, mode="max_separation_single"):
@@ -839,5 +907,7 @@ class SyntheticOrbits:
             cs, pct, rat, lbl = self.run_max_separation_all_clusters(min_cluster_size=2)
             self.plot_max_separation_performance(cs, pct, rat)
             return
+        
+        
 
         print(f"Unknown mode '{mode}'")

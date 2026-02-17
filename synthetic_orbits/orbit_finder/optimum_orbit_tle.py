@@ -18,7 +18,7 @@ from org.orekit.frames import FramesFactory
 from org.orekit.utils import Constants
 from org.orekit.propagation import SpacecraftState
 from org.orekit.propagation.analytical.tle.generation import LeastSquaresTleGenerationAlgorithm
-from unique_orbits.uct_fitting.orbit_finder.DMT import VectorizedKeplerianOrbit
+from synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
 def test_orbit(df):
     """

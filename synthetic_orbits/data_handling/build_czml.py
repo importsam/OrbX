@@ -4,7 +4,7 @@ import datetime as dt
 import numpy as np
 from random import random
 from skyfield.api import load
-from unique_orbits.uct_fitting.orbit_finder.get_optimum_orbit import calculate_average_epoch
+from synthetic_orbits.orbit_finder.get_optimum_orbit import calculate_average_epoch
 
 ts = load.timescale()
 
@@ -148,7 +148,7 @@ def build_czml(df):
         
         
             
-    with open('cesium_model/data/output.czml', 'w') as file:
+    with open('data/output.czml', 'w') as file:
         json.dump(czml, file, indent=2, separators=(',', ': '))
     
 if __name__ == '__main__':

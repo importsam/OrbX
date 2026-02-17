@@ -39,7 +39,7 @@ class SatelliteClusteringApp:
         self.orbital_constants = OrbitalConstants()
         self.density_estimator = DensityEstimator()
         self.analysis = Analysis()
-
+    
     def run_metrics(self):
         # Get the satellite data into a dataframe
         df = self.tle_parser.df

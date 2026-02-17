@@ -4,10 +4,10 @@ import time
 
 def ionop_czml():
    
-    ACCESSTOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3NGM1MzQ2My01YmVhLTRlZjQtYTE2OS05ODE5Njg2N2QzYzIiLCJpZCI6MjQwODIwLCJpYXQiOjE3MzgzNTk3NjV9.4f7puoQt41dU0kL9uJwXV5gzwyAm2ZlJPhBf17XYosM'
+    ACCESSTOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5OTMwYjJlMS0yYjBhLTQwMmMtYjJkZi1mZWZiY2RiYTNmN2UiLCJpZCI6MjQwODIwLCJpYXQiOjE3MzgzMDM2ODl9.h1pXOgujWRPoS6ZFc5wL-l5_XJnSyUsPZym3ssZj7TQ'
     
     BASEURL     = 'https://api.cesium.com/v1/assets'
-    FILEPATH    = 'cesium_model/data/output.czml'
+    FILEPATH    = 'data/output.czml'
 
     headers = {'Authorization': f'Bearer {ACCESSTOKEN}'}
 
