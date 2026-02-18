@@ -107,16 +107,17 @@ def build_czml(df):
             color = [0, 255, 0, 255]
                 
         czml.append({
-            'id': str(row['satNo']),
+            'id': f"{row['satNo']}_{i}",
             'name': str(row['name']),
             'availability': f"{epochStr}/{endTimeStr}",
             'position': {
                 'epoch': epochStr, 
                 'cartographicDegrees': coords, 
-                'interpolationDegree': 3,
+                'interpolationDegree': 5,
                 'interpolationAlgorithm': 'LAGRANGE'
             },
             'properties': {
+                'satNo': row['satNo'],
                 'apogee': row['apogee'],
                 'inclination': row['inclination'],
                 'prop_correlated': row['correlated'],

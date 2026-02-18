@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (entity) {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
                         <strong>Name:</strong> ${entity.name} <br>
-                        <strong>NORAD ID:</strong> ${entity.satNo} <br>
+                        <strong>NORAD ID:</strong> ${entity.properties.satNo} <br>
                         <strong>Apogee:</strong> ${entity.properties.apogee} km <br>
                         <strong>Inclination: </strong> ${entity.properties.inclination}° <br>
                     </div>`;

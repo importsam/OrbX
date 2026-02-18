@@ -4,7 +4,7 @@
     "version": "1.0"
   },
   {
-    "id": "67404",
+    "id": "67404_0",
     "name": "STARLINK-36484",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -59,10 +59,11 @@
         -13.728017918581873,
         356125.9913254007
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67404",
       "apogee": 355.73637823700346,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -88,7 +89,7 @@
     }
   },
   {
-    "id": "67405",
+    "id": "67405_1",
     "name": "STARLINK-36452",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -143,10 +144,11 @@
         -14.982817459851852,
         356289.0817429161
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67405",
       "apogee": 355.54073096074535,
       "inclination": 43.0001,
       "prop_correlated": false,
@@ -172,7 +174,7 @@
     }
   },
   {
-    "id": "67406",
+    "id": "67406_2",
     "name": "STARLINK-36409",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -227,10 +229,11 @@
         -16.226992351077598,
         356299.8338865036
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67406",
       "apogee": 355.77451655512397,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -256,7 +259,7 @@
     }
   },
   {
-    "id": "67407",
+    "id": "67407_3",
     "name": "STARLINK-36510",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -311,10 +314,11 @@
         -17.458629550546295,
         356227.3100306593
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67407",
       "apogee": 355.98361413487606,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -340,7 +344,7 @@
     }
   },
   {
-    "id": "67408",
+    "id": "67408_4",
     "name": "STARLINK-36509",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -395,10 +399,11 @@
         -18.691162118956,
         356307.8104827155
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67408",
       "apogee": 355.76466164864695,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -424,7 +429,7 @@
     }
   },
   {
-    "id": "67409",
+    "id": "67409_5",
     "name": "STARLINK-36507",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -479,10 +484,11 @@
         -19.897250336200813,
         356680.1948869979
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67409",
       "apogee": 355.57312982459274,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -508,7 +514,7 @@
     }
   },
   {
-    "id": "67410",
+    "id": "67410_6",
     "name": "STARLINK-36508",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -563,10 +569,11 @@
         -21.09316114525646,
         356753.4299672088
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67410",
       "apogee": 355.5326148914378,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -592,7 +599,7 @@
     }
   },
   {
-    "id": "67411",
+    "id": "67411_7",
     "name": "STARLINK-36503",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -647,10 +654,11 @@
         -22.27368349096392,
         356822.6361736442
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67411",
       "apogee": 355.5387205541041,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -676,7 +684,7 @@
     }
   },
   {
-    "id": "67412",
+    "id": "67412_8",
     "name": "STARLINK-36446",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -731,10 +739,11 @@
         -23.440286442755152,
         356556.9325731403
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67412",
       "apogee": 355.89420192317385,
       "inclination": 43.0001,
       "prop_correlated": false,
@@ -760,7 +769,7 @@
     }
   },
   {
-    "id": "67413",
+    "id": "67413_9",
     "name": "STARLINK-36442",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -815,10 +824,11 @@
         -24.59082729224746,
         356904.41734201706
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67413",
       "apogee": 355.6510845808955,
       "inclination": 42.9997,
       "prop_correlated": false,
@@ -844,7 +854,7 @@
     }
   },
   {
-    "id": "67414",
+    "id": "67414_10",
     "name": "STARLINK-36506",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -899,10 +909,11 @@
         -25.71699001579417,
         357112.77963185875
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67414",
       "apogee": 355.62396831665467,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -928,7 +939,7 @@
     }
   },
   {
-    "id": "67415",
+    "id": "67415_11",
     "name": "STARLINK-36468",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -983,10 +994,11 @@
         -26.82659137851173,
         356865.8129182295
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67415",
       "apogee": 355.82643802448825,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -1012,7 +1024,7 @@
     }
   },
   {
-    "id": "67416",
+    "id": "67416_12",
     "name": "STARLINK-36487",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1067,10 +1079,11 @@
         -27.903664395356056,
         356956.25219574047
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67416",
       "apogee": 355.8053881337121,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -1096,7 +1109,7 @@
     }
   },
   {
-    "id": "67417",
+    "id": "67417_13",
     "name": "STARLINK-36374",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1151,10 +1164,11 @@
         -28.974674223697445,
         357084.89793522586
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67417",
       "apogee": 355.82641390848437,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -1180,7 +1194,7 @@
     }
   },
   {
-    "id": "67418",
+    "id": "67418_14",
     "name": "STARLINK-36455",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1235,10 +1249,11 @@
         -30.012441910764547,
         357116.8974783177
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67418",
       "apogee": 355.6637739469456,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -1264,7 +1279,7 @@
     }
   },
   {
-    "id": "67419",
+    "id": "67419_15",
     "name": "STARLINK-36424",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1319,10 +1334,11 @@
         -31.018293633204912,
         357390.0957383503
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67419",
       "apogee": 355.5323634579023,
       "inclination": 42.9997,
       "prop_correlated": false,
@@ -1348,7 +1364,7 @@
     }
   },
   {
-    "id": "67420",
+    "id": "67420_16",
     "name": "STARLINK-35564",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1403,10 +1419,11 @@
         -32.01011155185762,
         357177.7231979595
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67420",
       "apogee": 355.86837215054874,
       "inclination": 42.9998,
       "prop_correlated": false,
@@ -1432,7 +1449,7 @@
     }
   },
   {
-    "id": "67421",
+    "id": "67421_17",
     "name": "STARLINK-36431",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1487,10 +1504,11 @@
         -32.9594365485557,
         357076.30368664284
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67421",
       "apogee": 355.90264228990674,
       "inclination": 43.0001,
       "prop_correlated": false,
@@ -1516,7 +1534,7 @@
     }
   },
   {
-    "id": "67422",
+    "id": "67422_18",
     "name": "STARLINK-36418",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1571,10 +1589,11 @@
         -33.88204152751378,
         357462.6407272208
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67422",
       "apogee": 355.63463751937917,
       "inclination": 42.9998,
       "prop_correlated": false,
@@ -1600,7 +1619,7 @@
     }
   },
   {
-    "id": "67423",
+    "id": "67423_19",
     "name": "STARLINK-36465",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1655,10 +1674,11 @@
         -34.77152164408098,
         357294.02986898547
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67423",
       "apogee": 355.80061705521774,
       "inclination": 43.0002,
       "prop_correlated": false,
@@ -1684,7 +1704,7 @@
     }
   },
   {
-    "id": "67424",
+    "id": "67424_20",
     "name": "STARLINK-36362",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1739,10 +1759,11 @@
         -35.62322749351224,
         357329.6618571812
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67424",
       "apogee": 355.742564187618,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -1768,7 +1789,7 @@
     }
   },
   {
-    "id": "67425",
+    "id": "67425_21",
     "name": "STARLINK-36447",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1823,10 +1844,11 @@
         -36.43966040056491,
         357564.05795435695
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67425",
       "apogee": 355.68591392736323,
       "inclination": 43.0,
       "prop_correlated": false,
@@ -1852,7 +1874,7 @@
     }
   },
   {
-    "id": "67426",
+    "id": "67426_22",
     "name": "STARLINK-36146",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1907,10 +1929,11 @@
         -37.21772135949127,
         357337.1554038613
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67426",
       "apogee": 355.85675515792985,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -1936,7 +1959,7 @@
     }
   },
   {
-    "id": "67427",
+    "id": "67427_23",
     "name": "STARLINK-36459",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -1991,10 +2014,11 @@
         -37.954341634885054,
         357375.62641320075
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67427",
       "apogee": 355.8705553709548,
       "inclination": 42.9997,
       "prop_correlated": false,
@@ -2020,7 +2044,7 @@
     }
   },
   {
-    "id": "67428",
+    "id": "67428_24",
     "name": "STARLINK-36464",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -2075,10 +2099,11 @@
         -39.291781045328555,
         357480.2433346713
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67428",
       "apogee": 355.80032042681984,
       "inclination": 42.9999,
       "prop_correlated": false,
@@ -2104,7 +2129,7 @@
     }
   },
   {
-    "id": "67429",
+    "id": "67429_25",
     "name": "STARLINK-36513",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -2159,10 +2184,11 @@
         -39.89042087684846,
         357431.5289045999
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67429",
       "apogee": 355.8486545118662,
       "inclination": 42.9998,
       "prop_correlated": false,
@@ -2188,7 +2214,7 @@
     }
   },
   {
-    "id": "67430",
+    "id": "67430_26",
     "name": "STARLINK-36515",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -2243,10 +2269,11 @@
         -38.6404725098083,
         357465.38323351706
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67430",
       "apogee": 355.707524612925,
       "inclination": 42.9997,
       "prop_correlated": false,
@@ -2272,7 +2299,7 @@
     }
   },
   {
-    "id": "67431",
+    "id": "67431_27",
     "name": "STARLINK-36443",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -2327,10 +2354,11 @@
         -40.44415863845532,
         357556.8019227758
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67431",
       "apogee": 355.7998540849313,
       "inclination": 42.9998,
       "prop_correlated": false,
@@ -2356,7 +2384,7 @@
     }
   },
   {
-    "id": "67432",
+    "id": "67432_28",
     "name": "STARLINK-36460",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
@@ -2411,10 +2439,11 @@
         -40.94696209263914,
         357511.7739434045
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "67432",
       "apogee": 355.8358159638532,
       "inclination": 42.9998,
       "prop_correlated": false,
@@ -2440,67 +2469,68 @@
     }
   },
   {
-    "id": "99999",
+    "id": "99999_29",
     "name": "MaximallySeparated",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
       "cartographicDegrees": [
         0,
-        -60.51612699971699,
-        -2.158442823665416,
-        356714.83904177696,
+        -58.75819304587828,
+        -3.785183882843322,
+        356920.93904617196,
         600,
-        -29.00940908794712,
-        -27.44179852563706,
-        358666.0432184008,
+        -26.7596159485323,
+        -28.77530944586446,
+        358766.0841518764,
         1200,
-        16.027468414574724,
-        -42.444250454175055,
-        359334.4781101196,
+        19.252058611272382,
+        -42.71137638497144,
+        359356.2555564149,
         1800,
-        66.64900686727735,
-        -35.674289038950796,
-        359335.89278086857,
+        69.26521444097884,
+        -34.608858688093555,
+        359287.06813607184,
         2400,
-        102.5023341559231,
-        -13.128900747762025,
-        358234.0084707321,
+        104.33829631613466,
+        -11.54608002945025,
+        358070.51824315294,
         3000,
-        131.80165272974983,
-        13.428282560729217,
-        355437.5716584491,
+        133.66795011311143,
+        14.99699843435642,
+        355189.8091821631,
         3600,
-        167.87600285660938,
-        35.896416878821,
-        352224.1050697339,
+        170.58278617748462,
+        36.89384939033131,
+        352053.87427823734,
         4200,
-        -141.25919519826454,
-        42.36197547838589,
-        351153.30801511573,
+        -138.06617559649783,
+        41.982273627594296,
+        351201.1250977148,
         4800,
-        -96.39745572425409,
-        27.049086469372302,
-        353130.95026469,
+        -94.21248061946251,
+        25.668144172680528,
+        353349.9714487443,
         5400,
-        -64.99762696334241,
-        1.6627744473043555,
-        356318.78261107067,
+        -63.24374257151445,
+        0.033473422740420485,
+        356536.66818117746,
         6000,
-        -34.44793071433668,
-        -24.18038001870992,
-        358487.76239281776,
+        -32.32034163524088,
+        -25.592050149580118,
+        358602.47991133475,
         5492,
-        -60.51612699971699,
-        -2.158442823665416,
-        356714.83904177696
+        -58.75819304587828,
+        -3.785183882843322,
+        356920.93904617196
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
-      "apogee": 357.99453966250735,
-      "inclination": 42.9999,
+      "satNo": "99999",
+      "apogee": 357.98302507905476,
+      "inclination": 43.0001,
       "prop_correlated": true,
       "prop_orbitColor": {
         "rgba": [
@@ -2524,65 +2554,66 @@
     }
   },
   {
-    "id": "99999",
+    "id": "99999_30",
     "name": "Optimized",
     "availability": "2026-01-27T06:00:00.999648Z/2026-04-02T06:00:00.999648Z",
     "position": {
       "epoch": "2026-01-27T06:00:00.999648Z",
       "cartographicDegrees": [
         0,
-        -18.18706117607163,
-        -33.23494333243484,
+        -18.186961176071517,
+        -33.23494333243489,
         359222.6714899962,
         600,
-        30.95946924058444,
+        30.959569240584532,
         -42.91376387052164,
         359613.85797721776,
         1200,
-        78.11029313130042,
-        -30.35333349315817,
-        359251.6089299115,
+        78.11039313130038,
+        -30.353333493158196,
+        359251.60892991244,
         1800,
-        110.77609206506646,
-        -5.77189814077556,
-        357513.23648123525,
+        110.77619206506645,
+        -5.771898140775593,
+        357513.2364812362,
         2400,
-        140.6129604906664,
-        20.49698484328199,
-        354259.0405565143,
+        140.61306049066644,
+        20.496984843282025,
+        354259.0405565124,
         3000,
-        -179.1332576295896,
+        -179.1331576295896,
         39.934342286284924,
-        351392.2719791908,
+        351392.2719791899,
         3600,
-        -126.99204445926485,
-        39.91559919419752,
+        -126.99194445926476,
+        39.915599194197505,
         351314.8404103122,
         4200,
-        -86.76249139670931,
-        20.456873234942275,
+        -86.76239139670925,
+        20.45687323494223,
         354060.7175956111,
         4800,
-        -56.92975133367306,
-        -5.817196841745885,
+        -56.929651333672986,
+        -5.817196841745936,
         357282.1377076598,
         5400,
-        -24.245352813476455,
-        -30.39000795674081,
-        359092.7147366074,
+        -24.24525281347656,
+        -30.39000795674076,
+        359092.7147366055,
         6000,
-        22.933241317226003,
+        22.933341317226077,
         -42.91695629567962,
-        359600.92115998757,
+        359600.9211599885,
         5492,
-        -18.18706117607163,
-        -33.23494333243484,
+        -18.186961176071517,
+        -33.23494333243489,
         359222.6714899962
       ],
-      "interpolationDegree": 3,
+      "interpolationDegree": 5,
       "interpolationAlgorithm": "LAGRANGE"
     },
     "properties": {
+      "satNo": "99999",
       "apogee": 357.7812211384382,
       "inclination": 42.9999,
       "prop_correlated": true,
