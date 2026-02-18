@@ -27,7 +27,7 @@ Finds the orbit within the cluster's bounding region that maximises its minimum 
 
 | Demo | Description |
 |---|---|
-| [Synthetic Orbit Cesium Model](<http://54.252.232.0:5000/>) | 3D Cesium visualisation of the Fréchet mean and maximally separated synthetic orbits within a cluster |
+| [Synthetic Orbit Cesium Model](<https://3ec6-120-21-63-30.ngrok-free.app>) | 3D Cesium visualisation of the Fréchet mean and maximally separated synthetic orbits within a cluster |
 | [Unique Orbits (k-NN) Cesium Model](<https://orbx.spaceprotocol.org/>) | 3D Cesium visualisation of orbital neighborhoods and uniqueness across regimes |
 
 ---
