@@ -105,11 +105,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
                         <strong>Name:</strong> ${entity.name} <br>
                         <strong>NORAD ID:</strong> ${entity.properties.satNo} <br>
-                        <strong>Apogee:</strong> ${entity.properties.apogee} km <br>
-                        <strong>Inclination: </strong> ${entity.properties.inclination}° <br>
+                        <strong>Apogee:</strong> ${parseFloat(entity.properties.apogee.getValue(now)).toFixed(3)} km <br>
+                        <strong>Inclination: </strong> ${parseFloat(entity.properties.inclination.getValue(now)).toFixed(3)}° <br>
                         <strong>Cluster: </strong> ${entity.properties.label} <br>
                     </div>`;
-            } else {
+            }
+            else {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
             }
 
