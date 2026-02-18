@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return data.items[0];
     }   
     
+
     const viewer = new Cesium.Viewer("cesiumContainer", {
         shouldAnimate: true,
         geocoder: false,
@@ -53,7 +54,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         window.czmlDataSource = dataSource;
         viewer.clock.currentTime = Cesium.JulianDate.now();
         viewer.clock.multiplier = 50;
-  
+        const now = viewer.clock.currentTime;
         const step = 10;
         const animationViewModel = viewer.animation.viewModel;
         animationViewModel.playForwardViewModel.command.beforeExecute.addEventListener(function() {
@@ -65,6 +66,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   
         loadingScreen.style.display = 'none';
         addLegend();
+
+        dataSource.entities.values.forEach(entity => {
+            entity.show = true;
+            if (!entity.path) {
+                showEntityPath(entity);
+            } else {
+                entity.path.show = true;
+            }
+        });
         // addDatasetChecklist();
   
         const urlParams = new URLSearchParams(window.location.search);
@@ -72,16 +82,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (idFromURL) {
             performSearch(idFromURL);
         }
-  
-        dataSource.entities.values.forEach(entity => {
-            entity.show = true;
-            if (!entity.path) {
-                entity.show = true;
-                showEntityPath(entity);
-            } else {
-                entity.path.show = true;
-            }
-        });
+
+
+
 
         // ===== Hover infoBox support =====
         const infoBox = document.getElementById("infoBox");
@@ -183,11 +186,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             return item;
         };
 
-        legend.appendChild(row('#ffffff', 'Synthetic Orbit'));
-        // legend.appendChild(row('#00ff00', 'Input TLE'));
+        legend.appendChild(row('#ffffff', 'Max Separated (synthetic)'));
+        legend.appendChild(row('#ffa500', 'Fréchet mean (synthetic)'));
 
         document.body.appendChild(legend);
     }
+
 
     function addDatasetChecklist() {
         const container = document.createElement('div');
@@ -259,42 +263,34 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function showEntityPath(entity) {
-        console.log('showEntityPath called for entity:', entity.id || entity.name);
-        
+        const currentTime = viewer.clock.currentTime;
         let orbit_color = Cesium.Color.WHITE;
 
-        const currentTime = viewer.clock.currentTime;
-        let satNoValue = undefined;
-        if (entity.properties && entity.properties.satNo) {
-            satNoValue = entity.properties.satNo.getValue(currentTime);
+        // Read from the point color — Cesium deserializes this reliably
+        if (entity.point && entity.point.color) {
+            const pointColor = entity.point.color.getValue(currentTime);
+            if (pointColor) {
+                orbit_color = pointColor.clone();
+            }
         }
-        if (satNoValue === '99999') {
-            console.log('satNo is 99999, setting to white');
-            orbit_color = Cesium.Color.WHITE;
-        } else {
-            orbit_color = Cesium.Color.GREEN;
-        }
-    
-        console.log('orbit_color:', orbit_color);
-    
+
         if (!entity.path) {
             entity.path = new Cesium.PathGraphics({
                 show: true,
                 material: new Cesium.ColorMaterialProperty(orbit_color),
                 width: 2
             });
-            console.log('Created new path with orbit_color:', orbit_color);
         } else {
             entity.path.material = new Cesium.ColorMaterialProperty(orbit_color);
             entity.path.width = 2;
             entity.path.show = true;
-            console.log('Updated existing path with orbit_color:', orbit_color);
         }
-    
+
         if (!viewer.entities.contains(entity)) {
             viewer.entities.add(entity);
-            console.log('Entity added to viewer:', entity.id || entity.name);
         }
         entity.show = true;
     }
+
+
 });

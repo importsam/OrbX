@@ -813,7 +813,7 @@ class SyntheticOrbits:
             return
 
         cluster_sizes = non_noise["label"].value_counts()
-        top_labels = cluster_sizes.head(1).index
+        top_labels = cluster_sizes.head(3).index
         df_clusters = df_clusters[df_clusters["label"].isin(top_labels)].copy()
 
         if df_clusters.empty:

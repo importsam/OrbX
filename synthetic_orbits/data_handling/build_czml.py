@@ -79,45 +79,72 @@ def get_posvcs(TLE_LINE1, TLE_LINE2, epochStr, only_one_period=True):
     
     return positions, coord_list
 
+
+import colorsys
+
+def get_cluster_colors(labels):
+    """
+    Generate a distinct, bright RGBA color for each unique cluster label.
+    Uses HSV color space to space hues evenly, keeping high saturation and value.
+    Noise label (-1) gets grey.
+    """
+    unique_labels = sorted(set(str(l).replace('.0', '') for l in labels))
+    # Remove noise
+    non_noise = [l for l in unique_labels if l != '-1']
+    
+    color_map = {}
+    n = len(non_noise)
+    
+    for idx, label in enumerate(non_noise):
+        # Space hues evenly across the spectrum, skip dark blues/near-black region
+        hue = (idx / max(n, 1)) % 1.0
+        # High saturation and value to avoid dark/muted colors
+        r, g, b = colorsys.hsv_to_rgb(hue, 0.85, 0.95)
+        color_map[label] = [int(r * 255), int(g * 255), int(b * 255), 255]
+    
+    # Noise gets grey
+    color_map['-1'] = [128, 128, 128, 255]
+    
+    return color_map
+
+
 def build_czml(df):
     
     epochTime = calculate_average_epoch(df)
-    
     endTime = epochTime + dt.timedelta(days=65)
     epochStr, endTimeStr = map(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.%fZ'), [epochTime, endTime])
+    
+    # Pre-compute color map across all cluster labels in the dataframe
+    color_map = get_cluster_colors(df['label'].tolist())
+    
     czml = [{'id': 'document', 'version': '1.0'}]
     
     for i, row in df.iterrows():
         
-        correlated = row['correlated']
-       
         _, coordinates = get_posvcs(row['line1'], row['line2'], epochStr)
-        coords = [int(coord) if i % 4 == 0 else float(coord) 
-                  for i, coord in enumerate(coordinates)]
+        coords = [int(coord) if idx % 4 == 0 else float(coord) 
+                  for idx, coord in enumerate(coordinates)]
         
-        # number of clusters given by max label
-        num_clusters = len(set(df['label']))
-        # color = get_random_color()
+        label_str = str(row['label']).replace('.0', '')
         
+        # Synthetic orbits override color to distinguish from real satellites
         if row['satNo'] == '99999':
-            # synthetic orbit always has satNo 99999
-            color = [255, 255, 255, 255]
+            if row['name'] in ('MaximallySeparated', 'Maximally Separated'):
+                color = [255, 255, 255, 255]   # white — maximally separated
+            else:
+                color = [255, 165, 0, 255]     # orange — Fréchet mean
         else:
-            # keep inputs green
-            color = [0, 255, 0, 255]
-            
-        if row['name'] == 'MaximallySeparated':
-            row['name'] = 'Maximally Separated'
-            
-        if row['name'] == 'Optimized':
-            row['name'] = 'Fréchet mean'
-            
-        # remove the .0 from the label 
-        row['label'] = str(row['label']).replace('.0', '')
+            color = color_map.get(label_str, [0, 255, 0, 255])
+        
+        name = row['name']
+        if name == 'MaximallySeparated':
+            name = 'Maximally Separated'
+        if name == 'Optimized':
+            name = 'Fréchet mean'
                 
         czml.append({
             'id': f"{row['satNo']}_{i}",
-            'name': str(row['name']),
+            'name': str(name),
             'availability': f"{epochStr}/{endTimeStr}",
             'position': {
                 'epoch': epochStr, 
@@ -130,7 +157,7 @@ def build_czml(df):
                 'apogee': row['apogee'],
                 'inclination': row['inclination'],
                 'prop_correlated': row['correlated'],
-                'label': str(row['label']),
+                'label': label_str,
                 'prop_orbitColor': {"rgba": color}
             },
             'point': {
@@ -143,6 +170,7 @@ def build_czml(df):
         
     with open('orbX/output.czml', 'w') as file:
         json.dump(czml, file, indent=2, separators=(',', ': '))
+
     
 if __name__ == '__main__':
     build_czml()
