@@ -1,6 +1,6 @@
 
 import pickle
-
+import time
 import pandas as pd
 import numpy as np
 from tools.distance_matrix import get_distance_matrix
@@ -835,23 +835,25 @@ class SyntheticOrbits:
                     df_cluster.copy(),
                     return_diagnostics=True,
                 )
-                print(
-                    f"  max_separation OK; "
-                    f"percentile={diag_max.get('percentile_vs_cluster')}, "
-                    f"ratio={diag_max.get('ratio_to_median_spacing')}"
-                )
+                # Stamp label onto any newly appended synthetic rows
+                # synthetic_mask = (df_with_max_sep["satNo"] == "99999") & \
+                #                 (~df_cluster.index.isin(df_with_max_sep.index) | 
+                #                 df_with_max_sep["label"].isna())
+                # df_with_max_sep.loc[df_with_max_sep["satNo"] == "99999", "label"] = label
+
             except Exception as e:
                 print(f"  max_separation failed for label {label}: {e}")
                 df_with_max_sep = df_cluster.copy()
 
             # --- Fréchet mean synthetic orbit ---
             try:
-                # This should append a Frechet synthetic orbit row (usually satNo=99999 or similar)
                 df_with_frechet = get_optimum_orbit(
                     df_with_max_sep.copy(),
                     return_diagnostics=False,
                 )
-                print("  Fréchet optimisation OK.")
+                # Stamp label onto any newly appended synthetic rows
+                # df_with_frechet.loc[df_with_frechet["satNo"] == "99999", "label"] = label
+
             except Exception as e:
                 print(f"  Fréchet optimisation failed for label {label}: {e}")
                 df_with_frechet = df_with_max_sep.copy()
@@ -893,14 +895,14 @@ class SyntheticOrbits:
                 df_augmented.loc[idx, "raan"] = sat_obj.raan
                 df_augmented.loc[idx, "argument_of_perigee"] = sat_obj.argument_of_perigee
                 df_augmented.loc[idx, "eccentricity"] = sat_obj.eccentricity
-                df_augmented.loc[idx, "mean_motion"] = sat_obj.mean_motion        
+                df_augmented.loc[idx, "mean_motion"] = sat_obj.mean_motion     
+                df_augmented.loc[idx, "label"] = "N/A"
                 
-                #
         ######################
         
-        
-        
         build_czml(df_augmented)
+        # wait 2 seconds for it to finish writing the file before we try to read it again
+        time.sleep(2)
         ionop_czml()
         # return df_augmented
         

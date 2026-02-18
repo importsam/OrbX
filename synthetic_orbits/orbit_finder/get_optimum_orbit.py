@@ -210,7 +210,7 @@ def get_optimum_orbit(df, return_diagnostics=False):
     # Append optimized orbit to DataFrame
     optimum_orbit_entry = {
         'satNo': '99999',
-        'name': "Optimized",
+        'name': "Frechet Mean",
         'line1': line1,
         'line2': line2,
         'correlated': True,
@@ -455,7 +455,7 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
     # --- append to DataFrame ---
     void_entry = {
         'satNo': '99999',
-        'name': 'MaximallySeparated',
+        'name': 'Maximally Separated',
         'line1': line1,
         'line2': line2,
         'correlated': True,

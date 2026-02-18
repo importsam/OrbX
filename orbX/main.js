@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   
         loadingScreen.style.display = 'none';
         addLegend();
-        addDatasetChecklist();
+        // addDatasetChecklist();
   
         const urlParams = new URLSearchParams(window.location.search);
         const idFromURL = urlParams.get('id');
@@ -104,6 +104,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         <strong>NORAD ID:</strong> ${entity.properties.satNo} <br>
                         <strong>Apogee:</strong> ${entity.properties.apogee} km <br>
                         <strong>Inclination: </strong> ${entity.properties.inclination}° <br>
+                        <strong>Cluster: </strong> ${entity.properties.label} <br>
                     </div>`;
             } else {
                 infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
@@ -182,8 +183,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             return item;
         };
 
-        legend.appendChild(row('#ffffff', 'Optimum orbit'));
-        legend.appendChild(row('#00ff00', 'Input TLE'));
+        legend.appendChild(row('#ffffff', 'Synthetic Orbit'));
+        // legend.appendChild(row('#00ff00', 'Input TLE'));
 
         document.body.appendChild(legend);
     }

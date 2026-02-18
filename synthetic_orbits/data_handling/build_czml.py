@@ -105,6 +105,15 @@ def build_czml(df):
         else:
             # keep inputs green
             color = [0, 255, 0, 255]
+            
+        if row['name'] == 'MaximallySeparated':
+            row['name'] = 'Maximally Separated'
+            
+        if row['name'] == 'Optimized':
+            row['name'] = 'Fréchet mean'
+            
+        # remove the .0 from the label 
+        row['label'] = str(row['label']).replace('.0', '')
                 
         czml.append({
             'id': f"{row['satNo']}_{i}",
@@ -121,6 +130,7 @@ def build_czml(df):
                 'apogee': row['apogee'],
                 'inclination': row['inclination'],
                 'prop_correlated': row['correlated'],
+                'label': str(row['label']),
                 'prop_orbitColor': {"rgba": color}
             },
             'point': {
@@ -131,8 +141,6 @@ def build_czml(df):
             }
         })
         
-        
-            
     with open('orbX/output.czml', 'w') as file:
         json.dump(czml, file, indent=2, separators=(',', ': '))
     
