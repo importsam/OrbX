@@ -2,35 +2,35 @@ from doctest import master
 
 import numpy as np
 
-from clustering_algs.affinity_propagation import AffinityPropagationWrapper
-from clustering_algs.agglomerative_clustering import AgglomerativeClustererWrapper
-from clustering_algs.DBSCANWrapper import DBSCANClusterer
-from clustering_algs.HDBSCANWrapper import HDBSCANClusterer
-from clustering_algs.KmeansWrapper import KMeansWrapper
-from clustering_algs.OPTICSWrapper import OPTICSWrapper
-from clustering_algs.SpectralWrapper import SpectralWrapper
-from clustering_algs.star_clustering.star_clustering import StarCluster
+# from affinity_propagation import AffinityPropagationWrapper
+# from agglomerative_clustering import AgglomerativeClustererWrapper
+from DBSCANWrapper import DBSCANClusterer
+from HDBSCANWrapper import HDBSCANClusterer
+# from KmeansWrapper import KMeansWrapper
+from OPTICSWrapper import OPTICSWrapper
+# from SpectralWrapper import SpectralWrapper
+# from star_clustering.star_clustering import StarCluster
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
 
 
 class ClusterWrapper:
     def __init__(self):
-        self.affinity_propagation = AffinityPropagationWrapper()
+        # self.affinity_propagation = AffinityPropagationWrapper()
         self.optics = OPTICSWrapper()
-        self.star_cluster = StarCluster()
-        self.agglomerative = AgglomerativeClustererWrapper()
+        # self.star_cluster = StarCluster()
+        # self.agglomerative = AgglomerativeClustererWrapper()
         self.dbscan = DBSCANClusterer()
         self.hdbscan = HDBSCANClusterer()
         self.quality_metrics = QualityMetrics()
-        self.kmeans = KMeansWrapper()
-        self.spectral = SpectralWrapper()
+        # self.kmeans = KMeansWrapper()
+        # self.spectral = SpectralWrapper()
 
     def run_all(self, distance_matrix: np.ndarray, X: np.ndarray) -> None:
 
-        affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
-        print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
-        self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
+        # affinity_labels = self.affinity_propagation.run(distance_matrix.copy())
+        # print(f"Affinity Propagation found {len(set(affinity_labels))} clusters\n")
+        # self.quality_metrics.quality_metrics(X, distance_matrix, affinity_labels)
 
         optics_labels = self.optics.run(distance_matrix.copy(), X.copy())
         print(f"OPTICS found {len(set(optics_labels))} clusters")
@@ -118,12 +118,12 @@ class ClusterWrapper:
 
         return dbscan_results.labels
     
-    def run_hdbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> np.ndarray:
+    def run_hdbscan(self, distance_matrix: np.ndarray, X: np.ndarray) -> ClusterResult:
         hdbscan_result = self.hdbscan.run(distance_matrix.copy(), X.copy())
         # print(f"HDBSCAN found {len(set(hdbscan_result.labels) - {-1})} clusters")
         # self.quality_metrics.quality_metrics(X, distance_matrix, hdbscan_result.labels)
 
-        return hdbscan_result.labels
+        return hdbscan_result
     
     def run_kmeans(self, distance_matrix: np.ndarray, X) -> np.ndarray:
         kmeans_labels = self.kmeans.run(distance_matrix.copy(), X.copy())

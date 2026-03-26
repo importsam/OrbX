@@ -9,7 +9,7 @@ from synthetic_orbits.data_handling.build_czml import build_czml
 from synthetic_orbits.data_handling.ionop_czml import ionop_czml
 from app import SatelliteClusteringApp
 from tools.DMT import VectorizedKeplerianOrbit
-from tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 from configs import ClusterConfig
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ from synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_maxima
 
 from app import SatelliteClusteringApp
 
-from tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 from configs import ClusterConfig
 
 import os

@@ -4,7 +4,7 @@ import pickle
 import os
 from tools.DMT import VectorizedKeplerianOrbit
 from tools.distance_matrix import get_distance_matrix
-from tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 from app import SatelliteClusteringApp
 from configs import ClusterConfig
 

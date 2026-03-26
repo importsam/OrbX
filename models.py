@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import pandas as pd 
 
 @dataclass
 class Satellite:
@@ -19,11 +20,8 @@ class Satellite:
         self.sat_no = str(self.sat_no).replace('.0', '').zfill(5)
         
         
-@dataclass 
+@dataclass
 class ClusterResult:
-    """Holds the best result of a clustering operation"""
-    labels: np.ndarray = None
-    n_clusters: int = 0
-    n_noise: int = 0
-    dbcv_score: float = None
-    s_Dbw_score: float = None
+    algorithm: str = None
+    df: pd.DataFrame
+    dbcv_score: float

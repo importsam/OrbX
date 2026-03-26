@@ -1,7 +1,7 @@
 from tools.distance_matrix import get_distance_matrix
 import pickle 
-from graph import Grapher
-from tle_parser import TLEParser
+from satellite_clustering.visualization.graphs.graph import Grapher
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 import pandas as pd 
 import numpy as np 
 from configs import ClusterConfig, OrbitalConstants, PathConfig

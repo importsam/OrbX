@@ -113,15 +113,12 @@ class HDBSCANClusterer:
         print(f"Best score DBCV: {best_score:.4f}")
 
         cluster_result_obj = ClusterResult(
-            best_labels,
-            len(set(best_labels)),
-            (best_labels == -1).sum(),
-            best_score,
-            self.cluster_wrapper.quality_metrics.s_dbw_score_wrapper(X, best_labels)
+            algorithm="HDBSCAN",
+            df=cluster_result_obj.df,
+            dbcv_score=best_score,
         )
 
         return cluster_result_obj
-
 
     def plot_dbcv_vs_min_samples(self, min_samples_values, dbcv_scores, num_clusters, best_min_cluster_size):
 
@@ -160,6 +157,5 @@ class HDBSCANClusterer:
         plt.tight_layout()
         plt.savefig(output_path, dpi=200)
         plt.close(fig)
-
 
         print(f"Saved plot to {output_path}")

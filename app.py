@@ -1,20 +1,19 @@
 import os
 import sys
 from pathlib import Path
-
 from metrics import analysis
 import numpy as np
 import pandas as pd
 import pickle
-        
 from clustering_algs.cluster_wrapper import ClusterWrapper
 from configs import ClusterConfig, OrbitalConstants, PathConfig
-from graph import Grapher
+from satellite_clustering.visualization.graphs.graph import Grapher
 from models import ClusterResult
-from tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 from tools.density_estimation import DensityEstimator
 from tools.distance_matrix import get_distance_matrix
 from models import ClusterResult
+
 update_cesium_assets_path = Path(__file__).parent / "update_cesium_assets"
 sys.path.append(str(update_cesium_assets_path))
 sys.path.append(str(update_cesium_assets_path / "live"))
@@ -23,7 +22,6 @@ from ionop_czml import ionop_czml
 from metrics.analysis import Analysis
 from sklearn.cluster import HDBSCAN
 from tools.density_estimation import DensityEstimator
-
 
 class SatelliteClusteringApp:
 

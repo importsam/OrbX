@@ -9,7 +9,7 @@ from pathlib import Path
 from clustering_algs.cluster_wrapper import ClusterWrapper
 import pickle 
 from tools.distance_matrix import get_distance_matrix
-from tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 from tools.density_estimation import DensityEstimator
 from tools.DMT import VectorizedKeplerianOrbit
 
