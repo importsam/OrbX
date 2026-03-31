@@ -9,13 +9,13 @@ class OrbitalConstants:
 
 @dataclass
 class ClusterConfig:
-    inclination_range: tuple[float, float] = (0, 180)
-    apogee_range: tuple[float, float] = (0, 2000)
+    inclination_range: tuple[float, float] = (100, 110)
+    apogee_range: tuple[float, float] = (666, 777)
     damping: float = 0.95
     
 @dataclass
 class PathConfig:
-    spacetrack_data: Path = Path('data/3le_1126')
+    spacetrack_data: Path = Path('3le_1126')
     celestrak_data: Path = None
     udl_data: Path = None
     distance_matrix: Path = Path('data/distance_matrix.pkl')

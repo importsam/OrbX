@@ -22,6 +22,6 @@ class Satellite:
         
 @dataclass
 class ClusterResult:
-    algorithm: str = None
     df: pd.DataFrame
     dbcv_score: float
+    algorithm: str = None

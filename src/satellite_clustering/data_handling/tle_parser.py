@@ -63,7 +63,6 @@ class TLEParser:
             name = name_line[2:].strip() if name_line.startswith('0 ') else name_line
             
             sat_obj = self._parse_tle_group(
-                name_line,
                 lines[i+1].strip(), 
                 lines[i+2].strip()
             )

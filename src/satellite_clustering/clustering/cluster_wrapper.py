@@ -4,15 +4,14 @@ import numpy as np
 
 # from affinity_propagation import AffinityPropagationWrapper
 # from agglomerative_clustering import AgglomerativeClustererWrapper
-from DBSCANWrapper import DBSCANClusterer
-from HDBSCANWrapper import HDBSCANClusterer
+from src.satellite_clustering.clustering.DBSCANWrapper import DBSCANWrapper
+from src.satellite_clustering.clustering.HDBSCANWrapper import HDBSCANWrapper
 # from KmeansWrapper import KMeansWrapper
-from OPTICSWrapper import OPTICSWrapper
+from src.satellite_clustering.clustering.OPTICSWrapper import OPTICSWrapper
 # from SpectralWrapper import SpectralWrapper
 # from star_clustering.star_clustering import StarCluster
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
-
 
 class ClusterWrapper:
     def __init__(self):
@@ -20,8 +19,8 @@ class ClusterWrapper:
         self.optics = OPTICSWrapper()
         # self.star_cluster = StarCluster()
         # self.agglomerative = AgglomerativeClustererWrapper()
-        self.dbscan = DBSCANClusterer()
-        self.hdbscan = HDBSCANClusterer()
+        self.dbscan = DBSCANWrapper()
+        self.hdbscan = HDBSCANWrapper()
         self.quality_metrics = QualityMetrics()
         # self.kmeans = KMeansWrapper()
         # self.spectral = SpectralWrapper()

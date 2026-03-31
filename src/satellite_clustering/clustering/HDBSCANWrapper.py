@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 from metrics.quality_metrics import QualityMetrics
 from models import ClusterResult
 from pathlib import Path
+import pandas as pd
 
-
-class HDBSCANClusterer:
+class HDBSCANWrapper:
 
     def __init__(
         self,
@@ -112,11 +112,9 @@ class HDBSCANClusterer:
         )
         print(f"Best score DBCV: {best_score:.4f}")
 
-        cluster_result_obj = ClusterResult(
-            algorithm="HDBSCAN",
-            df=cluster_result_obj.df,
-            dbcv_score=best_score,
-        )
+
+        cluster_df = pd.DataFrame({"cluster": best_labels})
+        cluster_result_obj = ClusterResult(df=cluster_df, dbcv_score=best_score, algorithm="HDBSCAN")
 
         return cluster_result_obj
 

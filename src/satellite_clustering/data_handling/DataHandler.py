@@ -1,8 +1,17 @@
 import pandas as pd
 import numpy as np
 import pickle
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
+from configs import OrbitalConstants
+from tools.distance_matrix import get_distance_matrix
+from configs import ClusterConfig
 
 class DataHandler:
+    
+    def __init__(self, cluster_config):
+        self.cluster_config = cluster_config
+        self.tle_parser = TLEParser("Space-Track")
+        self.orbital_constants = OrbitalConstants()
 
     def get_points(self, df: pd.DataFrame):
             """Takes in a dataframe of Satellite objects. Converts each to a point in the 5D manifold embedded in 6D.

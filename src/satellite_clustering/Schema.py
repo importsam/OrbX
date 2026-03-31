@@ -1,11 +1,11 @@
 import pandas as pd 
-from data_handling.tle_parser import TLEParser
+from src.satellite_clustering.data_handling.tle_parser import TLEParser
 
 REQUIRED_COLUMNS = {"line1", "line2"}
 
 class Schema: 
     
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self):
         self.tle_parser = TLEParser(source="Space-Track")
 
     def validate(self, df: pd.DataFrame) -> pd.DataFrame:

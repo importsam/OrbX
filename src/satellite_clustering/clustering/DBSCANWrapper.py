@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 
-class DBSCANClusterer:
+class DBSCANWrapper:
 
     def __init__(self):
         # Broad sweep, but selection will prefer small values
