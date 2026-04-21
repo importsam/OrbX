@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orbx"
+version = "1.0.0"
+description = "Satellite orbit similarity clustering using HDBSCAN"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas",
+    "numpy",
+    "hdbscan",
+    "sgp4",
+    "tqdm",
+    "matplotlib",
+    "plotly",
+    "scikit-learn",
+    "dbcv @ git+https://github.com/FelSiq/DBCV",
+    "s-dbw",
+    "viasckde",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]   
+

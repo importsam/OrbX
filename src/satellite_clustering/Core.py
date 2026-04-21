@@ -1,12 +1,12 @@
 from unittest import result
 
 import pandas as pd
-from src.satellite_clustering.Schema import Schema
+from .Schema import Schema
 from tools.distance_matrix import get_distance_matrix
-from src.satellite_clustering.clustering.cluster_wrapper import ClusterWrapper
+from .clustering.cluster_wrapper import ClusterWrapper
 from tools.density_estimation import DensityEstimator
 from models import ClusterResult
-from src.satellite_clustering.data_handling.DataHandler import DataHandler
+from .data_handling.DataHandler import DataHandler
 
 class Core:
     def __init__(self, cluster_config):
@@ -15,7 +15,7 @@ class Core:
         self.density_estimator = DensityEstimator()
         self.data_handler = DataHandler(cluster_config)
 
-    def _cluster(self, df: pd.DataFrame, algorithm: str = "hdbscan") -> ClusterResult:
+    def cluster(self, df: pd.DataFrame, algorithm: str = "hdbscan") -> ClusterResult:
 
         distance_matrix, key = get_distance_matrix(df)
         df = self._reorder_dataframe(df, key)

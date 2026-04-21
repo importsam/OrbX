@@ -1,5 +1,5 @@
 import pandas as pd 
-from src.satellite_clustering.data_handling.tle_parser import TLEParser
+from .data_handling.tle_parser import TLEParser
 
 REQUIRED_COLUMNS = {"line1", "line2"}
 

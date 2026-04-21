@@ -49,7 +49,7 @@ class TLEParser:
     def spacetrack_parse_file(self, filepath: Path) -> None:
         """Takes tle data and converts to df"""
         
-        print(f"Parsing TLE data from Space-Track...")
+        # print(f"Parsing TLE data from Space-Track...")
         
         with open(filepath, 'r') as f:
             lines = f.readlines()

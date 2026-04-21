@@ -1,6 +1,6 @@
-from src.satellite_clustering.Core import Core 
-from src.satellite_clustering.data_handling.data_loader import DataLoader
-from src.satellite_clustering.data_handling.tle_parser import TLEParser
+from satellite_clustering.Core import Core 
+from satellite_clustering.data_handling.data_loader import DataLoader
+from satellite_clustering.data_handling.tle_parser import TLEParser
 from configs import ClusterConfig
 
 if __name__ == "__main__":

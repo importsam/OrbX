@@ -1,4 +1,4 @@
-from src.satellite_clustering.data_handling.tle_parser import TLEParser
+from .tle_parser import TLEParser
 
 # MAKE THIS IMPORT CLUSTER CONFIG INSTEAD OF PASSING IT DOWN
 

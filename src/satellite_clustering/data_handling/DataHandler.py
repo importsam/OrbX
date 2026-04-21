@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
-from src.satellite_clustering.data_handling.tle_parser import TLEParser
+from .tle_parser import TLEParser
 from configs import OrbitalConstants
 from tools.distance_matrix import get_distance_matrix
 from configs import ClusterConfig

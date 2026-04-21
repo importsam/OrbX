@@ -4,10 +4,10 @@ import numpy as np
 
 # from affinity_propagation import AffinityPropagationWrapper
 # from agglomerative_clustering import AgglomerativeClustererWrapper
-from src.satellite_clustering.clustering.DBSCANWrapper import DBSCANWrapper
-from src.satellite_clustering.clustering.HDBSCANWrapper import HDBSCANWrapper
+from .DBSCANWrapper import DBSCANWrapper
+from .HDBSCANWrapper import HDBSCANWrapper
 # from KmeansWrapper import KMeansWrapper
-from src.satellite_clustering.clustering.OPTICSWrapper import OPTICSWrapper
+from .OPTICSWrapper import OPTICSWrapper
 # from SpectralWrapper import SpectralWrapper
 # from star_clustering.star_clustering import StarCluster
 from metrics.quality_metrics import QualityMetrics
