@@ -15,8 +15,21 @@ class Core:
         self.density_estimator = DensityEstimator()
         self.data_handler = DataHandler(cluster_config)
 
+
+    """
+    The cluster function will take in a dataframe of TLEs and return a ClusterResult.
+    """
     def cluster(self, df: pd.DataFrame, algorithm: str = "hdbscan") -> ClusterResult:
 
+        """
+        Needs to take the input df
+        which supposedly has only the line1 line2 cols, and then 
+        extract the keplerian elements. These must then be concatenated to the
+        original df
+        """
+        print("hello")
+        df = self.data_handler.tle_to_keplerian(df)
+        
         distance_matrix, key = get_distance_matrix(df)
         df = self._reorder_dataframe(df, key)
         X = self.data_handler.get_points(df)
