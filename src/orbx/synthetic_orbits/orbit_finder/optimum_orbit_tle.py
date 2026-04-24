@@ -1,15 +1,21 @@
 """
 Converts keplerian elements to TLE using orekit.
 """
+import os
+import contextlib
+import io
 
 import orekit
 orekit.initVM()
 
-from orekit.pyhelpers import setup_orekit_curdir
-setup_orekit_curdir()
-import os
-if not os.path.isdir("orekit-data"):
-    orekit.pyhelpers.download_orekit_data_curdir()
+with contextlib.redirect_stdout(io.StringIO()):
+    from orekit.pyhelpers import setup_orekit_curdir, download_orekit_data_curdir
+    
+    if not os.path.isdir("orekit-data"):
+        download_orekit_data_curdir()
+        
+    setup_orekit_curdir()
+
 
 import numpy as np
 from org.orekit.propagation.analytical.tle import TLE

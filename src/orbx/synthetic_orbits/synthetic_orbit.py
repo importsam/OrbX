@@ -1,5 +1,7 @@
 from collections.abc import Iterable
 import warnings
+import io
+from contextlib import redirect_stdout
 
 import pandas as pd
 
@@ -11,6 +13,7 @@ def synthetic_orbit(
     mode: str | Iterable[str] = "max_separation",
     min_cluster_size: int = 2,
     n_samples: int = 5000,
+    verbose: bool = False,
 ) -> pd.DataFrame:
     """
     Generate synthetic orbit rows for each non-noise cluster.
@@ -72,28 +75,40 @@ def synthetic_orbit(
 
         if "frechet" in selected_modes:
             try:
-                df_aug = get_optimum_orbit(df_cluster.copy())
+                if verbose:
+                    df_aug = get_optimum_orbit(df_cluster.copy())
+                else:
+                    with redirect_stdout(io.StringIO()):
+                        df_aug = get_optimum_orbit(df_cluster.copy())
                 synth_row = df_aug.iloc[-1].copy()
                 synth_row["labels"] = label
                 synth_row["synthetic_type"] = "frechet"
                 synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
-                warnings.warn(f"Fréchet failed for label {label}: {e}", stacklevel=2)
+                if verbose:
+                    warnings.warn(f"Fréchet failed for label {label}: {e}", stacklevel=2)
 
         if "max_separation" in selected_modes:
             try:
-                df_aug, _ = get_maximally_separated_orbit(
-                    df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
-                )
+                if verbose:
+                    df_aug, _ = get_maximally_separated_orbit(
+                        df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
+                    )
+                else:
+                    with redirect_stdout(io.StringIO()):
+                        df_aug, _ = get_maximally_separated_orbit(
+                            df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
+                        )
                 synth_row = df_aug.iloc[-1].copy()
                 synth_row["labels"] = label
                 synth_row["synthetic_type"] = "max_separation"
                 synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
-                warnings.warn(
-                    f"Max-separation failed for label {label}: {e}",
-                    stacklevel=2,
-                )
+                if verbose:
+                    warnings.warn(
+                        f"Max-separation failed for label {label}: {e}",
+                        stacklevel=2,
+                    )
 
     if not synthetic_rows:
         return pd.DataFrame(columns=output_columns)
