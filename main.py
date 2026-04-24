@@ -1,6 +1,6 @@
-from satellite_clustering.Core import Core 
-from satellite_clustering.data_handling.data_loader import DataLoader
-from satellite_clustering.data_handling.tle_parser import TLEParser
+from orbx.clustering.Core import Core 
+from orbx.clustering.data_handling.data_loader import DataLoader
+from orbx.clustering.data_handling.tle_parser import TLEParser
 from configs import ClusterConfig
 
 if __name__ == "__main__":

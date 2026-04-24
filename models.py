@@ -22,6 +22,6 @@ class Satellite:
         
 @dataclass
 class ClusterResult:
-    df: pd.DataFrame
+    labels: np.ndarray
+    density_df: pd.DataFrame
     dbcv_score: float
-    algorithm: str = None

@@ -1,6 +1,6 @@
 from app import SatelliteClusteringApp
 from configs import ClusterConfig
-from synthetic_orbits.synthetic_orbits_main import SyntheticOrbits
+from orbx.synthetic.synthetic_orbits_main import SyntheticOrbits
 from sparse_orbits import SparseOrbits
 from metrics.analysis import Analysis
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     """    
 
     syn_orbits = SyntheticOrbits(cluster_config)
-    syn_orbits.run_cesium_generator()
+    syn_orbits.run_orbit_generator()
     
     # analysis = Analysis()
     # analysis.plot_variance_from_existing_frechet()

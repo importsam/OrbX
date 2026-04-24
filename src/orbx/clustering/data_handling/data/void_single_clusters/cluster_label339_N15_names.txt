@@ -1,0 +1,20 @@
+Cluster label: 339
+Cluster size (without void): 15
+Total rows in file (including void): 16
+
+0000  satNo=58270     name=FLOCK 4Q 1
+0001  satNo=58280     name=FLOCK 4Q 28
+0002  satNo=58281     name=AETHER-1
+0003  satNo=58285     name=FLOCK 4Q 31
+0004  satNo=58303     name=FLOCK 4Q 25
+0005  satNo=58304     name=FLOCK 4Q 29
+0006  satNo=58306     name=FLOCK 4Q 22
+0007  satNo=58308     name=FLOCK 4Q 33
+0008  satNo=58318     name=FLOCK 4Q 7
+0009  satNo=58328     name=FLOCK 4Q 13
+0010  satNo=58336     name=LEMUR 2 JK0903EM1407
+0011  satNo=58340     name=LEMUR 2 MJR092620
+0012  satNo=60508     name=EAGLEEYE
+0013  satNo=60520     name=IPERDRONE.0
+0014  satNo=62689     name=LOGSATS
+0015  satNo=99999     name=MaximallySeparated

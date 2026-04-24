@@ -7,9 +7,9 @@ import pandas as pd
 import pickle
 from clustering_algs.cluster_wrapper import ClusterWrapper
 from configs import ClusterConfig, OrbitalConstants, PathConfig
-from satellite_clustering.visualization.graphs.graph import Grapher
+from orbx.clustering.visualization.graphs.graph import Grapher
 from models import ClusterResult
-from satellite_clustering.data_handling.tle_parser import TLEParser
+from orbx.clustering.data_handling.tle_parser import TLEParser
 from tools.density_estimation import DensityEstimator
 from tools.distance_matrix import get_distance_matrix
 from models import ClusterResult
