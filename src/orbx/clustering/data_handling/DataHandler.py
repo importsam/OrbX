@@ -1,21 +1,14 @@
 import pandas as pd
 import numpy as np
-import pickle
 from .tle_parser import TLEParser
 from configs import OrbitalConstants
-from tools.distance_matrix import get_distance_matrix
 from models import Satellite
 from math import pi
-from pathlib import Path
-from math import pi
-import pandas as pd
-from models import Satellite
-from configs import OrbitalConstants, PathConfig
 class DataHandler:
     
     def __init__(self):
         # self.cluster_config = cluster_config
-        self.tle_parser = TLEParser("Space-Track")
+        self.tle_parser = TLEParser()
         self.orbital_constants = OrbitalConstants()
 
     def get_points(self, df: pd.DataFrame):

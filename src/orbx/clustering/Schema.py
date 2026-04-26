@@ -1,12 +1,12 @@
 import pandas as pd 
-from .data_handling.tle_parser import TLEParser
+from .data_handling.TLEParser import TLEParser
 
 REQUIRED_COLUMNS = {"line1", "line2"}
 
 class Schema: 
     
     def __init__(self):
-        self.tle_parser = TLEParser(source="Space-Track")
+        self.tle_parser = TLEParser()
 
     def validate(self, df: pd.DataFrame) -> pd.DataFrame:
         """

@@ -1,3 +1,3 @@
-from .cluster import cluster
+from .Cluster import cluster
 
 __all__ = ["cluster"]
