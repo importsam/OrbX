@@ -1,7 +1,7 @@
 from sklearn.cluster import OPTICS
 import numpy as np
-from metrics.quality_metrics import QualityMetrics
-from models import ClusterResult
+from orbx.clustering.metrics.quality_metrics import QualityMetrics
+from orbx.Models import ClusterResult
 import pickle
 
 class OPTICSWrapper:

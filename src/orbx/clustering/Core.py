@@ -1,17 +1,17 @@
 import numpy as np
 import pandas as pd
-from .Schema import Schema
-from tools.distance_matrix import get_distance_matrix
-from .clustering.cluster_wrapper import ClusterWrapper
-from tools.density_estimation import DensityEstimator
-from models import ClusterResult
-from .data_handling.DataHandler import DataHandler
+from orbx.clustering.Schema import Schema
+from orbx.tools.distance_matrix import get_distance_matrix
+from orbx.clustering.algorithm_wrappers.cluster_wrapper import ClusterWrapper
+# from .metrics.density_estimation import DensityEstimator
+from orbx.Models import ClusterResult
+from orbx.clustering.data_handling.DataHandler import DataHandler
 
 class Core:
     def __init__(self):
         self.schema = Schema()
         self.cluster_wrapper = ClusterWrapper()
-        self.density_estimator = DensityEstimator()
+        # self.density_estimator = DensityEstimator()
         self.data_handler = DataHandler()
 
 
@@ -35,9 +35,9 @@ class Core:
         
         labels, best_score = self.run_algorithm(distance_matrix, X)
         
-        density_df = self.density_estimator.density(distance_matrix)
+        # density_df = self.density_estimator.density(distance_matrix)
         
-        cluster_result = ClusterResult(labels=labels, density_df=density_df, dbcv_score=best_score)
+        cluster_result = ClusterResult(labels=labels, density_df=pd.DataFrame(), dbcv_score=best_score)
         
         return cluster_result
     

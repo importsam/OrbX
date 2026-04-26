@@ -1,7 +1,7 @@
 from math import pi
 import pandas as pd
-from models import Satellite
-from configs import OrbitalConstants
+from orbx.Models import Satellite
+from orbx.Configs import OrbitalConstants
 
 class TLEParser:
     def __init__(self):

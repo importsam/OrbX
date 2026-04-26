@@ -1,10 +1,8 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
-from metrics.quality_metrics import QualityMetrics
-from models import ClusterResult
+from orbx.clustering.metrics.quality_metrics import QualityMetrics
+from orbx.Models import ClusterResult
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from pathlib import Path
 import pandas as pd
 
 

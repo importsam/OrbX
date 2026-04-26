@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from .tle_parser import TLEParser
-from configs import OrbitalConstants
-from models import Satellite
+from .TLEParser import TLEParser
+from orbx.Configs import OrbitalConstants
+from orbx.Models import Satellite
 from math import pi
 class DataHandler:
     

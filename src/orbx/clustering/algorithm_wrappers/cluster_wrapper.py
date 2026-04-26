@@ -10,8 +10,8 @@ from .HDBSCANWrapper import HDBSCANWrapper
 from .OPTICSWrapper import OPTICSWrapper
 # from SpectralWrapper import SpectralWrapper
 # from star_clustering.star_clustering import StarCluster
-from metrics.quality_metrics import QualityMetrics
-from models import ClusterResult
+from orbx.clustering.metrics.quality_metrics import QualityMetrics
+from orbx.Models import ClusterResult
 
 class ClusterWrapper:
     def __init__(self):

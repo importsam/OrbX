@@ -4,7 +4,7 @@ import warnings
 from contextlib import redirect_stdout
 
 from .Core import Core
-from models import ClusterResult
+from orbx.Models import ClusterResult
 
 
 def cluster(
