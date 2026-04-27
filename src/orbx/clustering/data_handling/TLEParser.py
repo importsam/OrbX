@@ -16,7 +16,6 @@ class TLEParser:
                 row['line2']
             )
             
-            # add to df 
             input_df = pd.concat([input_df, pd.DataFrame([{
                 'satNo': sat_obj.sat_no,
                 'inclination': sat_obj.inclination,
