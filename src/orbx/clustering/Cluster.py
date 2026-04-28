@@ -2,23 +2,24 @@ import pandas as pd
 import io
 import warnings
 from contextlib import redirect_stdout
-
+import numpy as np
 from .Core import Core
-from orbx.Models import ClusterResult
+
 
 
 def cluster(
     df: pd.DataFrame,
-    algorithm: str = "hdbscan",
+    min_samples: int = 3,
+    min_cluster_size: int = 2,
     verbose: bool = False,
-    ) -> ClusterResult:
+    ) -> np.ndarray:
 
     if verbose:
-        cluster_result = Core().cluster(df, algorithm)
+        labels = Core().cluster(df, min_samples, min_cluster_size)
     else:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=FutureWarning)
             with redirect_stdout(io.StringIO()):
-                cluster_result = Core().cluster(df, algorithm)
+                labels = Core().cluster(df, min_samples, min_cluster_size)
     
-    return cluster_result
+    return labels

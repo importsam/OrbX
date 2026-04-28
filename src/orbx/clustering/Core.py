@@ -3,22 +3,18 @@ import pandas as pd
 from orbx.clustering.Schema import Schema
 from orbx.tools.distance_matrix import get_distance_matrix
 from orbx.clustering.algorithm_wrappers.cluster_wrapper import ClusterWrapper
-# from .metrics.density_estimation import DensityEstimator
-from orbx.Models import ClusterResult
 from orbx.clustering.data_handling.DataHandler import DataHandler
 
 class Core:
     def __init__(self):
         self.schema = Schema()
         self.cluster_wrapper = ClusterWrapper()
-        # self.density_estimator = DensityEstimator()
         self.data_handler = DataHandler()
-
 
     """
     The cluster function will take in a dataframe of TLEs and return a ClusterResult.
     """
-    def cluster(self, df: pd.DataFrame, algorithm: str = "hdbscan") -> ClusterResult:
+    def cluster(self, df: pd.DataFrame, min_samples: int = 3, min_cluster_size: int = 2) -> np.ndarray:
 
         """
         Needs to take the input df
@@ -33,13 +29,9 @@ class Core:
         df = self._reorder_dataframe(df, key)
         X = self.data_handler.get_points(df)
         
-        labels, best_score = self.run_algorithm(distance_matrix, X)
+        labels = self.cluster_wrapper.run_hdbscan(distance_matrix, X, min_samples, min_cluster_size)
         
-        # density_df = self.density_estimator.density(distance_matrix)
-        
-        cluster_result = ClusterResult(labels=labels, density_df=pd.DataFrame(), dbcv_score=best_score)
-        
-        return cluster_result
+        return labels
     
     def _reorder_dataframe(self, df: pd.DataFrame, key: dict) -> pd.DataFrame:
         """Reorder dataframe to match key order (this is just overly cautious)"""
@@ -47,8 +39,3 @@ class Core:
 
         satNos_in_order = [idx_satNo[i] for i in range(len(idx_satNo))]
         return df.set_index("satNo").loc[satNos_in_order].reset_index()
-    
-    def run_algorithm(self, distance_matrix, X) -> tuple[np.ndarray, float]:
-        
-        labels, best_score = self.cluster_wrapper.run_hdbscan(distance_matrix, X)
-        return labels, best_score

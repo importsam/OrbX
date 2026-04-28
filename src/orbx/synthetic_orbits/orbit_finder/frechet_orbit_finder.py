@@ -168,7 +168,7 @@ def optimize_frechet_kepler(all_keplers):
     return optimum_keplerian, diagnostics
 
 
-def get_optimum_orbit(df, return_diagnostics=False):
+def frechet_orbit(df, return_diagnostics=False):
     """
     Cluster-level wrapper: takes a df of TLEs for one cluster.
     - If return_diagnostics=True: prints, returns diagnostics only.

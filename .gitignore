@@ -1,7 +1,7 @@
 __pycache__/
 *.pkl
 *.png
-data/*.html
 .gitignore
 orbx.egg-info/
 test_package.py
+*.zip

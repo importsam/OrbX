@@ -20,8 +20,8 @@ class Satellite:
         self.sat_no = str(self.sat_no).replace('.0', '').zfill(5)
         
         
-@dataclass
-class ClusterResult:
-    labels: np.ndarray
-    density_df: pd.DataFrame
-    dbcv_score: float
+# @dataclass
+# class ClusterResult:
+#     labels: np.ndarray
+#     density_df: pd.DataFrame
+

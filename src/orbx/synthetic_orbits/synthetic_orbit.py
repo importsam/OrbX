@@ -5,7 +5,7 @@ from contextlib import redirect_stdout
 
 import pandas as pd
 
-from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import get_optimum_orbit
+from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 from orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_maximally_separated_orbit
 
 def synthetic_orbit(
@@ -76,10 +76,10 @@ def synthetic_orbit(
         if "frechet" in selected_modes:
             try:
                 if verbose:
-                    df_aug = get_optimum_orbit(df_cluster.copy())
+                    df_aug = frechet_orbit(df_cluster.copy())
                 else:
                     with redirect_stdout(io.StringIO()):
-                        df_aug = get_optimum_orbit(df_cluster.copy())
+                        df_aug = frechet_orbit(df_cluster.copy())
                 synth_row = df_aug.iloc[-1].copy()
                 synth_row["labels"] = label
                 synth_row["synthetic_type"] = "frechet"
