@@ -3,26 +3,16 @@ import pandas as pd
 from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
-def density(df_cluster: pd.DataFrame) -> float:
-    """
-    Calculate internal cluster density as variance around the Fréchet mean orbit.
-
-    Parameters
-    ----------
-    df_cluster : pd.DataFrame
-        DataFrame containing all orbit rows for one cluster.
-    """
+def _cluster_density(df_cluster: pd.DataFrame) -> float:
+    """Calculate variance-style density for one cluster DataFrame."""
     cluster_size = len(df_cluster)
     if cluster_size < 2:
-        return 0.0  # Variance of 1 item is 0 (or return float('nan'))
+        return 0.0
 
-    # Calculate the mean
     frechet_orbit_result = frechet_orbit(df_cluster)
-    
     if frechet_orbit_result is None:
         raise ValueError("Unable to compute Fréchet mean orbit for cluster.")
-        
-    # Extract the single mean orbit row safely
+
     if isinstance(frechet_orbit_result, pd.DataFrame):
         frechet_mean_orbit = frechet_orbit_result.iloc[-1]
     else:
@@ -46,5 +36,33 @@ def density(df_cluster: pd.DataFrame) -> float:
     total_squared_distance = float((distances**2).sum())
 
     variance = total_squared_distance / (cluster_size - 1)
-    
     return float(variance)
+
+
+def density(
+    df: pd.DataFrame, label_column: str = "labels", precision: int = 10
+) -> pd.DataFrame:
+    """
+    Compute density per label group and return a summary DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing orbit rows and a label column.
+    label_column : str
+        Name of the cluster label column. Defaults to "labels".
+    precision : int
+        Number of decimal places to round density values to. Defaults to 10.
+    """
+    required_columns = {label_column, "line1", "line2"}
+    missing_columns = required_columns - set(df.columns)
+    if missing_columns:
+        missing = ", ".join(sorted(missing_columns))
+        raise ValueError(f"DataFrame is missing required columns: {missing}")
+
+    results = []
+    for label, group in df.groupby(label_column, dropna=False):
+        cluster_density = round(_cluster_density(group), precision)
+        results.append({"label": label, "density": cluster_density})
+
+    return pd.DataFrame(results)
