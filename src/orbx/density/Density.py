@@ -1,15 +1,23 @@
+import contextlib
+import io
+
 import pandas as pd
 
 from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
-def _cluster_density(df_cluster: pd.DataFrame) -> float:
+def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
     """Calculate variance-style density for one cluster DataFrame."""
     cluster_size = len(df_cluster)
     if cluster_size < 2:
         return 0.0
 
-    frechet_orbit_result = frechet_orbit(df_cluster)
+    if verbose:
+        frechet_orbit_result = frechet_orbit(df_cluster)
+    else:
+        # Suppress verbose optimizer logs unless explicitly requested.
+        with contextlib.redirect_stdout(io.StringIO()):
+            frechet_orbit_result = frechet_orbit(df_cluster)
     if frechet_orbit_result is None:
         raise ValueError("Unable to compute Fréchet mean orbit for cluster.")
 
@@ -38,10 +46,7 @@ def _cluster_density(df_cluster: pd.DataFrame) -> float:
     variance = total_squared_distance / (cluster_size - 1)
     return float(variance)
 
-
-def density(
-    df: pd.DataFrame, label_column: str = "labels", precision: int = 10
-) -> pd.DataFrame:
+def density(df: pd.DataFrame, label_column: str = "labels", verbose: bool = False) -> pd.DataFrame:
     """
     Compute density per label group and return a summary DataFrame.
 
@@ -51,8 +56,8 @@ def density(
         DataFrame containing orbit rows and a label column.
     label_column : str
         Name of the cluster label column. Defaults to "labels".
-    precision : int
-        Number of decimal places to round density values to. Defaults to 10.
+    verbose : bool
+        If True, print optimizer diagnostics while computing Fréchet means.
     """
     required_columns = {label_column, "line1", "line2"}
     missing_columns = required_columns - set(df.columns)
@@ -62,7 +67,7 @@ def density(
 
     results = []
     for label, group in df.groupby(label_column, dropna=False):
-        cluster_density = round(_cluster_density(group), precision)
+        cluster_density = _cluster_density(group, verbose=verbose)
         results.append({"label": label, "density": cluster_density})
 
     return pd.DataFrame(results)
