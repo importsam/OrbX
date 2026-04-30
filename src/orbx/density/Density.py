@@ -46,7 +46,7 @@ def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
     variance = total_squared_distance / (cluster_size - 1)
     return float(variance)
 
-def density(df: pd.DataFrame, label_column: str = "labels", verbose: bool = False) -> pd.DataFrame:
+def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False) -> pd.DataFrame:
     """
     Compute density per label group and return a summary DataFrame.
 
@@ -55,7 +55,7 @@ def density(df: pd.DataFrame, label_column: str = "labels", verbose: bool = Fals
     df : pd.DataFrame
         DataFrame containing orbit rows and a label column.
     label_column : str
-        Name of the cluster label column. Defaults to "labels".
+        Name of the cluster label column. Defaults to "label".
     verbose : bool
         If True, print optimizer diagnostics while computing Fréchet means.
     """

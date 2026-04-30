@@ -11,7 +11,6 @@ from orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_m
 def synthetic_orbit(
     df: pd.DataFrame,
     mode: str | Iterable[str] = "max_separation",
-    min_cluster_size: int = 2,
     n_samples: int = 5000,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -26,8 +25,6 @@ def synthetic_orbit(
         Synthetic orbit mode(s) to run per cluster. Supported modes:
         ``"frechet"`` and ``"max_separation"``.
         You can pass a single string or a list/tuple of modes.
-    min_cluster_size : int, default 2
-        Skip clusters smaller than this.
     n_samples : int, default 5000
         Number of random samples for initial candidate solutions in "max_separation" mode.
 
@@ -38,7 +35,7 @@ def synthetic_orbit(
         ``line1``, ``line2``, ``label``, and ``synthetic_type``.
     """
     allowed_modes = {"frechet", "max_separation"}
-    output_columns = ["line1", "line2", "labels", "synthetic_type"]
+    output_columns = ["line1", "line2", "label", "synthetic_type"]
 
     if isinstance(mode, str):
         selected_modes = [mode]
@@ -55,22 +52,18 @@ def synthetic_orbit(
             f"Allowed modes: {sorted(allowed_modes)}"
         )
 
-    if min_cluster_size < 1:
-        raise ValueError("min_cluster_size must be >= 1")
     if n_samples < 1:
         raise ValueError("n_samples must be >= 1")
 
-    required = {"line1", "line2", "labels"}
+    required = {"line1", "line2", "label"}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"Input DataFrame is missing columns: {missing}")
 
     synthetic_rows = []
 
-    for label, df_cluster in df.groupby("labels"):
+    for label, df_cluster in df.groupby("label"):
         if label == -1:
-            continue
-        if len(df_cluster) < min_cluster_size:
             continue
 
         if "frechet" in selected_modes:
@@ -81,7 +74,7 @@ def synthetic_orbit(
                     with redirect_stdout(io.StringIO()):
                         df_aug = frechet_orbit(df_cluster.copy())
                 synth_row = df_aug.iloc[-1].copy()
-                synth_row["labels"] = label
+                synth_row["label"] = label
                 synth_row["synthetic_type"] = "frechet"
                 synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
@@ -100,7 +93,7 @@ def synthetic_orbit(
                             df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
                         )
                 synth_row = df_aug.iloc[-1].copy()
-                synth_row["labels"] = label
+                synth_row["label"] = label
                 synth_row["synthetic_type"] = "max_separation"
                 synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
