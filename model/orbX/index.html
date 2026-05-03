@@ -25,6 +25,23 @@
         <img src="loading.gif" alt="Loading">
     </div>
     <div id="cesiumContainer"></div>
+    <div id="modelModePanel" class="model-mode-panel" role="radiogroup" aria-label="Visualization mode">
+        <span class="model-mode-panel-title">Mode</span>
+        <label class="model-mode-option">
+            <input type="radio" name="modelMode" id="radio-mode-unique" value="unique" checked>
+            <span>Unique orbits</span>
+        </label>
+        <label class="model-mode-option">
+            <input type="radio" name="modelMode" id="radio-mode-clusters" value="clusters">
+            <span>Orbital clusters</span>
+        </label>
+    </div>
+    <div id="clusteringPlaceholderPanel" class="clustering-placeholder-panel" hidden>
+        <h3 class="clustering-placeholder-title">Orbital clusters</h3>
+        <p class="clustering-placeholder-body">
+            Placeholder view. Here you will see orbital clusters with Fréchet- and max-separated synthetic orbits within each cluster. Data is not wired up yet.
+        </p>
+    </div>
     <div id="infoBox" style="display: none;"></div>
     <div id="sideNav" class="sidenav">
         <div class="container">

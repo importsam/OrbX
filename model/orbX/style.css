@@ -32,6 +32,94 @@ html, body, #cesiumContainer {
     color: #333;
 }
 
+.model-mode-panel {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10010;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(20, 24, 32, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    font-family: 'Roboto', 'Arial', sans-serif;
+    font-size: 13px;
+    color: #e8eaef;
+    max-width: 220px;
+}
+
+.model-mode-panel-title {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 2px;
+}
+
+.model-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.model-mode-option input {
+    accent-color: #5b8cff;
+    flex-shrink: 0;
+}
+
+.clustering-placeholder-panel {
+    position: fixed;
+    top: 130px;
+    right: 10px;
+    z-index: 10009;
+    pointer-events: auto;
+    max-width: 320px;
+    padding: 16px 18px;
+    background: rgba(18, 22, 30, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    font-family: 'Roboto', 'Arial', sans-serif;
+    color: #e8eaef;
+}
+
+.clustering-placeholder-panel[hidden] {
+    display: none !important;
+}
+
+.clustering-placeholder-title {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.clustering-placeholder-body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(232, 234, 239, 0.88);
+}
+
+body.orbx-mode-clusters #sideNav {
+    visibility: hidden;
+    pointer-events: none;
+    /* #sideNav uses a broad transition; without this, visibility lags behind other UI + Cesium */
+    transition: none !important;
+}
+
+body.orbx-mode-clusters #topBottomInfoBox,
+body.orbx-mode-clusters #searchResults {
+    display: none !important;
+}
+
 #infoBox {
     background: rgba(255, 255, 255, 0.95);
     padding: 20px;
@@ -86,7 +174,8 @@ html, body, #cesiumContainer {
     background-color: #0a0a0a00;
     padding-top: 20px;
     overflow-x: hidden;
-    transition: 0.5s;
+    /* Avoid transitioning `all` / visibility — was causing side nav to hide after other chrome */
+    transition: color 0.3s ease, background-color 0.3s ease;
 }
 
 #sideNav a {

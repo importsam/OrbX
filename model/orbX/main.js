@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
+    const clusteringPlaceholderPanel = document.getElementById('clusteringPlaceholderPanel');
+    document.body.classList.add('orbx-mode-unique');
+    wireModelModeRadios();
 
     // on load or refresh, clear the search bar
     document.getElementById('searchInput').value = '';
@@ -232,6 +235,10 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function removeAllEntityPaths() {
+        if (!dataSource || !dataSource.entities) {
+            highlightedEntities = [];
+            return;
+        }
         dataSource.entities.values.forEach(entity => {
             if (entity.path) {
                 entity.path = undefined;    // remove path
@@ -244,8 +251,11 @@ document.addEventListener("DOMContentLoaded", async function() {
     function removeEntities() {
         // Clear any manually added orbit paths
         viewer.entities.removeAll();
-        
+
         // Also hide dataSource entities if needed
+        if (!dataSource || !dataSource.entities) {
+            return;
+        }
         dataSource.entities.values.forEach(entity => entity.show = false);
     }
 
@@ -336,6 +346,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         const radio = document.getElementById(id);
         if (radio) {
             radio.addEventListener('change', function() {
+                if (!document.getElementById('radio-mode-unique').checked) {
+                    return;
+                }
                 console.log("radio change event");
                 removeEntities();
                 handleOrbitToggle();
@@ -347,6 +360,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     async function performSearch(searchId) {
         if (!searchId) {
             console.log("No search ID provided");
+            return;
+        }
+        if (!document.getElementById('radio-mode-unique').checked) {
             return;
         }
         try {
@@ -509,11 +525,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     });
 
-    const homeButton = viewer.homeButton.viewModel.command;
-    homeButton.afterExecute.addEventListener(function() {
-        removeAllEntityPaths();
-        infoBox.style.display = 'none';
-    });
+    if (viewer.homeButton) {
+        viewer.homeButton.viewModel.command.afterExecute.addEventListener(function() {
+            removeAllEntityPaths();
+            infoBox.style.display = 'none';
+        });
+    }
 
     function getEntityFromId(entityId){
         const entity = dataSource && dataSource.entities && typeof dataSource.entities.getById === 'function'
@@ -636,6 +653,56 @@ document.addEventListener("DOMContentLoaded", async function() {
         
     }
 
+    function enterClusteringPlaceholderView() {
+        // 1) Body mode class first so all CSS-tied chrome (side nav, rankings, search panels) updates in one reflow.
+        document.body.classList.remove('orbx-mode-unique', 'orbx-mode-clusters');
+        document.body.classList.add('orbx-mode-clusters');
+
+        hideCompressedInfo();
+        removeAllEntityPaths();
+        removeEntities();
+        if (dataSource) {
+            dataSource.show = false;
+        }
+        const sr = document.getElementById('searchResults');
+        topBottomInfoBox.style.display = 'none';
+        if (sr) {
+            sr.style.display = 'none';
+        }
+        if (clusteringPlaceholderPanel) {
+            clusteringPlaceholderPanel.hidden = false;
+        }
+        viewer.scene.requestRender();
+        console.log('[OrbX] Switched to orbital clusters view (placeholder).');
+    }
+
+    function enterUniqueOrbitsView() {
+        if (clusteringPlaceholderPanel) {
+            clusteringPlaceholderPanel.hidden = true;
+        }
+        document.body.classList.remove('orbx-mode-unique', 'orbx-mode-clusters');
+        document.body.classList.add('orbx-mode-unique');
+        if (dataSource) {
+            dataSource.show = true;
+        }
+        handleOrbitToggle();
+        viewer.scene.requestRender();
+        console.log('[OrbX] Switched to unique orbits view.');
+    }
+
+    function wireModelModeRadios() {
+        function onModeChange() {
+            if (document.getElementById('radio-mode-unique').checked) {
+                enterUniqueOrbitsView();
+            } else {
+                enterClusteringPlaceholderView();
+            }
+        }
+        document.querySelectorAll('input[name="modelMode"]').forEach(function(modeRadio) {
+            modeRadio.addEventListener('change', onModeChange);
+        });
+    }
+
     function renderRankings(topEntities, bottomEntities) {
         const selectedOrbit = getSelectedOrbit();
         const renderTable = (title, data, indicatorClass) => {
@@ -737,5 +804,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         return html;
     }
 
-    openNav();
+    if (typeof openNav === 'function') {
+        openNav();
+    }
 });
