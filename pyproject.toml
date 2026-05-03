@@ -10,7 +10,6 @@ requires-python = ">=3.9"
 dependencies = [
     "pandas",
     "numpy",
-    "hdbscan",
     "sgp4",
     "tqdm",
     "matplotlib",
