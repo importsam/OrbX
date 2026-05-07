@@ -4,7 +4,7 @@ from query_spacetrack import query_udl
 import numpy as np
 from DMT import VectorizedKeplerianOrbit
 # from dev.build_czml import build_czml_dev
-from live.build_czml import build_czml_live
+# from live.build_czml import build_czml_live
 
 def get_orbital_regimes() -> pd.DataFrame:
     """
