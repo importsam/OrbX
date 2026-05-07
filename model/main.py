@@ -18,6 +18,7 @@ if __name__ == '__main__':
     try:
         results_df = pd.read_pickle("data/satellites_with_scores.pkl")
         build_czml_live(results_df)
+        
     except Exception as e:
         print(f"Error: {e}")
     
