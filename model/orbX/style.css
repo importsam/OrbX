@@ -74,49 +74,19 @@ html, body, #cesiumContainer {
     flex-shrink: 0;
 }
 
-.clustering-placeholder-panel {
-    position: fixed;
-    top: 130px;
-    right: 10px;
-    z-index: 10009;
-    pointer-events: auto;
-    max-width: 320px;
-    padding: 16px 18px;
-    background: rgba(18, 22, 30, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    font-family: 'Roboto', 'Arial', sans-serif;
-    color: #e8eaef;
-}
-
-.clustering-placeholder-panel[hidden] {
+body.orbx-mode-unique .orbx-cluster-controls {
     display: none !important;
 }
 
-.clustering-placeholder-title {
-    margin: 0 0 10px 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
+body.orbx-mode-clusters .orbx-unique-controls {
+    display: none !important;
 }
 
-.clustering-placeholder-body {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.45;
-    color: rgba(232, 234, 239, 0.88);
+body.orbx-mode-clusters .orbx-cluster-controls {
+    display: block !important;
 }
 
-body.orbx-mode-clusters #sideNav {
-    visibility: hidden;
-    pointer-events: none;
-    /* #sideNav uses a broad transition; without this, visibility lags behind other UI + Cesium */
-    transition: none !important;
-}
-
-body.orbx-mode-clusters #topBottomInfoBox,
-body.orbx-mode-clusters #searchResults {
+body.orbx-mode-clusters #topBottomInfoBox {
     display: none !important;
 }
 
@@ -780,7 +750,8 @@ input[type="text"] {
     opacity: 0;
 }
 
-#searchInput:disabled {
+#searchInput:disabled,
+#clusterSearchInput:disabled {
     color: #666;
     background-color: #333;
 }

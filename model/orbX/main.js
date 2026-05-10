@@ -39,15 +39,19 @@ document.addEventListener("DOMContentLoaded", async function() {
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
-    const clusteringPlaceholderPanel = document.getElementById('clusteringPlaceholderPanel');
     document.body.classList.add('orbx-mode-unique');
     wireModelModeRadios();
 
-    // on load or refresh, clear the search bar
+    // on load or refresh, clear the search bars
     document.getElementById('searchInput').value = '';
+    const clusterSearchInputEl = document.getElementById('clusterSearchInput');
+    if (clusterSearchInputEl) {
+        clusterSearchInputEl.value = '';
+    }
 
     let dataSource;
     let highlightedEntities = [];
+    const clusterLabelToEntities = new Map();
     try {
         const latestAsset = await fetchLatestAsset();
         const assetId = latestAsset.id;
@@ -105,10 +109,18 @@ document.addEventListener("DOMContentLoaded", async function() {
             const uniquenessStr = (typeof uniqueness === 'number')
                 ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
                 : "N/A";
+            let clusterLine = '';
+            if (document.body.classList.contains('orbx-mode-clusters')) {
+                const cl = getClusterLabelFromEntity(entity, now);
+                if (cl !== null && cl !== -1) {
+                    clusterLine = `<strong>Cluster ID:</strong> ${cl} <br>`;
+                }
+            }
             infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
                     <strong>NORAD ID:</strong> ${entity.id} <br>
                     <strong>Name:</strong> ${entity.name || "N/A"} <br>
                     <strong>Uniqueness:</strong> ${uniquenessStr} <br>
+                    ${clusterLine}
                 </div>`;
         } else {
             infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
@@ -259,6 +271,117 @@ document.addEventListener("DOMContentLoaded", async function() {
         dataSource.entities.values.forEach(entity => entity.show = false);
     }
 
+    function getClusterLabelFromEntity(entity, time) {
+        if (!entity || !entity.properties) return null;
+        let raw = entity.properties.cluster_label;
+        if (raw === undefined || raw === null) return null;
+        if (typeof raw.getValue === 'function') {
+            raw = raw.getValue(time);
+        }
+        if (raw === null || raw === undefined) return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function rebuildClusterIndex() {
+        clusterLabelToEntities.clear();
+        if (!dataSource || !dataSource.entities) return;
+        const now = Cesium.JulianDate.now();
+        dataSource.entities.values.forEach((entity) => {
+            const lab = getClusterLabelFromEntity(entity, now);
+            if (lab === null) return;
+            if (!clusterLabelToEntities.has(lab)) {
+                clusterLabelToEntities.set(lab, []);
+            }
+            clusterLabelToEntities.get(lab).push(entity);
+        });
+    }
+
+    /** Cluster size bands: micro 2–3, minor 4–8, major 9–15, mega 16+ */
+    function clusterSizeTier(memberCount) {
+        if (memberCount >= 2 && memberCount <= 3) return 'micro';
+        if (memberCount >= 4 && memberCount <= 8) return 'minor';
+        if (memberCount >= 9 && memberCount <= 15) return 'major';
+        if (memberCount >= 16) return 'mega';
+        return null;
+    }
+
+    function tierBandLabel(tier) {
+        const map = {
+            micro: 'Micro (2–3 satellites)',
+            minor: 'Minor (4–8 satellites)',
+            major: 'Major (9–15 satellites)',
+            mega: 'Mega (16+ satellites)'
+        };
+        return map[tier] || tier || '';
+    }
+
+    function pickRandomClusterLabelForTier(category) {
+        const candidates = [];
+        clusterLabelToEntities.forEach((entities, label) => {
+            if (label === -1) return;
+            const n = entities.length;
+            if (clusterSizeTier(n) === category) {
+                candidates.push(label);
+            }
+        });
+        if (candidates.length === 0) return null;
+        return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    async function displayClusterByLabel(clusterLabel, highlightEntity) {
+        rebuildClusterIndex();
+        removeAllEntityPaths();
+        removeEntities();
+        const members = clusterLabelToEntities.get(clusterLabel);
+        if (!members || members.length === 0) {
+            console.warn('[OrbX] No entities for cluster label', clusterLabel);
+            return;
+        }
+        const memberColor = Cesium.Color.fromCssColorString('#20c997');
+        members.forEach((entity) => {
+            const hl =
+                highlightEntity &&
+                String(entity.id) === String(highlightEntity.id);
+            showEntityPath(
+                entity,
+                hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor
+            );
+        });
+        await viewer.flyTo(members, {
+            duration: 2,
+            offset: new Cesium.HeadingPitchRange(
+                Cesium.Math.toRadians(0),
+                Cesium.Math.toRadians(-90)
+            )
+        });
+    }
+
+    async function pickAndShowRandomClusterForCategory(category) {
+        rebuildClusterIndex();
+        const clusterId = pickRandomClusterLabelForTier(category);
+        if (clusterId === null) {
+            alert(
+                'No clusters in this size band (noise excluded). Try another category.'
+            );
+            return;
+        }
+        await displayClusterByLabel(clusterId);
+        const sr = document.getElementById('searchResults');
+        if (sr) {
+            const members = clusterLabelToEntities.get(clusterId) || [];
+            const tier = clusterSizeTier(members.length);
+            const tierText = tier
+                ? tierBandLabel(tier)
+                : `Size outside micro–mega bands (n=${members.length})`;
+            sr.innerHTML =
+                `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                `<strong>Cluster ${clusterId}</strong><br>` +
+                `${members.length} satellites · ${tierText}</div>`;
+            sr.style.display = 'block';
+        }
+    }
+
     function getOrbitEntities(selectedOrbit){
         const entities = dataSource.entities.values;
 
@@ -356,43 +479,59 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     });
 
+    function getSelectedClusterCategory() {
+        if (document.getElementById('radio-micro').checked) return 'micro';
+        if (document.getElementById('radio-minor').checked) return 'minor';
+        if (document.getElementById('radio-major').checked) return 'major';
+        if (document.getElementById('radio-mega').checked) return 'mega';
+        return 'micro';
+    }
 
-    async function performSearch(searchId) {
+    function handleClusterCategoryToggle() {
+        const category = getSelectedClusterCategory();
+        console.log('[OrbX] Cluster category selected:', category);
+        void pickAndShowRandomClusterForCategory(category);
+    }
+
+    ['radio-micro', 'radio-minor', 'radio-major', 'radio-mega'].forEach(id => {
+        const radio = document.getElementById(id);
+        if (radio) {
+            radio.addEventListener('change', function() {
+                if (!document.getElementById('radio-mode-clusters').checked) {
+                    return;
+                }
+                handleClusterCategoryToggle();
+            });
+        }
+    });
+
+
+    async function performUniqueModeSearch(searchId) {
         if (!searchId) {
             console.log("No search ID provided");
             return;
         }
-        if (!document.getElementById('radio-mode-unique').checked) {
-            return;
-        }
         try {
-            
-            // check if lowercase(random) was provided
             if (searchId.toLowerCase() === 'random') {
                 const entities = dataSource.entities.values;
                 const randomIndex = Math.floor(Math.random() * entities.length);
                 searchId = entities[randomIndex].id;
             }
-            
-            // Uncheck all of the radios.
+
             const radios = ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'];
             radios.forEach(radio => {
                 document.getElementById(radio).checked = false;
             });
 
-            
-    
-            // If the searched entity is not found, alert and exit.
             const searchedEntity = dataSource.entities.getById(searchId);
             if (!searchedEntity) {
                 alert("NORAD ID not found in data source");
                 return;
             }
-            
-            // go through each of the rank : satNo pairs for the neighbours
+
             const neighbourIds = searchedEntity.properties.neighbours?.getValue();
             console.log("neighbourIds: ", neighbourIds);
-            
+
             const neighbourEntities = [];
             if (neighbourIds) {
                 const neighbourIdArray = Object.values(neighbourIds);
@@ -406,7 +545,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
             const searchResults = document.getElementById('searchResults');
             topBottomInfoBox.style.display = 'none';
-            
+
             if (!neighbourEntities || neighbourEntities.length === 0) {
                 console.log("No neighbours found for NORAD ID: " + searchId);
                 if (searchResults) {
@@ -415,35 +554,24 @@ document.addEventListener("DOMContentLoaded", async function() {
                 }
                 return;
             }
-            
-            // Display the list.
+
             if (searchResults) {
                 console.log("searchResults found");
-                // Wrap neighbourEntities into an object with targetId and list for generateNeighbourSatelliteList
                 searchResults.innerHTML = `<h3>10 Nearest Satellites for NORAD ID: ${searchId}</h3>` +
                     generateNeighbourSatelliteList({ targetId: searchId, list: neighbourEntities });
                 searchResults.style.display = 'block';
-                // on click of a satellite id, show its 10 nearest neighbours
                 attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
-                
-                // on click of a row, toggle the orbit 
-                const neighbourListContainer = document.querySelector('.neighbour-list-container');
                 attachOrbitToggleRowHandlers('.neighbour-row');
-
             }
-            
-            // Remove old paths/entities.
+
             removeAllEntityPaths();
             removeEntities();
-            
-            // Render each neighbour's orbit in red.
+
             neighbourEntities.forEach(neighbour => showEntityPath(neighbour, Cesium.Color.YELLOW));
-        
-            // Render the searched satellite's orbit in blue
             showEntityPath(searchedEntity, Cesium.Color.BLUE);
 
             await viewer.flyTo(
-                [...neighbourEntities, searchedEntity], 
+                [...neighbourEntities, searchedEntity],
                 {
                     duration: 2,
                     offset: new Cesium.HeadingPitchRange(
@@ -452,11 +580,148 @@ document.addEventListener("DOMContentLoaded", async function() {
                     )
                 }
             );
-        
+
             console.log("You should see results now");
         } catch (error) {
             console.error(error);
         }
+    }
+
+    async function performClusterModeSearch(searchId) {
+        if (!searchId || !dataSource || !dataSource.entities) {
+            console.log("No search ID or data source");
+            return;
+        }
+        try {
+            rebuildClusterIndex();
+
+            if (searchId.toLowerCase() === 'random') {
+                const cat = getSelectedClusterCategory();
+                const clusterId = pickRandomClusterLabelForTier(cat);
+                if (clusterId === null) {
+                    alert(
+                        'No clusters in this size band (noise excluded). Try another category.'
+                    );
+                    return;
+                }
+                await displayClusterByLabel(clusterId);
+                const sr = document.getElementById('searchResults');
+                if (sr) {
+                    const members = clusterLabelToEntities.get(clusterId) || [];
+                    const tier = clusterSizeTier(members.length);
+                    const tierText = tier
+                        ? tierBandLabel(tier)
+                        : `Size outside micro–mega bands (n=${members.length})`;
+                    sr.innerHTML =
+                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                        `<strong>Random cluster ${clusterId}</strong><br>` +
+                        `${members.length} satellites · ${tierText}</div>`;
+                    sr.style.display = 'block';
+                }
+                topBottomInfoBox.style.display = 'none';
+                return;
+            }
+
+            const searchedEntity = dataSource.entities.getById(searchId);
+            if (!searchedEntity) {
+                alert("NORAD ID not found in data source");
+                return;
+            }
+
+            const now = Cesium.JulianDate.now();
+            const lab = getClusterLabelFromEntity(searchedEntity, now);
+
+            const searchResults = document.getElementById('searchResults');
+            topBottomInfoBox.style.display = 'none';
+
+            removeAllEntityPaths();
+            removeEntities();
+
+            if (lab === null || lab === -1) {
+                if (searchResults) {
+                    searchResults.innerHTML =
+                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                        `<strong>NORAD ${searchId}</strong><br>` +
+                        `Noise / unclustered — no cluster assignment (not shown).</div>`;
+                    searchResults.style.display = 'block';
+                }
+
+                const neighbourIds = searchedEntity.properties.neighbours?.getValue();
+                const neighbourEntities = [];
+                if (neighbourIds) {
+                    Object.values(neighbourIds).forEach(neighbourId => {
+                        const ne = dataSource.entities.getById(neighbourId);
+                        if (ne) neighbourEntities.push(ne);
+                    });
+                }
+
+                if (neighbourEntities.length === 0) {
+                    showEntityPath(searchedEntity, Cesium.Color.BLUE);
+                    await viewer.flyTo(searchedEntity, {
+                        duration: 2,
+                        offset: new Cesium.HeadingPitchRange(
+                            Cesium.Math.toRadians(0),
+                            Cesium.Math.toRadians(-90)
+                        )
+                    });
+                    return;
+                }
+
+                if (searchResults) {
+                    searchResults.innerHTML +=
+                        `<h3 style="color:#eee;margin-top:14px;">10 nearest neighbours</h3>` +
+                        generateNeighbourSatelliteList({ targetId: searchId, list: neighbourEntities });
+                    attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
+                    attachOrbitToggleRowHandlers('.neighbour-row');
+                }
+
+                neighbourEntities.forEach(neighbour =>
+                    showEntityPath(neighbour, Cesium.Color.YELLOW));
+                showEntityPath(searchedEntity, Cesium.Color.BLUE);
+
+                await viewer.flyTo(
+                    [...neighbourEntities, searchedEntity],
+                    {
+                        duration: 2,
+                        offset: new Cesium.HeadingPitchRange(
+                            Cesium.Math.toRadians(0),
+                            Cesium.Math.toRadians(-90)
+                        )
+                    }
+                );
+                return;
+            }
+
+            const members = clusterLabelToEntities.get(lab) || [];
+            const count = members.length;
+            const tier = clusterSizeTier(count);
+
+            if (searchResults) {
+                searchResults.innerHTML =
+                    `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                    `<strong>NORAD ${searchId}</strong><br>` +
+                    `Cluster ID: <strong>${lab}</strong><br>` +
+                    `${count} satellites in this cluster<br>` +
+                    `${tier ? tierBandLabel(tier) : 'Band: outside standard tiers (size ' + count + ')'}` +
+                    `</div>`;
+                searchResults.style.display = 'block';
+            }
+
+            await displayClusterByLabel(lab, searchedEntity);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function performSearch(searchId) {
+        if (!searchId) {
+            console.log("No search ID provided");
+            return;
+        }
+        if (document.getElementById('radio-mode-clusters').checked) {
+            return performClusterModeSearch(searchId);
+        }
+        return performUniqueModeSearch(searchId);
     }
 
     const searchInput = document.getElementById('searchInput');
@@ -524,6 +789,66 @@ document.addEventListener("DOMContentLoaded", async function() {
             fakePlaceholder.style.visibility = "visible";
         }
     });
+
+    const clusterSearchInput = document.getElementById('clusterSearchInput');
+    const clusterSearchBtn = document.getElementById('clusterSearchBtn');
+    const clusterRandomBtn = document.getElementById('clusterRandomBtn');
+    const clusterFakePlaceholder = document.getElementById('clusterFakePlaceholder');
+
+    if (clusterSearchBtn && clusterSearchInput) {
+        clusterSearchBtn.addEventListener('click', () => {
+            performSearch(clusterSearchInput.value.trim());
+        });
+    }
+
+    if (clusterRandomBtn && clusterSearchInput) {
+        clusterRandomBtn.addEventListener('click', () => {
+            clusterSearchInput.disabled = false;
+            clusterSearchInput.style.backgroundColor = '';
+            clusterSearchInput.value = '';
+            performSearch('random');
+        });
+    }
+
+    if (clusterSearchInput) {
+        clusterSearchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                performSearch(clusterSearchInput.value.trim());
+            }
+        });
+    }
+
+    if (clusterFakePlaceholder && clusterSearchInput) {
+        let clusterPlaceholderIndex = 0;
+        setInterval(() => {
+            if (document.activeElement !== clusterSearchInput && clusterSearchInput.value.trim() === "") {
+                clusterFakePlaceholder.classList.add("fade-out");
+                setTimeout(() => {
+                    clusterFakePlaceholder.textContent = placeholders[clusterPlaceholderIndex];
+                    clusterPlaceholderIndex = (clusterPlaceholderIndex + 1) % placeholders.length;
+                    clusterFakePlaceholder.classList.remove("fade-out");
+                }, 500);
+            }
+        }, 4000);
+
+        clusterSearchInput.addEventListener('focus', () => {
+            clusterFakePlaceholder.style.visibility = "hidden";
+        });
+
+        clusterSearchInput.addEventListener('blur', () => {
+            if (clusterSearchInput.value.trim() === "") {
+                clusterFakePlaceholder.style.visibility = "visible";
+            }
+        });
+
+        clusterSearchInput.addEventListener('input', () => {
+            if (clusterSearchInput.value.trim() !== "") {
+                clusterFakePlaceholder.textContent = "";
+            } else if (document.activeElement !== clusterSearchInput) {
+                clusterFakePlaceholder.style.visibility = "visible";
+            }
+        });
+    }
 
     if (viewer.homeButton) {
         viewer.homeButton.viewModel.command.afterExecute.addEventListener(function() {
@@ -662,24 +987,20 @@ document.addEventListener("DOMContentLoaded", async function() {
         removeAllEntityPaths();
         removeEntities();
         if (dataSource) {
-            dataSource.show = false;
+            dataSource.show = true;
         }
         const sr = document.getElementById('searchResults');
         topBottomInfoBox.style.display = 'none';
         if (sr) {
             sr.style.display = 'none';
         }
-        if (clusteringPlaceholderPanel) {
-            clusteringPlaceholderPanel.hidden = false;
-        }
+        rebuildClusterIndex();
+        void pickAndShowRandomClusterForCategory(getSelectedClusterCategory());
         viewer.scene.requestRender();
-        console.log('[OrbX] Switched to orbital clusters view (placeholder).');
+        console.log('[OrbX] Switched to orbital clusters view.');
     }
 
     function enterUniqueOrbitsView() {
-        if (clusteringPlaceholderPanel) {
-            clusteringPlaceholderPanel.hidden = true;
-        }
         document.body.classList.remove('orbx-mode-unique', 'orbx-mode-clusters');
         document.body.classList.add('orbx-mode-unique');
         if (dataSource) {
