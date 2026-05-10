@@ -101,15 +101,8 @@ def build_czml_live(df):
                 else:
                     neighbours_dict[str(i+1)] = str(neighbour)
 
-            raw_cluster_label = row.get('label', row.get('cluster_label', None))
-            if isinstance(raw_cluster_label, float) and (np.isnan(raw_cluster_label) or np.isinf(raw_cluster_label)):
-                cluster_label = None
-            elif isinstance(raw_cluster_label, (str, int, bool, type(None))):
-                cluster_label = raw_cluster_label
-            elif isinstance(raw_cluster_label, float):
-                cluster_label = int(raw_cluster_label) if raw_cluster_label.is_integer() else raw_cluster_label
-            else:
-                cluster_label = str(raw_cluster_label)
+            raw_cluster_label = row.get("label", row.get("cluster_label"))
+            cluster_label = str(raw_cluster_label)
 
             additional_properties = {
                 'uniqueness_range': row.get('uniqueness_range', 'none'),
@@ -126,7 +119,7 @@ def build_czml_live(df):
                     cleaned_properties[key[5:]] = prop_value
                 elif isinstance(prop_value, float):
                     if np.isnan(prop_value) or np.isinf(prop_value):
-                        cleaned_properties[key[5:]] = None  # Replace with null
+                        raise ValueError("property value is NaN or Infinity")
                     else:
                         cleaned_properties[key[5:]] = prop_value
                 else:
