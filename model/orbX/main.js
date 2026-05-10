@@ -329,6 +329,17 @@ document.addEventListener("DOMContentLoaded", async function() {
         return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
+    /** Any non-noise cluster label (Random button); excludes -1 only. */
+    function pickRandomClusterLabelAny() {
+        const candidates = [];
+        clusterLabelToEntities.forEach((entities, label) => {
+            if (label === -1) return;
+            candidates.push(label);
+        });
+        if (candidates.length === 0) return null;
+        return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
     async function displayClusterByLabel(clusterLabel, highlightEntity) {
         rebuildClusterIndex();
         removeAllEntityPaths();
@@ -487,20 +498,27 @@ document.addEventListener("DOMContentLoaded", async function() {
         return 'micro';
     }
 
-    function handleClusterCategoryToggle() {
-        const category = getSelectedClusterCategory();
-        console.log('[OrbX] Cluster category selected:', category);
-        void pickAndShowRandomClusterForCategory(category);
+    function clusterCategoryFromRadioId(radioId) {
+        const map = {
+            'radio-micro': 'micro',
+            'radio-minor': 'minor',
+            'radio-major': 'major',
+            'radio-mega': 'mega'
+        };
+        return map[radioId] || 'micro';
     }
 
+    // Use click (not change) so clicking the same category again samples another cluster.
     ['radio-micro', 'radio-minor', 'radio-major', 'radio-mega'].forEach(id => {
         const radio = document.getElementById(id);
         if (radio) {
-            radio.addEventListener('change', function() {
+            radio.addEventListener('click', function() {
                 if (!document.getElementById('radio-mode-clusters').checked) {
                     return;
                 }
-                handleClusterCategoryToggle();
+                const category = clusterCategoryFromRadioId(id);
+                console.log('[OrbX] Cluster category:', category);
+                void pickAndShowRandomClusterForCategory(category);
             });
         }
     });
@@ -596,11 +614,10 @@ document.addEventListener("DOMContentLoaded", async function() {
             rebuildClusterIndex();
 
             if (searchId.toLowerCase() === 'random') {
-                const cat = getSelectedClusterCategory();
-                const clusterId = pickRandomClusterLabelForTier(cat);
+                const clusterId = pickRandomClusterLabelAny();
                 if (clusterId === null) {
                     alert(
-                        'No clusters in this size band (noise excluded). Try another category.'
+                        'No non-noise clusters in the dataset.'
                     );
                     return;
                 }
@@ -614,7 +631,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                         : `Size outside micro–mega bands (n=${members.length})`;
                     sr.innerHTML =
                         `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                        `<strong>Random cluster ${clusterId}</strong><br>` +
+                        `<strong>Random cluster ${clusterId}</strong> <span style="opacity:0.85">(any size, noise excluded)</span><br>` +
                         `${members.length} satellites · ${tierText}</div>`;
                     sr.style.display = 'block';
                 }
