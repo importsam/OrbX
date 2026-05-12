@@ -51,6 +51,10 @@ if __name__ == '__main__':
         cluster_df = results_df[
             results_df["NORAD_CAT_ID"].map(_norm_norad).isin(allowed_satnos)
         ].copy()
+        
+        # keep only 10% of the clusters
+        cluster_df = cluster_df.sample(frac=0.1)
+        
         print(f"clustering subset (apogee 300-700 km): {len(cluster_df)}")
 
         cluster_input = cluster_df.rename(
@@ -74,6 +78,13 @@ if __name__ == '__main__':
         clustered_for_synth["label"] = clustered_for_synth["NORAD_CAT_ID"].map(
             lambda nid: label_by_sat.get(_norm_norad(nid), -1)
         )
+
+        # TODO: remove — keep only 10% of complete clusters for testing
+        import numpy as np
+        all_labels = [l for l in clustered_for_synth["label"].unique() if l != -1]
+        sampled_labels = list(np.random.choice(all_labels, size=max(1, len(all_labels) // 10), replace=False))
+        clustered_for_synth = clustered_for_synth[clustered_for_synth["label"].isin(sampled_labels)]
+        print(f"Testing: computing synthetic orbits for {len(sampled_labels)}/{len(all_labels)} clusters")
 
         print("Computing synthetic orbits (frechet + max_separation)...")
         synth_df = synthetic_orbit(
