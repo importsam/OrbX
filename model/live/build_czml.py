@@ -104,10 +104,15 @@ def build_czml_live(df):
             raw_cluster_label = row.get("label", row.get("cluster_label"))
             cluster_label = str(raw_cluster_label)
 
+            synthetic_type = row.get("synthetic_type", None)
+            if isinstance(synthetic_type, float) and np.isnan(synthetic_type):
+                synthetic_type = None
+
             additional_properties = {
                 'uniqueness_range': row.get('uniqueness_range', 'none'),
                 'neighbours': neighbours_dict,
-                'cluster_label': cluster_label
+                'cluster_label': cluster_label,
+                'synthetic_type': synthetic_type,
             }
             
             # Convert properties and check for valid JSON values
@@ -125,6 +130,13 @@ def build_czml_live(df):
                 else:
                     # Convert non-serializable objects to strings
                     cleaned_properties[key[5:]] = str(prop_value)
+
+            if synthetic_type == 'frechet':
+                point_style = {'color': {'rgba': [0, 255, 128, 255]}, 'pixelSize': 6}
+            elif synthetic_type == 'max_separation':
+                point_style = {'color': {'rgba': [255, 80, 80, 255]}, 'pixelSize': 6}
+            else:
+                point_style = {'color': {'rgba': [255, 255, 0, 255]}, 'pixelSize': 2}
             
             czml.append({
                 'id': str(row['NORAD_CAT_ID']),  # Ensure ID is a string
@@ -137,10 +149,7 @@ def build_czml_live(df):
                     'interpolationAlgorithm': 'LAGRANGE'
                 },
                 'properties': {**cleaned_properties, **additional_properties},
-                'point': {
-                    'color': {'rgba': [255, 255, 0, 255]}, 
-                    'pixelSize': 2
-                }
+                'point': point_style
             })
             
         except Exception as e:

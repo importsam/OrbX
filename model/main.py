@@ -12,6 +12,7 @@ from live.build_czml import build_czml_live
 import pandas as pd
 
 from orbx.clustering import cluster
+from orbx.synthetic_orbits import synthetic_orbit
 from orbx.clustering.data_handling.DataHandler import DataHandler
 
 
@@ -31,6 +32,9 @@ if __name__ == '__main__':
     # now build the czml files
     try:
         results_df = pd.read_pickle("data/satellites_with_scores.pkl")
+
+
+        print(results_df.columns)
 
         """ 
         Apogee band defines who gets clustered; full scoring df goes to CZML with label -1
@@ -63,10 +67,47 @@ if __name__ == '__main__':
         label_by_sat = {_norm_norad(s): int(lab) for s, lab in zip(sat_nos, labels)}
         results_df["label"] = results_df["NORAD_CAT_ID"].map(lambda nid: label_by_sat.get(_norm_norad(nid), -1))
 
+        # Synthetic orbits per non-noise cluster
+        clustered_for_synth = cluster_df.rename(
+            columns={"TLE_LINE1": "line1", "TLE_LINE2": "line2"}
+        ).copy()
+        clustered_for_synth["label"] = clustered_for_synth["NORAD_CAT_ID"].map(
+            lambda nid: label_by_sat.get(_norm_norad(nid), -1)
+        )
+
+        print("Computing synthetic orbits (frechet + max_separation)...")
+        synth_df = synthetic_orbit(
+            clustered_for_synth[["line1", "line2", "label"]],
+            mode=["frechet", "max_separation"],
+            verbose=True,
+        )
+        print(f"Generated {len(synth_df)} synthetic orbit rows")
+
+        # Reshape synthetic rows to match results_df columns
+        synth_rows = []
+        for _, row in synth_df.iterrows():
+            synth_rows.append({
+                "NORAD_CAT_ID": f"SYN_{row['synthetic_type']}_{int(row['label'])}",
+                "OBJECT_NAME": f"{row['synthetic_type'].replace('_', ' ').title()} (cluster {int(row['label'])})",
+                "TLE_LINE1": row["line1"],
+                "TLE_LINE2": row["line2"],
+                "prop_orbit_class": "LEO",
+                "prop_uniqueness": None,
+                "prop_rank": None,
+                "uniqueness_range": "none",
+                "neighbours": [],
+                "label": int(row["label"]),
+                "synthetic_type": row["synthetic_type"],
+            })
+
+        results_df["synthetic_type"] = None
+        combined_df = pd.concat([results_df, pd.DataFrame(synth_rows)], ignore_index=True)
+
         print("Number of clusters: ", len(results_df["label"].unique()))
-        print(results_df.columns)
-        build_czml_live(results_df)
-        
+        print(f"Total entities for CZML: {len(combined_df)} ({len(results_df)} real + {len(synth_rows)} synthetic)")
+        build_czml_live(combined_df)
+
+
     except Exception as e:
         print(f"Error: {e}")
     
