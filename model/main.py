@@ -75,6 +75,14 @@ if __name__ == '__main__':
             lambda nid: label_by_sat.get(_norm_norad(nid), -1)
         )
 
+        # TODO: remove — keep only 10% of complete clusters for testing
+        # import numpy as np
+        # all_labels = [l for l in clustered_for_synth["label"].unique() if l != -1]
+        # sampled_labels = list(np.random.choice(all_labels, size=max(1, len(all_labels) // 100), replace=False))
+        # clustered_for_synth = clustered_for_synth[clustered_for_synth["label"].isin(sampled_labels)]
+        # print(f"Testing: computing synthetic orbits for {len(sampled_labels)}/{len(all_labels)} clusters")
+
+
         print("Computing synthetic orbits (frechet + max_separation)...")
         synth_df = synthetic_orbit(
             clustered_for_synth[["line1", "line2", "label"]],

@@ -105,8 +105,8 @@ def build_czml_live(df):
             cluster_label = str(raw_cluster_label)
 
             synthetic_type = row.get("synthetic_type", None)
-            if isinstance(synthetic_type, float) and np.isnan(synthetic_type):
-                synthetic_type = None
+            if synthetic_type is None or (isinstance(synthetic_type, float) and np.isnan(synthetic_type)):
+                synthetic_type = "None"
 
             additional_properties = {
                 'uniqueness_range': row.get('uniqueness_range', 'none'),
@@ -118,17 +118,17 @@ def build_czml_live(df):
             # Convert properties and check for valid JSON values
             cleaned_properties = {}
             for key in property_keys:
-                prop_value = row[key]
-                # Check and convert property values
-                if isinstance(prop_value, (str, int, bool, type(None))):
+                prop_value = row.get(key)
+                if prop_value is None:
+                    cleaned_properties[key[5:]] = "None"
+                elif isinstance(prop_value, (str, int, bool)):
                     cleaned_properties[key[5:]] = prop_value
                 elif isinstance(prop_value, float):
                     if np.isnan(prop_value) or np.isinf(prop_value):
-                        raise ValueError("property value is NaN or Infinity")
+                        cleaned_properties[key[5:]] = "None"
                     else:
                         cleaned_properties[key[5:]] = prop_value
                 else:
-                    # Convert non-serializable objects to strings
                     cleaned_properties[key[5:]] = str(prop_value)
 
             if synthetic_type == 'frechet':
