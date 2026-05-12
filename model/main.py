@@ -51,10 +51,6 @@ if __name__ == '__main__':
         cluster_df = results_df[
             results_df["NORAD_CAT_ID"].map(_norm_norad).isin(allowed_satnos)
         ].copy()
-        
-        # keep only 10% of the clusters
-        cluster_df = cluster_df.sample(frac=0.1)
-        
         print(f"clustering subset (apogee 300-700 km): {len(cluster_df)}")
 
         cluster_input = cluster_df.rename(
