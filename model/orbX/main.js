@@ -417,6 +417,21 @@ document.addEventListener("DOMContentLoaded", async function() {
         return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
+    const SYNTHETIC_PATH_COLOR_FRECHET = Cesium.Color.RED;
+    const SYNTHETIC_PATH_COLOR_MAX_SEPARATION = Cesium.Color.BLUE;
+
+    function getPathColorForClusterEntity(entity, highlightEntity) {
+        const now = Cesium.JulianDate.now();
+        const synthType = getSyntheticTypeFromEntity(entity, now);
+        if (synthType === 'frechet') return SYNTHETIC_PATH_COLOR_FRECHET;
+        if (synthType === 'max_separation') return SYNTHETIC_PATH_COLOR_MAX_SEPARATION;
+
+        const memberColor = Cesium.Color.fromCssColorString('#20c997');
+        const hl =
+            highlightEntity && String(entity.id) === String(highlightEntity.id);
+        return hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor;
+    }
+
     async function displayClusterByLabel(clusterLabel, highlightEntity) {
         rebuildClusterIndex();
         if (!clusterHasSyntheticPair(clusterLabel)) {
@@ -430,15 +445,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             console.warn('[OrbX] No entities for cluster label', clusterLabel);
             return;
         }
-        const memberColor = Cesium.Color.fromCssColorString('#20c997');
         members.forEach((entity) => {
-            const hl =
-                highlightEntity &&
-                String(entity.id) === String(highlightEntity.id);
-            showEntityPath(
-                entity,
-                hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor
-            );
+            showEntityPath(entity, getPathColorForClusterEntity(entity, highlightEntity));
         });
         await viewer.flyTo(members, {
             duration: 2,
