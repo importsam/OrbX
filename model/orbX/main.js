@@ -299,6 +299,47 @@ document.addEventListener("DOMContentLoaded", async function() {
         return !!entity && !isSyntheticEntity(entity, time);
     }
 
+    function getSyntheticTypeFromEntity(entity, time) {
+        if (!entity || !entity.properties) return null;
+        let raw = entity.properties.synthetic_type;
+        if (raw === undefined || raw === null) return null;
+        if (typeof raw.getValue === 'function') {
+            raw = raw.getValue(time);
+        }
+        if (raw === null || raw === undefined) return null;
+        const normalized = String(raw).trim().toLowerCase();
+        if (normalized === 'none' || normalized === '') return null;
+        if (normalized === 'frechet' || normalized === 'max_separation') {
+            return normalized;
+        }
+        return null;
+    }
+
+    /** Cluster mode: both Fréchet and max-separation synthetics exist for this label. */
+    function clusterHasSyntheticPair(clusterLabel) {
+        if (clusterLabel === null || clusterLabel === -1) return false;
+        const lab = Number(clusterLabel);
+        if (!Number.isFinite(lab)) return false;
+
+        if (dataSource && dataSource.entities && typeof dataSource.entities.getById === 'function') {
+            const hasFrechet = !!dataSource.entities.getById(`SYN_frechet_${lab}`);
+            const hasMaxSep = !!dataSource.entities.getById(`SYN_max_separation_${lab}`);
+            if (hasFrechet && hasMaxSep) return true;
+        }
+
+        const members = clusterLabelToEntities.get(lab) || [];
+        const now = Cesium.JulianDate.now();
+        let hasFrechet = false;
+        let hasMaxSep = false;
+        for (const entity of members) {
+            const st = getSyntheticTypeFromEntity(entity, now);
+            if (st === 'frechet') hasFrechet = true;
+            if (st === 'max_separation') hasMaxSep = true;
+            if (hasFrechet && hasMaxSep) return true;
+        }
+        return false;
+    }
+
     function getClusterLabelFromEntity(entity, time) {
         if (!entity || !entity.properties) return null;
         let raw = entity.properties.cluster_label;
@@ -325,13 +366,19 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    /** Cluster size bands: micro 2–3, minor 4–8, major 9–15, mega 16+ */
+    /** Cluster size bands: micro 2–3, minor 4–8, major 9–15, mega 16+ (real satellites only). */
     function clusterSizeTier(memberCount) {
         if (memberCount >= 2 && memberCount <= 3) return 'micro';
         if (memberCount >= 4 && memberCount <= 8) return 'minor';
         if (memberCount >= 9 && memberCount <= 15) return 'major';
         if (memberCount >= 16) return 'mega';
         return null;
+    }
+
+    function getClusterRealMemberCount(entities, time) {
+        if (!entities || entities.length === 0) return 0;
+        const t = time !== undefined ? time : Cesium.JulianDate.now();
+        return entities.filter((entity) => isRealSatelliteEntity(entity, t)).length;
     }
 
     function tierBandLabel(tier) {
@@ -348,7 +395,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         const candidates = [];
         clusterLabelToEntities.forEach((entities, label) => {
             if (label === -1) return;
-            const n = entities.length;
+            if (!clusterHasSyntheticPair(label)) return;
+            const n = getClusterRealMemberCount(entities);
             if (clusterSizeTier(n) === category) {
                 candidates.push(label);
             }
@@ -357,11 +405,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
-    /** Any non-noise cluster label (Random button); excludes -1 only. */
+    /** Random cluster with both synthetic orbits; excludes noise (-1). */
     function pickRandomClusterLabelAny() {
         const candidates = [];
         clusterLabelToEntities.forEach((entities, label) => {
             if (label === -1) return;
+            if (!clusterHasSyntheticPair(label)) return;
             candidates.push(label);
         });
         if (candidates.length === 0) return null;
@@ -370,6 +419,10 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     async function displayClusterByLabel(clusterLabel, highlightEntity) {
         rebuildClusterIndex();
+        if (!clusterHasSyntheticPair(clusterLabel)) {
+            console.warn('[OrbX] Cluster has no synthetic orbit pair:', clusterLabel);
+            return;
+        }
         removeAllEntityPaths();
         removeEntities();
         const members = clusterLabelToEntities.get(clusterLabel);
@@ -401,7 +454,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const clusterId = pickRandomClusterLabelForTier(category);
         if (clusterId === null) {
             alert(
-                'No clusters in this size band (noise excluded). Try another category.'
+                'No clusters in this size band that include synthetic orbits (Fréchet + max-separation). Try another category.'
             );
             return;
         }
@@ -409,14 +462,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         const sr = document.getElementById('searchResults');
         if (sr) {
             const members = clusterLabelToEntities.get(clusterId) || [];
-            const tier = clusterSizeTier(members.length);
+            const realN = getClusterRealMemberCount(members);
+            const tier = clusterSizeTier(realN);
             const tierText = tier
                 ? tierBandLabel(tier)
-                : `Size outside micro–mega bands (n=${members.length})`;
+                : `Size outside micro–mega bands (n=${realN} real)`;
             sr.innerHTML =
                 `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
                 `<strong>Cluster ${clusterId}</strong><br>` +
-                `${members.length} satellites · ${tierText}</div>`;
+                `${realN} satellites (+ synthetics) · ${tierText}</div>`;
             sr.style.display = 'block';
         }
     }
@@ -658,7 +712,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 const clusterId = pickRandomClusterLabelAny();
                 if (clusterId === null) {
                     alert(
-                        'No non-noise clusters in the dataset.'
+                        'No clusters with synthetic orbits in the dataset (Fréchet + max-separation pairs).'
                     );
                     return;
                 }
@@ -666,14 +720,15 @@ document.addEventListener("DOMContentLoaded", async function() {
                 const sr = document.getElementById('searchResults');
                 if (sr) {
                     const members = clusterLabelToEntities.get(clusterId) || [];
-                    const tier = clusterSizeTier(members.length);
+                    const realN = getClusterRealMemberCount(members);
+                    const tier = clusterSizeTier(realN);
                     const tierText = tier
                         ? tierBandLabel(tier)
-                        : `Size outside micro–mega bands (n=${members.length})`;
+                        : `Size outside micro–mega bands (n=${realN} real)`;
                     sr.innerHTML =
                         `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                        `<strong>Random cluster ${clusterId}</strong> <span style="opacity:0.85">(any size, noise excluded)</span><br>` +
-                        `${members.length} satellites · ${tierText}</div>`;
+                        `<strong>Random cluster ${clusterId}</strong> <span style="opacity:0.85">(synthetic pair required)</span><br>` +
+                        `${realN} satellites (+ synthetics) · ${tierText}</div>`;
                     sr.style.display = 'block';
                 }
                 topBottomInfoBox.style.display = 'none';
@@ -750,17 +805,39 @@ document.addEventListener("DOMContentLoaded", async function() {
                 return;
             }
 
+            if (!clusterHasSyntheticPair(lab)) {
+                if (searchResults) {
+                    searchResults.innerHTML =
+                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                        `<strong>NORAD ${searchId}</strong><br>` +
+                        `Cluster ID: <strong>${lab}</strong><br>` +
+                        `This cluster has no synthetic orbits in the dataset (only ~1% of clusters include Fréchet + max-separation).` +
+                        `</div>`;
+                    searchResults.style.display = 'block';
+                }
+                showEntityPath(searchedEntity, Cesium.Color.BLUE);
+                await viewer.flyTo(searchedEntity, {
+                    duration: 2,
+                    offset: new Cesium.HeadingPitchRange(
+                        Cesium.Math.toRadians(0),
+                        Cesium.Math.toRadians(-90)
+                    )
+                });
+                return;
+            }
+
             const members = clusterLabelToEntities.get(lab) || [];
-            const count = members.length;
-            const tier = clusterSizeTier(count);
+            const realN = getClusterRealMemberCount(members);
+            const totalN = members.length;
+            const tier = clusterSizeTier(realN);
 
             if (searchResults) {
                 searchResults.innerHTML =
                     `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
                     `<strong>NORAD ${searchId}</strong><br>` +
                     `Cluster ID: <strong>${lab}</strong><br>` +
-                    `${count} satellites in this cluster<br>` +
-                    `${tier ? tierBandLabel(tier) : 'Band: outside standard tiers (size ' + count + ')'}` +
+                    `${realN} real satellites (${totalN} entities including synthetics)<br>` +
+                    `${tier ? tierBandLabel(tier) : 'Band: outside standard tiers (size ' + realN + ' real)'}` +
                     `</div>`;
                 searchResults.style.display = 'block';
             }
