@@ -132,9 +132,9 @@ def build_czml_live(df):
                     cleaned_properties[key[5:]] = str(prop_value)
 
             if synthetic_type == 'frechet':
-                point_style = {'color': {'rgba': [0, 255, 128, 255]}, 'pixelSize': 6}
+                point_style = {'color': {'rgba': [0, 255, 128, 255]}, 'pixelSize': 2}
             elif synthetic_type == 'max_separation':
-                point_style = {'color': {'rgba': [255, 80, 80, 255]}, 'pixelSize': 6}
+                point_style = {'color': {'rgba': [255, 80, 80, 255]}, 'pixelSize': 2}
             else:
                 point_style = {'color': {'rgba': [255, 255, 0, 255]}, 'pixelSize': 2}
             

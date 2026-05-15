@@ -105,6 +105,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         // -----
             
         if (entity) {
+            if (
+                document.body.classList.contains('orbx-mode-unique') &&
+                isSyntheticEntity(entity, now)
+            ) {
+                hideCompressedInfo();
+                return;
+            }
             const uniqueness = entity.properties.uniqueness?.getValue(now);
             const uniquenessStr = (typeof uniqueness === 'number')
                 ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
@@ -271,6 +278,27 @@ document.addEventListener("DOMContentLoaded", async function() {
         dataSource.entities.values.forEach(entity => entity.show = false);
     }
 
+    /** Fréchet / max-separation rows in CZML (SYN_* ids or synthetic_type property). */
+    function isSyntheticEntity(entity, time) {
+        if (!entity) return false;
+        const id = String(entity.id || '');
+        if (id.startsWith('SYN_')) return true;
+
+        if (!entity.properties) return false;
+        let raw = entity.properties.synthetic_type;
+        if (raw === undefined || raw === null) return false;
+        if (typeof raw.getValue === 'function') {
+            raw = raw.getValue(time);
+        }
+        if (raw === null || raw === undefined) return false;
+        const normalized = String(raw).trim().toLowerCase();
+        return normalized === 'frechet' || normalized === 'max_separation';
+    }
+
+    function isRealSatelliteEntity(entity, time) {
+        return !!entity && !isSyntheticEntity(entity, time);
+    }
+
     function getClusterLabelFromEntity(entity, time) {
         if (!entity || !entity.properties) return null;
         let raw = entity.properties.cluster_label;
@@ -398,9 +426,9 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         // console.log("getOrbitEntities called with selectedOrbit: ", selectedOrbit);
 
-        const orbitEntities = entities.filter(entity => {
+        const orbitEntities = entities.filter((entity) => {
+            if (!isRealSatelliteEntity(entity)) return false;
             const orbit_class = entity.properties.orbit_class?.getValue();
-            
             return orbit_class === selectedOrbit;
         });
         return orbitEntities;
@@ -531,9 +559,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
         try {
             if (searchId.toLowerCase() === 'random') {
-                const entities = dataSource.entities.values;
-                const randomIndex = Math.floor(Math.random() * entities.length);
-                searchId = entities[randomIndex].id;
+                const realEntities = dataSource.entities.values.filter((e) =>
+                    isRealSatelliteEntity(e)
+                );
+                if (realEntities.length === 0) {
+                    alert('No real satellites available in the data source.');
+                    return;
+                }
+                const randomIndex = Math.floor(Math.random() * realEntities.length);
+                searchId = realEntities[randomIndex].id;
             }
 
             const radios = ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'];
@@ -546,6 +580,13 @@ document.addEventListener("DOMContentLoaded", async function() {
                 alert("NORAD ID not found in data source");
                 return;
             }
+            if (isSyntheticEntity(searchedEntity)) {
+                alert(
+                    'That ID is a synthetic orbit (Fréchet / max-separation). ' +
+                    'Use Orbital clusters mode, or search a real NORAD ID.'
+                );
+                return;
+            }
 
             const neighbourIds = searchedEntity.properties.neighbours?.getValue();
             console.log("neighbourIds: ", neighbourIds);
@@ -555,7 +596,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 const neighbourIdArray = Object.values(neighbourIds);
                 neighbourIdArray.forEach(neighbourId => {
                     const neighbourEntity = dataSource.entities.getById(neighbourId);
-                    if (neighbourEntity) {
+                    if (neighbourEntity && isRealSatelliteEntity(neighbourEntity)) {
                         neighbourEntities.push(neighbourEntity);
                     }
                 });
