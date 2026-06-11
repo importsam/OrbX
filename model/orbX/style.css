@@ -90,6 +90,10 @@ body.orbx-mode-clusters #topBottomInfoBox {
     display: none !important;
 }
 
+body.orbx-mode-unique #clusterMemberListBox {
+    display: none !important;
+}
+
 #infoBox {
     background: rgba(255, 255, 255, 0.95);
     padding: 20px;
@@ -228,7 +232,8 @@ body.orbx-mode-clusters #topBottomInfoBox {
     background-color: #d61233;
 }
 
-#topBottomInfoBox {
+#topBottomInfoBox,
+#clusterMemberListBox {
     position: absolute;
     bottom: 90px;
     right: 10px;
@@ -493,6 +498,56 @@ button:hover {
 .green-indicator {
     background-color: #34c759;
     box-shadow: 0 0 10px rgba(52, 199, 89, 0.5);
+}
+
+.blue-indicator {
+    background-color: #4d90fe;
+    box-shadow: 0 0 10px rgba(77, 144, 254, 0.5);
+}
+
+.teal-indicator {
+    background-color: #20c997;
+    box-shadow: 0 0 10px rgba(32, 201, 151, 0.5);
+}
+
+.cluster-role-frechet {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+.cluster-role-maxsep {
+    color: #4d90fe;
+    font-weight: 600;
+}
+
+.cluster-role-member {
+    color: #20c997;
+    font-weight: 500;
+}
+
+.cluster-member-row-highlight {
+    background-color: rgba(0, 191, 255, 0.12);
+}
+
+.cluster-member-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+}
+
+.cluster-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+
+.cluster-legend-item .header-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
 }
   
 .card-title {

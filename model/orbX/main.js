@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
+    const clusterMemberListBox = document.getElementById('clusterMemberListBox');
     document.body.classList.add('orbx-mode-unique');
     wireModelModeRadios();
 
@@ -448,6 +449,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         members.forEach((entity) => {
             showEntityPath(entity, getPathColorForClusterEntity(entity, highlightEntity));
         });
+        displayClusterMemberList(clusterLabel, members, highlightEntity);
         await viewer.flyTo(members, {
             duration: 2,
             offset: new Cesium.HeadingPitchRange(
@@ -666,6 +668,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
             const searchResults = document.getElementById('searchResults');
             topBottomInfoBox.style.display = 'none';
+            hideClusterMemberList();
 
             if (!neighbourEntities || neighbourEntities.length === 0) {
                 console.log("No neighbours found for NORAD ID: " + searchId);
@@ -739,7 +742,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                         `${realN} satellites (+ synthetics) · ${tierText}</div>`;
                     sr.style.display = 'block';
                 }
-                topBottomInfoBox.style.display = 'none';
                 return;
             }
 
@@ -753,7 +755,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             const lab = getClusterLabelFromEntity(searchedEntity, now);
 
             const searchResults = document.getElementById('searchResults');
-            topBottomInfoBox.style.display = 'none';
+            if (clusterMemberListBox) clusterMemberListBox.style.display = 'none';
 
             removeAllEntityPaths();
             removeEntities();
@@ -1008,6 +1010,124 @@ document.addEventListener("DOMContentLoaded", async function() {
         return entity;
     }
 
+    function hideClusterMemberList() {
+        if (clusterMemberListBox) {
+            clusterMemberListBox.style.display = 'none';
+            clusterMemberListBox.innerHTML = '';
+        }
+    }
+
+    function sortClusterMembersForList(members) {
+        const now = Cesium.JulianDate.now();
+        const rank = (entity) => {
+            const synthType = getSyntheticTypeFromEntity(entity, now);
+            if (synthType === 'frechet') return 0;
+            if (synthType === 'max_separation') return 1;
+            return 2;
+        };
+        return [...members].sort((a, b) => {
+            const ra = rank(a);
+            const rb = rank(b);
+            if (ra !== rb) return ra - rb;
+            return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+        });
+    }
+
+    function generateClusterMemberRow(entity, index, highlightEntity) {
+        const now = Cesium.JulianDate.now();
+        const synthType = getSyntheticTypeFromEntity(entity, now);
+        let roleLabel = 'Member';
+        let roleClass = 'cluster-role-member';
+        if (synthType === 'frechet') {
+            roleLabel = 'Fréchet';
+            roleClass = 'cluster-role-frechet';
+        } else if (synthType === 'max_separation') {
+            roleLabel = 'Max-separation';
+            roleClass = 'cluster-role-maxsep';
+        }
+        const isHighlight =
+            highlightEntity && String(entity.id) === String(highlightEntity.id);
+        const rowClass = isHighlight
+            ? 'cluster-member-row cluster-member-row-highlight neighbour-row'
+            : 'cluster-member-row neighbour-row';
+
+        return `
+            <tr class="${rowClass}" data-id="${entity.id}">
+                <td>${index + 1}</td>
+                <td class="${roleClass}">${roleLabel}</td>
+                <td><a href="#" class="satellite-id" data-id="${entity.id}">${entity.id}</a></td>
+                <td class="sat-name">${entity.name || 'N/A'}</td>
+            </tr>
+        `;
+    }
+
+    function renderClusterMemberList(clusterLabel, members, highlightEntity) {
+        const sorted = sortClusterMembersForList(members);
+        const realN = getClusterRealMemberCount(members);
+        const tier = clusterSizeTier(realN);
+        const tierText = tier
+            ? tierBandLabel(tier)
+            : `${realN} real satellites`;
+        const rows = sorted
+            .map((entity, index) => generateClusterMemberRow(entity, index, highlightEntity))
+            .join('');
+
+        return `
+            <div class="container">
+                <div class="rankings-card cluster-member-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Cluster ${clusterLabel} · ${tierText}</h2>
+                    </div>
+                    <table class="rankings-table cluster-member-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Role</th>
+                                <th>NORAD ID</th>
+                                <th>Satellite Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <div class="table-footer">
+                        <div class="cluster-member-legend">
+                            <span class="cluster-legend-item">
+                                <span class="header-indicator red-indicator"></span>
+                                Fréchet synthetic
+                            </span>
+                            <span class="cluster-legend-item">
+                                <span class="header-indicator blue-indicator"></span>
+                                Max-separation synthetic
+                            </span>
+                            <span class="cluster-legend-item">
+                                <span class="header-indicator teal-indicator"></span>
+                                Cluster member
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function displayClusterMemberList(clusterLabel, members, highlightEntity) {
+        if (!clusterMemberListBox || !members || members.length === 0) return;
+
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) {
+            searchResults.style.display = 'none';
+        }
+
+        clusterMemberListBox.innerHTML = renderClusterMemberList(
+            clusterLabel,
+            members,
+            highlightEntity
+        );
+        clusterMemberListBox.style.display = 'block';
+        attachNeighbourLinkHandlers('.cluster-member-table .satellite-id');
+        attachOrbitToggleRowHandlers('.cluster-member-row');
+    }
+
     function generateSatelliteList(satellites) {
         return `<ul style="padding-left: 20px; list-style-type: none;">
             ${satellites.map(satellite => {
@@ -1065,6 +1185,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     // In main.js-1, update displayTopAndBottomSatellitesByUniqueness:
     async function displayUniqueOrbitList() {
         console.log("displayUniqueOrbitList called");
+        hideClusterMemberList();
         // close the search results panel
         const searchResults = document.getElementById('searchResults');
         searchResults.style.display = 'none';
@@ -1134,6 +1255,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
         const sr = document.getElementById('searchResults');
         topBottomInfoBox.style.display = 'none';
+        hideClusterMemberList();
         if (sr) {
             sr.style.display = 'none';
         }
@@ -1208,6 +1330,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     // Example function to update the topBottomInfoBox content
     function updateRankingsDisplay(topEntities, bottomEntities) {
+        hideClusterMemberList();
         const topBottomInfoBox = document.getElementById('topBottomInfoBox');
         topBottomInfoBox.innerHTML = renderRankings(topEntities, bottomEntities);
         topBottomInfoBox.style.display = 'block';
