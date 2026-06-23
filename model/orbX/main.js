@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     const viewer = new Cesium.Viewer("cesiumContainer", {
         shouldAnimate: true,
+        animation: false,
+        timeline: false,
         geocoder: false,
         sceneModePicker: false,
         baseLayerPicker: false,
@@ -65,14 +67,16 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         const step = 10;
 
-        const animationViewModel = viewer.animation.viewModel;
-        animationViewModel.playForwardViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
-            viewer.clock.multiplier += step;
-        });
+        if (viewer.animation) {
+            const animationViewModel = viewer.animation.viewModel;
+            animationViewModel.playForwardViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
+                viewer.clock.multiplier += step;
+            });
 
-        animationViewModel.playReverseViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
-            viewer.clock.multiplier -= step;
-        });
+            animationViewModel.playReverseViewModel.command.beforeExecute.addEventListener(function(commandInfo) {
+                viewer.clock.multiplier -= step;
+            });
+        }
 
         loadingScreen.style.display = 'none';
 
