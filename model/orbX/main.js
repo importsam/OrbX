@@ -208,6 +208,17 @@ document.addEventListener("DOMContentLoaded", async function() {
     document.getElementById('radio-leo').checked = true;
     handleOrbitToggle();
 
+    function syncOrbitRowVisibility(entityId) {
+        const entity =
+            dataSource && dataSource.entities && dataSource.entities.getById
+                ? dataSource.entities.getById(entityId)
+                : null;
+        const isVisible = !!(entity && entity.path);
+        document.querySelectorAll(`tr[data-id="${entityId}"]`).forEach((row) => {
+            row.classList.toggle('orbit-row-hidden', !isVisible);
+        });
+    }
+
     // Define toggleOrbit to show/hide the orbit path.
     function toggleOrbit(entityId, color) {
         const entity = dataSource && dataSource.entities && dataSource.entities.getById 
@@ -219,6 +230,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         } else {
             showEntityPath(entity, color);
         }
+        syncOrbitRowVisibility(entityId);
     }
     window.toggleOrbit = toggleOrbit;
 
@@ -995,7 +1007,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         let roleLabel = 'Member';
         let roleClass = 'cluster-role-member';
         if (synthType === 'frechet') {
-            roleLabel = 'Fréchet';
+            roleLabel = 'Fréchet Mean';
             roleClass = 'cluster-role-frechet';
         } else if (synthType === 'max_separation') {
             roleLabel = 'Max-separation';
@@ -1049,15 +1061,15 @@ document.addEventListener("DOMContentLoaded", async function() {
                         <div class="cluster-member-legend">
                             <span class="cluster-legend-item">
                                 <span class="header-indicator red-indicator"></span>
-                                Fréchet synthetic
+                                Fréchet Mean Synthetic
                             </span>
                             <span class="cluster-legend-item">
                                 <span class="header-indicator blue-indicator"></span>
-                                Max-separation synthetic
+                                Max-separation Synthetic
                             </span>
                             <span class="cluster-legend-item">
                                 <span class="header-indicator teal-indicator"></span>
-                                Cluster member
+                                Cluster Member
                             </span>
                         </div>
                     </div>

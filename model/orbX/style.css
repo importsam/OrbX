@@ -529,6 +529,22 @@ button:hover {
     background-color: rgba(0, 191, 255, 0.12);
 }
 
+tr.orbit-row-hidden {
+    opacity: 0.45;
+}
+
+tr.orbit-row-hidden td,
+tr.orbit-row-hidden .satellite-id,
+tr.orbit-row-hidden .cluster-role-frechet,
+tr.orbit-row-hidden .cluster-role-maxsep,
+tr.orbit-row-hidden .cluster-role-member {
+    color: #888 !important;
+}
+
+tr.orbit-row-hidden .satellite-id {
+    text-decoration: line-through;
+}
+
 .cluster-member-legend {
     display: flex;
     flex-wrap: wrap;
