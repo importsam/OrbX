@@ -809,7 +809,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                         `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
                         `<strong>NORAD ${searchId}</strong><br>` +
                         `Cluster ID: <strong>${lab}</strong><br>` +
-                        `This cluster has no synthetic orbits in the dataset (only ~1% of clusters include Fréchet + max-separation).` +
+                        `This cluster has no synthetic orbits in the dataset.` +
                         `</div>`;
                     searchResults.style.display = 'block';
                 }
