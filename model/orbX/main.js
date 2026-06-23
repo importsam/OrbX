@@ -469,20 +469,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             return;
         }
         await displayClusterByLabel(clusterId);
-        const sr = document.getElementById('searchResults');
-        if (sr) {
-            const members = clusterLabelToEntities.get(clusterId) || [];
-            const realN = getClusterRealMemberCount(members);
-            const tier = clusterSizeTier(realN);
-            const tierText = tier
-                ? tierBandLabel(tier)
-                : `Size outside micro–mega bands (n=${realN} real)`;
-            sr.innerHTML =
-                `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                `<strong>Cluster ${clusterId}</strong><br>` +
-                `${realN} satellites (+ synthetics) · ${tierText}</div>`;
-            sr.style.display = 'block';
-        }
     }
 
     function getOrbitEntities(selectedOrbit){
@@ -728,20 +714,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                     return;
                 }
                 await displayClusterByLabel(clusterId);
-                const sr = document.getElementById('searchResults');
-                if (sr) {
-                    const members = clusterLabelToEntities.get(clusterId) || [];
-                    const realN = getClusterRealMemberCount(members);
-                    const tier = clusterSizeTier(realN);
-                    const tierText = tier
-                        ? tierBandLabel(tier)
-                        : `Size outside micro–mega bands (n=${realN} real)`;
-                    sr.innerHTML =
-                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                        `<strong>Random cluster ${clusterId}</strong> <span style="opacity:0.85">(synthetic pair required)</span><br>` +
-                        `${realN} satellites (+ synthetics) · ${tierText}</div>`;
-                    sr.style.display = 'block';
-                }
                 return;
             }
 
@@ -834,22 +806,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                     )
                 });
                 return;
-            }
-
-            const members = clusterLabelToEntities.get(lab) || [];
-            const realN = getClusterRealMemberCount(members);
-            const totalN = members.length;
-            const tier = clusterSizeTier(realN);
-
-            if (searchResults) {
-                searchResults.innerHTML =
-                    `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                    `<strong>NORAD ${searchId}</strong><br>` +
-                    `Cluster ID: <strong>${lab}</strong><br>` +
-                    `${realN} real satellites (${totalN} entities including synthetics)<br>` +
-                    `${tier ? tierBandLabel(tier) : 'Band: outside standard tiers (size ' + realN + ' real)'}` +
-                    `</div>`;
-                searchResults.style.display = 'block';
             }
 
             await displayClusterByLabel(lab, searchedEntity);
