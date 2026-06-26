@@ -18,7 +18,8 @@ dependencies = [
     "dbcv @ git+https://github.com/FelSiq/DBCV",
     "s-dbw",
     "viasckde",
-    "boto3"
+    "boto3",
+    "tqdm"
 ]
 
 [tool.setuptools.packages.find]

@@ -2,6 +2,7 @@ import contextlib
 import io
 
 import pandas as pd
+from tqdm import tqdm
 
 from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
@@ -66,7 +67,8 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
         raise ValueError(f"DataFrame is missing required columns: {missing}")
 
     results = []
-    for label, group in df.groupby(label_column, dropna=False):
+    groups = list(df.groupby(label_column, dropna=False))
+    for label, group in tqdm(groups, desc="Cluster density"):
         cluster_density = _cluster_density(group, verbose=verbose)
         results.append({"label": label, "density": cluster_density})
 
