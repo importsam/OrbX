@@ -18,6 +18,10 @@ from orbx.clustering.data_handling.DataHandler import DataHandler
 def _norm_norad(x) -> str:
     return str(x).split(".")[0].zfill(5)
 
+
+# None = all non-noise clusters. Use this for testing on a smaller number of clusters first before scaling.
+CLUSTER_SAMPLE_SIZE = None
+
 if __name__ == '__main__':
     # builds the czml files
     # try:
@@ -68,34 +72,48 @@ if __name__ == '__main__':
             lambda nid: label_by_sat.get(_norm_norad(nid), -1)
         )
 
-        # Synth orbits for a fixed sample of clusters (does not remove other clusters from CZML)
-        import numpy as np
-        all_labels = [l for l in clustered_for_synth["label"].unique() if l != -1]
-        synth_cluster_count = min(15, len(all_labels))
-        sampled_labels = list(
-            np.random.choice(all_labels, size=synth_cluster_count, replace=False)
-        )
-        
-        clustered_for_synth = clustered_for_synth[
-            clustered_for_synth["label"].isin(sampled_labels)
-        ]
-        print(f"Computing synthetic orbits for {len(sampled_labels)}/{len(all_labels)} clusters")
+        clustered_work = clustered_for_synth[
+            clustered_for_synth["label"] != -1
+        ].copy()
+        all_cluster_labels = sorted(clustered_work["label"].unique())
 
-        # pass in the clustered satellites to the density function 
-        density_df = density(clustered_for_synth, verbose=False)
-        
-        # Normalise the density by the max density
+
+        if CLUSTER_SAMPLE_SIZE is not None and CLUSTER_SAMPLE_SIZE > 0:
+            import numpy as np
+
+            n_sample = min(CLUSTER_SAMPLE_SIZE, len(all_cluster_labels))
+            active_labels = set(
+                int(l)
+                for l in np.random.choice(all_cluster_labels, size=n_sample, replace=False)
+            )
+            clustered_work = clustered_work[
+                clustered_work["label"].isin(active_labels)
+            ]
+            print(
+                f"Cluster sample enabled: {len(active_labels)}/{len(all_cluster_labels)} clusters"
+            )
+        else:
+            active_labels = set(int(l) for l in all_cluster_labels)
+            print(f"Using all {len(all_cluster_labels)} non-noise clusters")
+
+        density_df = density(
+            clustered_work[["line1", "line2", "label"]],
+            verbose=False,
+        )
+
         max_density = density_df["density"].max()
-        density_df["density"] = density_df["density"] / max_density
-        
+        if max_density and max_density > 0:
+            density_df["density"] = density_df["density"] / max_density
+
         density_by_label = {
             int(row["label"]): float(row["density"])
             for _, row in density_df.iterrows()
         }
+        print(f"Computed density for {len(density_by_label)} clusters")
 
         print("Computing synthetic orbits (frechet + max_separation)...")
         synth_df = synthetic_orbit(
-            clustered_for_synth[["line1", "line2", "label"]],
+            clustered_work[["line1", "line2", "label"]],
             mode=["frechet", "max_separation"],
             verbose=True,
         )
@@ -119,14 +137,21 @@ if __name__ == '__main__':
                 "cluster_density": density_by_label.get(int(row["label"])),
             })
 
-        results_df["synthetic_type"] = None
-        results_df["cluster_density"] = results_df["label"].map(
+        if CLUSTER_SAMPLE_SIZE is not None:
+            results_for_czml = results_df[
+                results_df["label"].isin(active_labels)
+            ].copy()
+        else:
+            results_for_czml = results_df.copy()
+
+        results_for_czml["synthetic_type"] = None
+        results_for_czml["cluster_density"] = results_for_czml["label"].map(
             lambda lab: density_by_label.get(int(lab)) if lab != -1 else None
         )
-        combined_df = pd.concat([results_df, pd.DataFrame(synth_rows)], ignore_index=True)
+        combined_df = pd.concat([results_for_czml, pd.DataFrame(synth_rows)], ignore_index=True)
 
-        print("Number of clusters: ", len(results_df["label"].unique()))
-        print(f"Total entities for CZML: {len(combined_df)} ({len(results_df)} real + {len(synth_rows)} synthetic)")
+        print(f"Clusters in CZML: {len(active_labels)}")
+        print(f"Total entities for CZML: {len(combined_df)} ({len(results_for_czml)} real + {len(synth_rows)} synthetic)")
         build_czml_live(combined_df)
 
     except Exception as e:
