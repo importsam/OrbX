@@ -712,8 +712,10 @@ document.addEventListener("DOMContentLoaded", async function() {
 
             if (searchResults) {
                 console.log("searchResults found");
-                searchResults.innerHTML = `<h3>10 Nearest Satellites for NORAD ID: ${searchId}</h3>` +
-                    generateNeighbourSatelliteList({ targetId: searchId, list: neighbourEntities });
+                searchResults.innerHTML = generateNeighbourSatelliteList({
+                    targetId: searchId,
+                    list: neighbourEntities,
+                });
                 searchResults.style.display = 'block';
                 attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
                 attachOrbitToggleRowHandlers('.neighbour-row');
@@ -808,9 +810,10 @@ document.addEventListener("DOMContentLoaded", async function() {
                 }
 
                 if (searchResults) {
-                    searchResults.innerHTML +=
-                        `<h3 style="color:#eee;margin-top:14px;">10 nearest neighbours</h3>` +
-                        generateNeighbourSatelliteList({ targetId: searchId, list: neighbourEntities });
+                    searchResults.innerHTML += generateNeighbourSatelliteList({
+                        targetId: searchId,
+                        list: neighbourEntities,
+                    });
                     attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
                     attachOrbitToggleRowHandlers('.neighbour-row');
                 }
