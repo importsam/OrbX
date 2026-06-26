@@ -83,6 +83,11 @@ if __name__ == '__main__':
 
         # pass in the clustered satellites to the density function 
         density_df = density(clustered_for_synth, verbose=False)
+        
+        # Normalise the density by the max density
+        max_density = density_df["density"].max()
+        density_df["density"] = density_df["density"] / max_density
+        
         density_by_label = {
             int(row["label"]): float(row["density"])
             for _, row in density_df.iterrows()
