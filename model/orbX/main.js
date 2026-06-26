@@ -369,6 +369,35 @@ document.addEventListener("DOMContentLoaded", async function() {
         return Number.isFinite(n) ? n : null;
     }
 
+    function getClusterDensityFromEntity(entity, time) {
+        if (!entity || !entity.properties) return null;
+        let raw = entity.properties.cluster_density;
+        if (raw === undefined || raw === null) return null;
+        if (typeof raw.getValue === 'function') {
+            raw = raw.getValue(time);
+        }
+        if (raw === null || raw === undefined) return null;
+        if (String(raw).trim().toLowerCase() === 'none') return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function formatClusterDensity(density) {
+        if (density === null || density === undefined) return 'N/A';
+        if (typeof density !== 'number') return String(density);
+        if (density < 0.01) return density.toExponential(2);
+        return density.toFixed(4);
+    }
+
+    function getClusterDensityFromMembers(members) {
+        const now = Cesium.JulianDate.now();
+        for (const entity of members) {
+            const d = getClusterDensityFromEntity(entity, now);
+            if (d !== null) return d;
+        }
+        return null;
+    }
+
     function rebuildClusterIndex() {
         clusterLabelToEntities.clear();
         if (!dataSource || !dataSource.entities) return;
@@ -1040,6 +1069,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         const tierText = tier
             ? tierBandLabel(tier)
             : `${realN} real satellites`;
+        const clusterDensity = getClusterDensityFromMembers(members);
+        const densityText = formatClusterDensity(clusterDensity);
         const rows = sorted
             .map((entity, index) => generateClusterMemberRow(entity, index, highlightEntity))
             .join('');
@@ -1048,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             <div class="container">
                 <div class="rankings-card cluster-member-card">
                     <div class="card-header">
-                        <h2 class="card-title">Cluster ${clusterLabel} · ${tierText}</h2>
+                        <h2 class="card-title">Cluster ${clusterLabel} · ${tierText} · Density ${densityText}</h2>
                     </div>
                     <table class="rankings-table cluster-member-table">
                         <thead>
