@@ -6,19 +6,17 @@ _src = _repo_root / "src"
 if str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
-from scoring import scoring_main
 from ionop_czml import ionop_czml
 from live.build_czml import build_czml_live
 import pandas as pd
 
 from orbx.clustering import cluster
 from orbx.synthetic_orbits import synthetic_orbit
+from orbx.density import density
 from orbx.clustering.data_handling.DataHandler import DataHandler
-
 
 def _norm_norad(x) -> str:
     return str(x).split(".")[0].zfill(5)
-
 
 if __name__ == '__main__':
     # builds the czml files
@@ -32,7 +30,6 @@ if __name__ == '__main__':
     # now build the czml files
     try:
         results_df = pd.read_pickle("data/satellites_with_scores.pkl")
-
 
         print(results_df.columns)
 
@@ -48,14 +45,10 @@ if __name__ == '__main__':
         keplerian_df = keplerian_df[(keplerian_df["apogee"] >= 300) & (keplerian_df["apogee"] <= 700)]
 
         allowed_satnos = set(keplerian_df["satNo"].map(_norm_norad))
-        cluster_df = results_df[
-            results_df["NORAD_CAT_ID"].map(_norm_norad).isin(allowed_satnos)
-        ].copy()
+        cluster_df = results_df[results_df["NORAD_CAT_ID"].map(_norm_norad).isin(allowed_satnos)].copy()
         print(f"clustering subset (apogee 300-700 km): {len(cluster_df)}")
 
-        cluster_input = cluster_df.rename(
-            columns={"TLE_LINE1": "line1", "TLE_LINE2": "line2"}
-        )
+        cluster_input = cluster_df.rename(columns={"TLE_LINE1": "line1", "TLE_LINE2": "line2"})
 
         labels = cluster(cluster_input, verbose=True)
 
@@ -75,9 +68,25 @@ if __name__ == '__main__':
             lambda nid: label_by_sat.get(_norm_norad(nid), -1)
         )
 
-        clustered_for_synth = clustered_for_synth[clustered_for_synth["label"] != -1]
-        n_clusters = clustered_for_synth["label"].nunique()
-        print(f"Computing synthetic orbits for {n_clusters} clusters")
+        # Synth orbits for a fixed sample of clusters (does not remove other clusters from CZML)
+        import numpy as np
+        all_labels = [l for l in clustered_for_synth["label"].unique() if l != -1]
+        synth_cluster_count = min(15, len(all_labels))
+        sampled_labels = list(
+            np.random.choice(all_labels, size=synth_cluster_count, replace=False)
+        )
+        
+        clustered_for_synth = clustered_for_synth[
+            clustered_for_synth["label"].isin(sampled_labels)
+        ]
+        print(f"Computing synthetic orbits for {len(sampled_labels)}/{len(all_labels)} clusters")
+
+        # pass in the clustered satellites to the density function 
+        density_df = density(clustered_for_synth, verbose=False)
+        density_by_label = {
+            int(row["label"]): float(row["density"])
+            for _, row in density_df.iterrows()
+        }
 
         print("Computing synthetic orbits (frechet + max_separation)...")
         synth_df = synthetic_orbit(
@@ -102,9 +111,13 @@ if __name__ == '__main__':
                 "neighbours": [],
                 "label": int(row["label"]),
                 "synthetic_type": row["synthetic_type"],
+                "cluster_density": density_by_label.get(int(row["label"])),
             })
 
         results_df["synthetic_type"] = None
+        results_df["cluster_density"] = results_df["label"].map(
+            lambda lab: density_by_label.get(int(lab)) if lab != -1 else None
+        )
         combined_df = pd.concat([results_df, pd.DataFrame(synth_rows)], ignore_index=True)
 
         print("Number of clusters: ", len(results_df["label"].unique()))

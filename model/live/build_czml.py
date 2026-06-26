@@ -108,11 +108,18 @@ def build_czml_live(df):
             if synthetic_type is None or (isinstance(synthetic_type, float) and np.isnan(synthetic_type)):
                 synthetic_type = "None"
 
+            cluster_density = row.get("cluster_density", None)
+            if cluster_density is None or (isinstance(cluster_density, float) and np.isnan(cluster_density)):
+                cluster_density = "None"
+            else:
+                cluster_density = float(cluster_density)
+
             additional_properties = {
                 'uniqueness_range': row.get('uniqueness_range', 'none'),
                 'neighbours': neighbours_dict,
                 'cluster_label': cluster_label,
                 'synthetic_type': synthetic_type,
+                'cluster_density': cluster_density
             }
             
             # Convert properties and check for valid JSON values
