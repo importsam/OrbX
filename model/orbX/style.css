@@ -15,6 +15,33 @@ html, body, #cesiumContainer {
     overflow: hidden;
 }
 
+/* Thin, low-contrast scrollbars (Firefox + Chrome) */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.28);
+    border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
 
 #loadingScreen {
     position: fixed;
