@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     viewer.scene.globe.enableLighting = true;
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
+    wireViewerResize(viewer);
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
     const clusterMemberListBox = document.getElementById('clusterMemberListBox');
     document.body.classList.add('orbx-mode-unique');
@@ -86,6 +87,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
 
         loadingScreen.style.display = 'none';
+        viewer.resize();
 
         const urlParams = new URLSearchParams(window.location.search);
         const idFromURL = urlParams.get('id');
@@ -1665,3 +1667,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         openNav();
     }
 });
+
+function wireViewerResize(viewer) {
+    const resize = () => viewer.resize();
+    window.addEventListener('resize', resize);
+    requestAnimationFrame(() => requestAnimationFrame(resize));
+}
