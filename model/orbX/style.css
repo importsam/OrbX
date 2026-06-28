@@ -301,7 +301,7 @@ body.orbx-mode-unique #clusterMemberListBox {
     position: absolute;
     bottom: 90px;
     right: 10px;
-    padding: 15px;
+    padding: 15px 15px 4px;
     background-color: transparent;
     border: none;
     border-radius: 8px;
@@ -313,6 +313,14 @@ body.orbx-mode-unique #clusterMemberListBox {
     max-height: 500px;
     overflow-y: auto;
     display: none;
+}
+
+#searchResults .neighbour-list-container {
+    padding-bottom: 0;
+}
+
+#searchResults .neighbour-list-table-footer {
+    padding: 8px 20px 4px;
 }
 
 #openNavBtn {
