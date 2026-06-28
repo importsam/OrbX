@@ -55,6 +55,13 @@ document.addEventListener("DOMContentLoaded", async function() {
     let dataSource;
     let highlightedEntities = [];
     const clusterLabelToEntities = new Map();
+    const modeViewState = {
+        unique: { initialized: false },
+        clusters: { initialized: false },
+    };
+    let activeModelMode = 'unique';
+    let currentClusterLabel = null;
+    let currentClusterHighlightId = null;
     try {
         const latestAsset = await fetchLatestAsset();
         const assetId = latestAsset.id;
@@ -211,6 +218,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     removeEntities();
     document.getElementById('radio-leo').checked = true;
     handleOrbitToggle();
+    snapshotUniqueModeState();
 
     function syncOrbitRowVisibility(entityId) {
         const entity =
@@ -478,7 +486,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         return hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor;
     }
 
-    async function displayClusterByLabel(clusterLabel, highlightEntity) {
+    async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
         rebuildClusterIndex();
         if (!clusterHasSyntheticPair(clusterLabel)) {
             console.warn('[OrbX] Cluster has no synthetic orbit pair:', clusterLabel);
@@ -491,17 +499,23 @@ document.addEventListener("DOMContentLoaded", async function() {
             console.warn('[OrbX] No entities for cluster label', clusterLabel);
             return;
         }
+        currentClusterLabel = clusterLabel;
+        currentClusterHighlightId = highlightEntity
+            ? String(highlightEntity.id)
+            : null;
         members.forEach((entity) => {
             showEntityPath(entity, getPathColorForClusterEntity(entity, highlightEntity));
         });
         displayClusterMemberList(clusterLabel, members, highlightEntity);
-        await viewer.flyTo(members, {
-            duration: 2,
-            offset: new Cesium.HeadingPitchRange(
-                Cesium.Math.toRadians(0),
-                Cesium.Math.toRadians(-90)
-            )
-        });
+        if (!options.skipFlyTo) {
+            await viewer.flyTo(members, {
+                duration: 2,
+                offset: new Cesium.HeadingPitchRange(
+                    Cesium.Math.toRadians(0),
+                    Cesium.Math.toRadians(-90)
+                )
+            });
+        }
     }
 
     async function pickAndShowRandomClusterForCategory(category) {
@@ -1239,6 +1253,228 @@ document.addEventListener("DOMContentLoaded", async function() {
         `;
     }
 
+    function setSelectedOrbit(orbit) {
+        ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = false;
+        });
+        const map = {
+            LEO: 'radio-leo',
+            MEO: 'radio-meo',
+            GEO: 'radio-geo',
+            HEO: 'radio-heo',
+        };
+        const target = document.getElementById(map[orbit]);
+        if (target) target.checked = true;
+    }
+
+    function setSelectedClusterCategory(category) {
+        ['radio-micro', 'radio-minor', 'radio-major', 'radio-mega'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = false;
+        });
+        const target = document.getElementById(`radio-${category}`);
+        if (target) target.checked = true;
+    }
+
+    function serializeColor(color) {
+        if (!color) return null;
+        return {
+            red: color.red,
+            green: color.green,
+            blue: color.blue,
+            alpha: color.alpha,
+        };
+    }
+
+    function deserializeColor(colorData) {
+        if (!colorData) return undefined;
+        return new Cesium.Color(
+            colorData.red,
+            colorData.green,
+            colorData.blue,
+            colorData.alpha
+        );
+    }
+
+    function snapshotPathEntities() {
+        if (!dataSource || !dataSource.entities) return [];
+        return dataSource.entities.values
+            .filter((entity) => entity.path)
+            .map((entity) => ({
+                id: entity.id,
+                color: serializeColor(entity.orbitColor),
+            }));
+    }
+
+    function restorePathEntities(pathSnapshots) {
+        removeAllEntityPaths();
+        removeEntities();
+        (pathSnapshots || []).forEach(({ id, color }) => {
+            const entity = dataSource.entities.getById(id);
+            if (entity) {
+                showEntityPath(entity, deserializeColor(color));
+            }
+        });
+    }
+
+    function snapshotCamera() {
+        return {
+            position: viewer.camera.position.clone(),
+            direction: viewer.camera.direction.clone(),
+            up: viewer.camera.up.clone(),
+        };
+    }
+
+    function restoreCamera(cameraState) {
+        if (!cameraState) return;
+        viewer.camera.position = cameraState.position.clone();
+        viewer.camera.direction = cameraState.direction.clone();
+        viewer.camera.up = cameraState.up.clone();
+    }
+
+    function attachPanelLinkHandlers() {
+        attachNeighbourLinkHandlers('.satellite-id');
+        attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
+        attachNeighbourLinkHandlers('.cluster-member-table .satellite-id');
+        attachOrbitToggleRowHandlers('.neighbour-row');
+        attachOrbitToggleRowHandlers('.cluster-member-row');
+    }
+
+    function getHiddenPathIdsForMembers(members) {
+        return (members || [])
+            .filter((entity) => entity && !entity.path)
+            .map((entity) => String(entity.id));
+    }
+
+    function applyHiddenPathRows(hiddenPathIds) {
+        (hiddenPathIds || []).forEach((entityId) => {
+            document.querySelectorAll(`tr[data-id="${entityId}"]`).forEach((row) => {
+                row.classList.add('orbit-row-hidden');
+            });
+        });
+    }
+
+    function snapshotUniqueModeState() {
+        const searchResults = document.getElementById('searchResults');
+        const searchInput = document.getElementById('searchInput');
+        modeViewState.unique = {
+            initialized: true,
+            selectedOrbit: getSelectedOrbit(),
+            pathSnapshots: snapshotPathEntities(),
+            topBottomInfoBoxHTML: topBottomInfoBox.innerHTML,
+            topBottomInfoBoxDisplay: topBottomInfoBox.style.display,
+            searchResultsHTML: searchResults ? searchResults.innerHTML : '',
+            searchResultsDisplay: searchResults ? searchResults.style.display : 'none',
+            searchInput: searchInput ? searchInput.value : '',
+            camera: snapshotCamera(),
+        };
+    }
+
+    function restoreUniqueModeState() {
+        const state = modeViewState.unique;
+        hideCompressedInfo();
+        hideClusterMemberList();
+
+        if (state.selectedOrbit) {
+            setSelectedOrbit(state.selectedOrbit);
+        }
+
+        restorePathEntities(state.pathSnapshots);
+
+        topBottomInfoBox.innerHTML = state.topBottomInfoBoxHTML || '';
+        topBottomInfoBox.style.display = state.topBottomInfoBoxDisplay || 'none';
+
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) {
+            searchResults.innerHTML = state.searchResultsHTML || '';
+            searchResults.style.display = state.searchResultsDisplay || 'none';
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = state.searchInput || '';
+        }
+
+        attachPanelLinkHandlers();
+        restoreCamera(state.camera);
+    }
+
+    function snapshotClusterModeState() {
+        const searchResults = document.getElementById('searchResults');
+        const clusterSearchInput = document.getElementById('clusterSearchInput');
+        const members =
+            currentClusterLabel !== null
+                ? clusterLabelToEntities.get(currentClusterLabel) || []
+                : [];
+
+        modeViewState.clusters = {
+            initialized: true,
+            clusterLabel: currentClusterLabel,
+            highlightEntityId: currentClusterHighlightId,
+            category: getSelectedClusterCategory(),
+            hiddenPathIds: getHiddenPathIdsForMembers(members),
+            clusterMemberListHTML: clusterMemberListBox
+                ? clusterMemberListBox.innerHTML
+                : '',
+            clusterMemberListDisplay: clusterMemberListBox
+                ? clusterMemberListBox.style.display
+                : 'none',
+            searchResultsHTML: searchResults ? searchResults.innerHTML : '',
+            searchResultsDisplay: searchResults ? searchResults.style.display : 'none',
+            searchInput: clusterSearchInput ? clusterSearchInput.value : '',
+            camera: snapshotCamera(),
+        };
+    }
+
+    async function restoreClusterModeState() {
+        const state = modeViewState.clusters;
+        hideCompressedInfo();
+        topBottomInfoBox.style.display = 'none';
+
+        if (state.category) {
+            setSelectedClusterCategory(state.category);
+        }
+
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) {
+            searchResults.innerHTML = state.searchResultsHTML || '';
+            searchResults.style.display = state.searchResultsDisplay || 'none';
+        }
+
+        const clusterSearchInput = document.getElementById('clusterSearchInput');
+        if (clusterSearchInput) {
+            clusterSearchInput.value = state.searchInput || '';
+        }
+
+        rebuildClusterIndex();
+
+        if (state.clusterLabel !== null && clusterHasSyntheticPair(state.clusterLabel)) {
+            const highlight = state.highlightEntityId
+                ? getEntityFromId(state.highlightEntityId)
+                : null;
+            await displayClusterByLabel(state.clusterLabel, highlight, {
+                skipFlyTo: true,
+            });
+
+            const members = clusterLabelToEntities.get(state.clusterLabel) || [];
+            const hiddenSet = new Set(state.hiddenPathIds || []);
+            members.forEach((entity) => {
+                if (hiddenSet.has(String(entity.id)) && entity.path) {
+                    removeEntityPath(entity);
+                }
+            });
+            applyHiddenPathRows(state.hiddenPathIds);
+        } else if (clusterMemberListBox) {
+            clusterMemberListBox.innerHTML = state.clusterMemberListHTML || '';
+            clusterMemberListBox.style.display =
+                state.clusterMemberListDisplay || 'none';
+        }
+
+        attachPanelLinkHandlers();
+        restoreCamera(state.camera);
+    }
+
     function handleOrbitToggle() {
         // console.log("handleOrbitToggle called");
         removeEntities();
@@ -1249,35 +1485,63 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function enterClusteringPlaceholderView() {
-        // 1) Body mode class first so all CSS-tied chrome (side nav, rankings, search panels) updates in one reflow.
+        if (activeModelMode === 'unique') {
+            snapshotUniqueModeState();
+        }
+        activeModelMode = 'clusters';
+
         document.body.classList.remove('orbx-mode-unique', 'orbx-mode-clusters');
         document.body.classList.add('orbx-mode-clusters');
 
         hideCompressedInfo();
-        removeAllEntityPaths();
-        removeEntities();
         if (dataSource) {
             dataSource.show = true;
         }
-        const sr = document.getElementById('searchResults');
         topBottomInfoBox.style.display = 'none';
-        hideClusterMemberList();
-        if (sr) {
-            sr.style.display = 'none';
+
+        if (modeViewState.clusters.initialized) {
+            void restoreClusterModeState();
+        } else {
+            removeAllEntityPaths();
+            removeEntities();
+            hideClusterMemberList();
+            const sr = document.getElementById('searchResults');
+            if (sr) {
+                sr.style.display = 'none';
+            }
+            rebuildClusterIndex();
+            void pickAndShowRandomClusterForCategory(getSelectedClusterCategory()).then(
+                () => {
+                    if (currentClusterLabel !== null) {
+                        snapshotClusterModeState();
+                    }
+                }
+            );
         }
-        rebuildClusterIndex();
-        void pickAndShowRandomClusterForCategory(getSelectedClusterCategory());
+
         viewer.scene.requestRender();
         console.log('[OrbX] Switched to orbital clusters view.');
     }
 
     function enterUniqueOrbitsView() {
+        if (activeModelMode === 'clusters') {
+            snapshotClusterModeState();
+        }
+        activeModelMode = 'unique';
+
         document.body.classList.remove('orbx-mode-unique', 'orbx-mode-clusters');
         document.body.classList.add('orbx-mode-unique');
         if (dataSource) {
             dataSource.show = true;
         }
-        handleOrbitToggle();
+
+        if (modeViewState.unique.initialized) {
+            restoreUniqueModeState();
+        } else {
+            handleOrbitToggle();
+            snapshotUniqueModeState();
+        }
+
         viewer.scene.requestRender();
         console.log('[OrbX] Switched to unique orbits view.');
     }

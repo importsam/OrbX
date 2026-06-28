@@ -68,7 +68,7 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
 
     results = []
     groups = list(df.groupby(label_column, dropna=False))
-    for label, group in tqdm(groups, desc="Cluster density"):
+    for label, group in tqdm(groups, desc="Calculating cluster densities"):
         cluster_density = _cluster_density(group, verbose=verbose)
         results.append({"label": label, "density": cluster_density})
 
