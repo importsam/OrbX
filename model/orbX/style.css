@@ -273,7 +273,7 @@ body.orbx-mode-unique #clusterMemberListBox {
     position: absolute;
     bottom: 90px;
     right: 10px;
-    padding: 15px;
+    padding: 15px 15px 4px;
     background-color: none;
     border: none;
     border-radius: 8px;
@@ -285,6 +285,16 @@ body.orbx-mode-unique #clusterMemberListBox {
     max-height: 500px;
     overflow-y: auto;
     display: none;
+}
+
+#topBottomInfoBox .rankings-card:last-child,
+#clusterMemberListBox .rankings-card:last-child {
+    margin-bottom: 0;
+}
+
+#topBottomInfoBox .table-footer,
+#clusterMemberListBox .table-footer {
+    padding: 8px 20px 4px;
 }
 
 #searchResults {
