@@ -1,8 +1,7 @@
 import contextlib
 import io
-from src.orbx.clustering.Schema import Schema
-from src.orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
-from src.orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
+from orbx.clustering.Schema import Schema
+from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 import pandas as pd
 
 def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
@@ -10,6 +9,11 @@ def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
     cluster_size = len(df_cluster)
     if cluster_size < 2:
         return 0.0
+
+    # Import here is because of Orekit dependency
+    # Keeping it at top level requires an orekit installation even if you don't use
+    # it directly.
+    from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 
     if verbose:
         frechet_orbit_result = frechet_orbit(df_cluster)

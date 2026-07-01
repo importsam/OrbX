@@ -2,11 +2,8 @@ from collections.abc import Iterable
 import warnings
 import io
 from contextlib import redirect_stdout
-from src.orbx.clustering.Schema import Schema
+from orbx.clustering.Schema import Schema
 import pandas as pd
-
-from src.orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
-from src.orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_maximally_separated_orbit
 
 def synthetic_orbit(
     df: pd.DataFrame,
@@ -56,6 +53,11 @@ def synthetic_orbit(
         raise ValueError("n_samples must be >= 1")
 
     Schema().validate(df)
+
+    from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
+    from orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import (
+        get_maximally_separated_orbit,
+    )
 
     synthetic_rows = []
 

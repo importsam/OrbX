@@ -1,6 +1,6 @@
 import pandas as pd
 from sgp4.io import twoline2rv
-from sgp4.api import wgs72
+import sgp4.earth_gravity as earth_gravity
 
 REQUIRED_COLUMNS = {"line1", "line2"}
 
@@ -34,7 +34,7 @@ class Schema:
         
         for _, row in df.iterrows():
             try:
-                _ = twoline2rv(row['line1'], row['line2'], wgs72)
+                _ = twoline2rv(row['line1'], row['line2'], earth_gravity.wgs72)
             except ValueError as e:
                 raise ValueError(f"Invalid TLE format for TLE: {row['line1']}, {row['line2']}: {e}")
 
