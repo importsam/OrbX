@@ -4,7 +4,7 @@ import warnings
 from contextlib import redirect_stdout
 import numpy as np
 from .Core import Core
-
+from .Schema import Schema
 
 
 def cluster(
@@ -13,6 +13,13 @@ def cluster(
     min_cluster_size: int = 2,
     verbose: bool = False,
     ) -> np.ndarray:
+
+
+    # Handle input validation 
+    """ 
+    Core().cluster() is expecting a dataframe with the columns "line1" and "line2"
+    """
+    Schema().validate(df)
 
     if verbose:
         labels = Core().cluster(df, min_samples, min_cluster_size)

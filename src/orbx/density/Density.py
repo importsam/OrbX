@@ -1,10 +1,9 @@
 import contextlib
 import io
-
+from src.orbx.clustering.Schema import Schema
+from src.orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
+from src.orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 import pandas as pd
-
-from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
-from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
 def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
     """Calculate variance-style density for one cluster DataFrame."""
@@ -50,8 +49,8 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
     """
     Compute density per label group and return a summary DataFrame.
 
-    Parameters
-    ----------
+    Arguments
+    _______________
     df : pd.DataFrame
         DataFrame containing orbit rows and a label column.
     label_column : str
@@ -59,11 +58,7 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
     verbose : bool
         If True, print optimizer diagnostics while computing Fréchet means.
     """
-    required_columns = {label_column, "line1", "line2"}
-    missing_columns = required_columns - set(df.columns)
-    if missing_columns:
-        missing = ", ".join(sorted(missing_columns))
-        raise ValueError(f"DataFrame is missing required columns: {missing}")
+    Schema().validate(df)
 
     results = []
     for label, group in df.groupby(label_column, dropna=False):

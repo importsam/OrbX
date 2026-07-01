@@ -25,7 +25,13 @@ class HDBSCANWrapper:
         labels = clusterer.fit_predict(distance_matrix)
 
         unique_clusters = set(labels) - {-1}
-        if len(unique_clusters) < 2:
-            raise RuntimeError("HDBSCAN found less than 2 clusters")
-        
+        n_clusters = len(unique_clusters)
+        if n_clusters < 2:
+            n_orbits = len(labels)
+            n_noise = int(np.sum(labels == -1))
+            raise ValueError(
+                f"HDBSCAN produced {n_clusters} cluster(s) from {n_orbits} orbit(s) "
+                f"({n_noise} marked as noise). Adjust your dataset or tune the HDBSCAN parameters."
+            )
+
         return labels
