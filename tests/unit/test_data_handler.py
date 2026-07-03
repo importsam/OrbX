@@ -9,7 +9,7 @@ def test_tle_to_keplerian_preserves_row_count(two_satellite_tle_df):
 
     assert len(enriched) == len(two_satellite_tle_df)
     assert enriched.iloc[0]["satNo"] == "25544"
-    assert enriched.iloc[1]["satNo"] == "43013"
+    assert enriched.iloc[1]["satNo"] == "58979"
 
 
 def test_tle_to_keplerian_adds_expected_columns(two_satellite_tle_df):
