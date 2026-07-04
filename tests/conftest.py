@@ -1,5 +1,10 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+THREE_LE_PATH = REPO_ROOT / "3le_1126"
 
 ISS_LINE1 = "1 25544U 98067A   26182.50817465  .00006185  00000-0  11827-3 0  9997"
 ISS_LINE2 = "2 25544  51.6311 229.1989 0004224 255.0896 104.9625 15.49503254573972"
