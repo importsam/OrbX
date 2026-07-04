@@ -20,19 +20,19 @@ OrbX is designed for workflows such as:
 
 ## Installation
 
-OrbX requires [orekit](https://gitlab.orekit.org/orekit-labs/python-wrapper), which must be installed via Conda before installing OrbX:
-
 ```bash
-conda install -c conda-forge orekit
 pip install orbx
 ```
 
 **Requirements:**
 
 - Python `3.9+`
-- `orekit` (via Conda — not available on PyPI)
 
-> **Note:** `orekit` is a Java-based astrodynamics library with no PyPI distribution. The Conda step is required even if you otherwise manage your environment with pip.
+> **Note:** [orekit](https://gitlab.orekit.org/orekit-labs/python-wrapper) is required for `density()` and `synthetic_orbit()`. Orekit is not pip installable, so install it via Conda if needed:
+>
+> ```bash
+> conda install -c conda-forge orekit
+> ```
 
 ---
 
