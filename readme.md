@@ -203,7 +203,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | Ref | Resource                   | Link                                                                                                                                                             |
 | --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [1] | scikit-learn `HDBSCAN` API | [https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html) |
-| [2] | OrbX conference paper      | [https://utexas.app.box.com/v/26space-traffic-conference/file/2126683483061](https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf)         |
+| [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf)         |
 | [3] | Two-line element set (TLE) | [https://en.wikipedia.org/wiki/Two-line_element_set](https://en.wikipedia.org/wiki/Two-line_element_set)                                                         |
 
 
