@@ -1,8 +1,5 @@
 # OrbX
 
-NOTE: This repository is still under construction. A local pip install will work, but not otherwise. Please check back in a week time. Thank you
-
-
 OrbX is a Python toolkit for orbital capacity analysis. It clusters orbits based on geometrical similarity using Keplerian elements (excluding mean motion), generates representative synthetic orbits for each cluster, and computes a density score that helps quantify how tightly packed different orbital neighbourhoods are.
 
 This project was developed as part of the following paper:
@@ -10,7 +7,7 @@ This project was developed as part of the following paper:
 > **OrbX: A Framework for Orbital Capacity Management**  
 > Sam White, Samya Bagchi, Yasir Latif  
 > 12th Annual Space Traffic Management Conference, Austin TX, February 2026  
-> [Paper link](https://utexas.app.box.com/v/26space-traffic-conference/file/2126683483061)
+> [Paper link](https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf)
 
 OrbX is designed for workflows such as:
 

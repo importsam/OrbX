@@ -5,8 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "orbx"
 version = "1.0.0"
-description = "Satellite orbit similarity clustering using HDBSCAN"
+description = "Satellite orbit similarity clustering, density estimation, and synthetic orbit generation."
 requires-python = ">=3.9"
+readme = "readme.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Sam White", email = "sam.m.whit3@gmail.com" }]
 dependencies = [
     "pandas",
     "numpy",
