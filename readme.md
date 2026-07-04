@@ -20,7 +20,7 @@ OrbX is designed for workflows such as:
 
 ## Installation
 
-OrbX requires `[orekit](https://gitlab.orekit.org/orekit-labs/python-wrapper)`, which must be installed via Conda before installing OrbX:
+OrbX requires [orekit](https://gitlab.orekit.org/orekit-labs/python-wrapper), which must be installed via Conda before installing OrbX:
 
 ```bash
 conda install -c conda-forge orekit
