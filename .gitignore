@@ -5,3 +5,8 @@ __pycache__/
 orbx.egg-info/
 test_package.py
 *.zip
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
