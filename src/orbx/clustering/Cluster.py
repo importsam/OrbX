@@ -14,6 +14,22 @@ def cluster(
     verbose: bool = False,
     ) -> np.ndarray:
 
+    """
+    Arguments
+    ----------
+    df: pandas.DataFrame
+        This should contain the TLEs you want to cluster (at a minimum). Your df should contain
+        a "line1" and "line2" in each row, corresponding to a satellite.
+    min_samples: int, default 3
+        HDBSCAN minimum samples parameter. Refer to HDBSCAN documentation for more details.
+    min_cluster_size: int, default 2
+        HDBSCAN minimum cluster size parameter. Refer to HDBSCAN documentation for more details.
+    verbose: bool, default False
+        If ``True``, print internal clustering progress and allow warnings.
+        If ``False`` (default), suppress stdout and ``FutureWarning`` noise.
+    """
+
+
 
     # Handle input validation 
     """ 

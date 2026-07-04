@@ -3,5 +3,7 @@ __pycache__/
 *.png
 .gitignore
 orbx.egg-info/
+dist/
+build/
 test_package.py
 *.zip

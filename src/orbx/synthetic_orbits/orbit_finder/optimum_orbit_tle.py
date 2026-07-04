@@ -157,5 +157,5 @@ def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
     print(fittedTLE.getLine1())
     print(fittedTLE.getLine2())
 
-    # return (fittedTLE.getLine1(), fittedTLE.getLine2())
-    return (templateTLE.getLine1(), templateTLE.getLine2())
+    return (fittedTLE.getLine1(), fittedTLE.getLine2())
+    # return (templateTLE.getLine1(), templateTLE.getLine2())

@@ -56,7 +56,9 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
     Arguments
     _______________
     df : pd.DataFrame
-        DataFrame containing orbit rows and a label column.
+        Each row should contain the satellite TLE and the cluster label it belongs to (at a minimum). Your df should contain
+        a "line1", "line2", and "label" in each row, corresponding to a satellite. If missing label, 
+        use cluster() to assign a label.
     label_column : str
         Name of the cluster label column. Defaults to "label".
     verbose : bool
