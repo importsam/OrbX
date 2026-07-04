@@ -16,7 +16,6 @@ dependencies = [
     "matplotlib",
     "plotly",
     "scikit-learn",
-    "dbcv @ git+https://github.com/FelSiq/DBCV",
     "s-dbw",
     "viasckde"
 ]
