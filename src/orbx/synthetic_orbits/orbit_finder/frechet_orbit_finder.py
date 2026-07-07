@@ -95,24 +95,6 @@ def calculate_average_epoch(df):
     return datetime.fromtimestamp(average_timestamp, timezone.utc)
 
 
-def circular_bounds(angles, pad=0.0):
-    angles = np.mod(np.asarray(angles, dtype=float), 2 * np.pi)
-    sorted_angles = np.sort(angles)
-    n = len(sorted_angles)
-
-    gaps = np.diff(sorted_angles)
-    wraparound_gap = (sorted_angles[0] + 2 * np.pi) - sorted_angles[-1]
-    all_gaps = np.append(gaps, wraparound_gap)
-    max_gap_idx = np.argmax(all_gaps)
-
-    if max_gap_idx == n - 1:
-        lo, hi = sorted_angles[0], sorted_angles[-1]
-    else:
-        lo = sorted_angles[max_gap_idx + 1]
-        hi = sorted_angles[max_gap_idx] + 2 * np.pi
-
-    return lo - pad, hi + pad
-
 def safe_bounds(lo, hi, eps=1e-9):
     if hi - lo < eps:
         return lo - eps / 2, hi + eps / 2
@@ -144,17 +126,8 @@ def optimize_frechet_kepler(all_keplers):
     omega_vals = [k[3] for k in all_keplers]
     raan_vals = [k[4] for k in all_keplers]
 
-    if max(omega_vals) - min(omega_vals) > np.pi:
-        min_omega, max_omega = circular_bounds(omega_vals)
-    else:
-        min_omega, max_omega = min(omega_vals), max(omega_vals)
-    min_omega, max_omega = safe_bounds(min_omega, max_omega)
-
-    if max(raan_vals) - min(raan_vals) > np.pi:
-        min_raan, max_raan = circular_bounds(raan_vals)
-    else:
-        min_raan, max_raan = min(raan_vals), max(raan_vals)
-    min_raan, max_raan = safe_bounds(min_raan, max_raan)
+    min_omega, max_omega = safe_bounds(min(omega_vals), max(omega_vals))
+    min_raan, max_raan = safe_bounds(min(raan_vals), max(raan_vals))
 
 
     lower_bounds = [min_a, min_e, min_i, min_omega, min_raan, 0.0]
