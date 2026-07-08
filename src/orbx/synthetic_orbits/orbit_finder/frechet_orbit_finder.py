@@ -94,6 +94,20 @@ def calculate_average_epoch(df):
     average_timestamp = sum(timestamps) / len(timestamps)
     return datetime.fromtimestamp(average_timestamp, timezone.utc)
 
+def safe_bounds(lo, hi, eps=1e-9):
+    if hi - lo < eps:
+        return lo - eps / 2, hi + eps / 2
+    return lo, hi
+
+def unwrap_to_ref(angle, ref):
+    return ((angle - ref + np.pi) % (2 * np.pi)) + ref - np.pi
+
+def shift_keplerian(k, omega_ref, raan_ref):
+    k_shifted = k.copy()
+    k_shifted[3] = unwrap_to_ref(k[3], omega_ref)
+    k_shifted[4] = unwrap_to_ref(k[4], raan_ref)
+    return k_shifted
+
 # ---------- main API ----------
 
 def optimize_frechet_kepler(all_keplers):
@@ -106,6 +120,7 @@ def optimize_frechet_kepler(all_keplers):
 
     # bounds
     all_keplers = list(all_keplers)
+    
     min_a = min(k[0] for k in all_keplers)
     min_e = min(k[1] for k in all_keplers)
     min_i = min(k[2] for k in all_keplers)
@@ -113,11 +128,38 @@ def optimize_frechet_kepler(all_keplers):
     max_e = max(k[1] for k in all_keplers)
     max_i = max(k[2] for k in all_keplers)
     
-    min_omega = min(k[3] for k in all_keplers)
-    min_raan = min(k[4] for k in all_keplers)
-    max_omega = max(k[3] for k in all_keplers)
-    max_raan = max(k[4] for k in all_keplers)
+    # min_omega = min(k[3] for k in all_keplers)
+    # min_raan = min(k[4] for k in all_keplers)
+    # max_omega = max(k[3] for k in all_keplers)
+    # max_raan = max(k[4] for k in all_keplers)
+    
+    # apply safe bounds check for equal bounds values
+    min_a, max_a = safe_bounds(min_a, max_a)
+    min_e, max_e = safe_bounds(min_e, max_e)
+    min_i, max_i = safe_bounds(min_i, max_i)
 
+    """
+    There's no starting point on a circle. 
+    if two angles neighbour on 359 and 1 degree, there's a massive difference when 
+    the circle treated as a straight line. We find the center of the cluster on this line
+    and cut it at the opposite end. This addresses the wraparound issue.
+    """
+    # # Angle wraparound resolution 
+    omega_vals = [k[3] for k in all_keplers]
+    raan_vals = [k[4] for k in all_keplers]
+    # # get omega and raan reference angles as just the mean
+    omega_ref = np.arctan2(np.mean(np.sin(omega_vals)), np.mean(np.cos(omega_vals)))
+    raan_ref = np.arctan2(np.mean(np.sin(raan_vals)), np.mean(np.cos(raan_vals)))
+
+    
+    all_keplers_shifted = [shift_keplerian(k, omega_ref, raan_ref) for k in all_keplers]
+    
+    omega_vals_shifted = [k[3] for k in all_keplers_shifted]
+    raan_vals_shifted = [k[4] for k in all_keplers_shifted]
+    
+    min_omega, max_omega = safe_bounds(min(omega_vals_shifted), max(omega_vals_shifted))
+    min_raan, max_raan = safe_bounds(min(raan_vals_shifted), max(raan_vals_shifted))
+    
     lower_bounds = [min_a, min_e, min_i, min_omega, min_raan, 0.0]
     upper_bounds = [max_a, max_e, max_i, max_omega, max_raan, 2 * np.pi]
 
@@ -125,14 +167,17 @@ def optimize_frechet_kepler(all_keplers):
     best_result = None
     best_cost = np.inf
 
-    for initial_guess in all_keplers:
+    for initial_guess in all_keplers_shifted:
         result = find_optimum_keplerian(initial_guess, all_keplers, lower_bounds, upper_bounds)
         print(f"Cost for initial guess {initial_guess[:5]}: {result.cost:.6f}")
         if result.cost < best_cost:
             best_cost = result.cost
             best_result = result.x
 
-    optimum_keplerian = best_result
+    optimum_keplerian = best_result.copy()
+    optimum_keplerian[3] %= (2 * np.pi)
+    optimum_keplerian[4] %= (2 * np.pi)
+    
     print(
         "Optimized Keplerian Elements: "
         "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f; v: %.6f;}"
