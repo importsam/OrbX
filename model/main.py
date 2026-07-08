@@ -20,7 +20,7 @@ def _norm_norad(x) -> str:
 
 
 # None = all non-noise clusters. Use this for testing on a smaller number of clusters first before scaling.
-CLUSTER_SAMPLE_SIZE = None
+CLUSTER_SAMPLE_SIZE = 0
 
 if __name__ == '__main__':
     # builds the czml files

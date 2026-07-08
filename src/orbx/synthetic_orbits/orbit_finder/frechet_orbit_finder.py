@@ -94,12 +94,6 @@ def calculate_average_epoch(df):
     average_timestamp = sum(timestamps) / len(timestamps)
     return datetime.fromtimestamp(average_timestamp, timezone.utc)
 
-
-def safe_bounds(lo, hi, eps=1e-9):
-    if hi - lo < eps:
-        return lo - eps / 2, hi + eps / 2
-    return lo, hi
-
 # ---------- main API ----------
 
 def optimize_frechet_kepler(all_keplers):
@@ -115,20 +109,14 @@ def optimize_frechet_kepler(all_keplers):
     min_a = min(k[0] for k in all_keplers)
     min_e = min(k[1] for k in all_keplers)
     min_i = min(k[2] for k in all_keplers)
-    # min_omega = min(k[3] for k in all_keplers)
-    # min_raan = min(k[4] for k in all_keplers)
     max_a = max(k[0] for k in all_keplers)
     max_e = max(k[1] for k in all_keplers)
     max_i = max(k[2] for k in all_keplers)
-    # max_omega = max(k[3] for k in all_keplers)
-    # max_raan = max(k[4] for k in all_keplers)
-
-    omega_vals = [k[3] for k in all_keplers]
-    raan_vals = [k[4] for k in all_keplers]
-
-    min_omega, max_omega = safe_bounds(min(omega_vals), max(omega_vals))
-    min_raan, max_raan = safe_bounds(min(raan_vals), max(raan_vals))
-
+    
+    min_omega = min(k[3] for k in all_keplers)
+    min_raan = min(k[4] for k in all_keplers)
+    max_omega = max(k[3] for k in all_keplers)
+    max_raan = max(k[4] for k in all_keplers)
 
     lower_bounds = [min_a, min_e, min_i, min_omega, min_raan, 0.0]
     upper_bounds = [max_a, max_e, max_i, max_omega, max_raan, 2 * np.pi]
