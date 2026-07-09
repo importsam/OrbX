@@ -130,18 +130,20 @@ document.addEventListener("DOMContentLoaded", async function() {
             const uniquenessStr = (typeof uniqueness === 'number')
                 ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
                 : "N/A";
-            let clusterLine = '';
+            let detailLine = '';
             if (document.body.classList.contains('orbx-mode-clusters')) {
+                detailLine = `<strong>Role:</strong> ${getClusterRoleLabel(entity, now)} <br>`;
                 const cl = getClusterLabelFromEntity(entity, now);
                 if (cl !== null && cl !== -1) {
-                    clusterLine = `<strong>Cluster ID:</strong> ${cl} <br>`;
+                    detailLine += `<strong>Cluster ID:</strong> ${cl} <br>`;
                 }
+            } else {
+                detailLine = `<strong>Uniqueness:</strong> ${uniquenessStr} <br>`;
             }
             infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
                     <strong>NORAD ID:</strong> ${entity.id} <br>
                     <strong>Name:</strong> ${entity.name || "N/A"} <br>
-                    <strong>Uniqueness:</strong> ${uniquenessStr} <br>
-                    ${clusterLine}
+                    ${detailLine}
                 </div>`;
         } else {
             infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
@@ -340,6 +342,13 @@ document.addEventListener("DOMContentLoaded", async function() {
             return normalized;
         }
         return null;
+    }
+
+    function getClusterRoleLabel(entity, time) {
+        const synthType = getSyntheticTypeFromEntity(entity, time);
+        if (synthType === 'frechet') return 'Fréchet Mean';
+        if (synthType === 'max_separation') return 'Max-separation';
+        return 'Member';
     }
 
     /** Cluster mode: both Fréchet and max-separation synthetics exist for this label. */
@@ -1056,13 +1065,11 @@ document.addEventListener("DOMContentLoaded", async function() {
     function generateClusterMemberRow(entity, index, highlightEntity) {
         const now = Cesium.JulianDate.now();
         const synthType = getSyntheticTypeFromEntity(entity, now);
-        let roleLabel = 'Member';
+        let roleLabel = getClusterRoleLabel(entity, now);
         let roleClass = 'cluster-role-member';
         if (synthType === 'frechet') {
-            roleLabel = 'Fréchet Mean';
             roleClass = 'cluster-role-frechet';
         } else if (synthType === 'max_separation') {
-            roleLabel = 'Max-separation';
             roleClass = 'cluster-role-maxsep';
         }
         const isHighlight =
