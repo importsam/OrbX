@@ -80,8 +80,8 @@ html, body, #cesiumContainer {
     top: 10px;
     right: 10px;
     z-index: 10010;
-    pointer-events: auto;
-    display: flex;
+    pointer-events: none;
+    display: none;
     flex-direction: column;
     gap: 8px;
     padding: 10px 14px;
@@ -93,6 +93,11 @@ html, body, #cesiumContainer {
     font-size: 13px;
     color: #e8eaef;
     max-width: 220px;
+}
+
+.model-mode-panel.is-ready {
+    display: flex;
+    pointer-events: auto;
 }
 
 .model-mode-panel-title {

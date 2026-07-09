@@ -43,8 +43,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     wireViewerResize(viewer);
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
     const clusterMemberListBox = document.getElementById('clusterMemberListBox');
+    const modelModePanel = document.getElementById('modelModePanel');
     document.body.classList.add('orbx-mode-unique');
-    wireModelModeRadios();
 
     // on load or refresh, clear the search bars
     document.getElementById('searchInput').value = '';
@@ -87,6 +87,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
 
         loadingScreen.style.display = 'none';
+        if (modelModePanel) {
+            modelModePanel.classList.add('is-ready');
+        }
+        wireModelModeRadios();
         viewer.resize();
 
         const urlParams = new URLSearchParams(window.location.search);
