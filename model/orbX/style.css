@@ -3,7 +3,14 @@
     --orbx-ui-scale: 0.67;
 }
 
-html {
+/* Scale UI chrome only — never zoom html/body or Cesium breaks orbit picking */
+#sideNav,
+.model-mode-panel,
+#topBottomInfoBox,
+#clusterMemberListBox,
+#searchResults,
+#legendContainer,
+#openNavBtn {
     zoom: var(--orbx-ui-scale);
 }
 
