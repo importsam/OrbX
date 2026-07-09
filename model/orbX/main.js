@@ -932,6 +932,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         "20580 (HST)"
     ];
 
+    const clusterPlaceholders = [
+        "57070 (STARLINK)",
+        "12230 (DELTA 1 DEB)",
+        "47971 (GLOBAL-9)",
+        "28494 (ESSAIM-1)",
+        "24893 (SL-3 DEB)",
+        "39769 (RISING 2)"
+    ];
+
     let index = 0;
 
     setInterval(() => {
@@ -997,8 +1006,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (document.activeElement !== clusterSearchInput && clusterSearchInput.value.trim() === "") {
                 clusterFakePlaceholder.classList.add("fade-out");
                 setTimeout(() => {
-                    clusterFakePlaceholder.textContent = placeholders[clusterPlaceholderIndex];
-                    clusterPlaceholderIndex = (clusterPlaceholderIndex + 1) % placeholders.length;
+                    clusterFakePlaceholder.textContent = clusterPlaceholders[clusterPlaceholderIndex];
+                    clusterPlaceholderIndex = (clusterPlaceholderIndex + 1) % clusterPlaceholders.length;
                     clusterFakePlaceholder.classList.remove("fade-out");
                 }, 500);
             }
