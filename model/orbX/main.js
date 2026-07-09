@@ -637,12 +637,19 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     });
 
+    function clearClusterCategoryRadios() {
+        ['radio-micro', 'radio-minor', 'radio-major', 'radio-mega'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = false;
+        });
+    }
+
     function getSelectedClusterCategory() {
         if (document.getElementById('radio-micro').checked) return 'micro';
         if (document.getElementById('radio-minor').checked) return 'minor';
         if (document.getElementById('radio-major').checked) return 'major';
         if (document.getElementById('radio-mega').checked) return 'mega';
-        return 'micro';
+        return null;
     }
 
     function clusterCategoryFromRadioId(radioId) {
@@ -777,6 +784,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             rebuildClusterIndex();
 
             if (searchId.toLowerCase() === 'random') {
+                clearClusterCategoryRadios();
                 const clusterId = pickRandomClusterLabelAny();
                 if (clusterId === null) {
                     alert(
@@ -1286,10 +1294,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function setSelectedClusterCategory(category) {
-        ['radio-micro', 'radio-minor', 'radio-major', 'radio-mega'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.checked = false;
-        });
+        clearClusterCategoryRadios();
+        if (!category) return;
         const target = document.getElementById(`radio-${category}`);
         if (target) target.checked = true;
     }
@@ -1527,13 +1533,20 @@ document.addEventListener("DOMContentLoaded", async function() {
                 sr.style.display = 'none';
             }
             rebuildClusterIndex();
-            void pickAndShowRandomClusterForCategory(getSelectedClusterCategory()).then(
-                () => {
-                    if (currentClusterLabel !== null) {
-                        snapshotClusterModeState();
-                    }
+            const initialCategory = getSelectedClusterCategory();
+            const showInitialCluster = initialCategory
+                ? pickAndShowRandomClusterForCategory(initialCategory)
+                : (() => {
+                    const clusterId = pickRandomClusterLabelAny();
+                    return clusterId !== null
+                        ? displayClusterByLabel(clusterId)
+                        : Promise.resolve();
+                })();
+            void showInitialCluster.then(() => {
+                if (currentClusterLabel !== null) {
+                    snapshotClusterModeState();
                 }
-            );
+            });
         }
 
         viewer.scene.requestRender();
