@@ -503,6 +503,25 @@ button:hover {
     gap: 15px;
     margin-top: 15px;
 }
+
+/* Cluster category: keep 2×2 until the panel is very narrow */
+.orbx-cluster-controls .orbit-section {
+    container-type: inline-size;
+}
+
+.orbx-cluster-controls .orbit-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container (max-width: 200px) {
+    .orbx-cluster-controls .orbit-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+.orbx-cluster-controls .orbit-option {
+    justify-self: start;
+}
   
 .orbit-option {
     display: flex;
