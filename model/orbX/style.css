@@ -10,7 +10,8 @@
 #clusterMemberListBox,
 #searchResults,
 #legendContainer,
-#openNavBtn {
+#openNavBtn,
+#infoBox {
     zoom: var(--orbx-ui-scale);
 }
 
