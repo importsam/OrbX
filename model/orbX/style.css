@@ -320,7 +320,7 @@ body.orbx-mode-unique #clusterMemberListBox {
     position: absolute;
     bottom: 90px;
     right: 10px;
-    padding: 15px 15px 4px;
+    padding: 15px 15px 10px;
     background-color: none;
     border: none;
     border-radius: 8px;
@@ -336,12 +336,17 @@ body.orbx-mode-unique #clusterMemberListBox {
 
 #topBottomInfoBox .rankings-card:last-child,
 #clusterMemberListBox .rankings-card:last-child {
-    margin-bottom: 0;
+    margin-bottom: 4px;
 }
 
 #topBottomInfoBox .table-footer,
 #clusterMemberListBox .table-footer {
-    padding: 8px 20px 4px;
+    padding: 8px 20px 10px;
+}
+
+#topBottomInfoBox .rankings-table tbody tr:last-child td,
+#clusterMemberListBox .rankings-table tbody tr:last-child td {
+    padding-bottom: 16px;
 }
 
 #searchResults {
@@ -367,7 +372,7 @@ body.orbx-mode-unique #clusterMemberListBox {
 }
 
 #searchResults .neighbour-list-table-footer {
-    padding: 8px 20px 4px;
+    padding: 8px 20px 10px;
 }
 
 #openNavBtn {
@@ -724,7 +729,7 @@ tr.orbit-row-hidden .satellite-id {
 .table-footer {
     font-size: 0.75rem;
     color: #888;
-    padding: 10px 20px;
+    padding: 10px 20px 12px;
     text-align: right;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -838,10 +843,14 @@ tr.orbit-row-hidden .satellite-id {
     box-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
 }
   
+.neighbour-list-rankings-table tbody tr:last-child td {
+    padding-bottom: 16px;
+}
+
 .neighbour-list-table-footer {
     font-size: 0.75rem;
     color: #888;
-    padding: 10px 20px;
+    padding: 10px 20px 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
