@@ -1,6 +1,6 @@
 :root {
     /* Match browser zoom ~67% at 100% — tune this single value to taste */
-    --orbx-ui-scale: 0.67;
+    --orbx-ui-scale: 0.603;
 }
 
 /* Scale UI chrome only — never zoom html/body or Cesium breaks orbit picking */
