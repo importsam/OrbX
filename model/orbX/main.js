@@ -130,31 +130,29 @@ document.addEventListener("DOMContentLoaded", async function() {
             const uniquenessStr = (typeof uniqueness === 'number')
                 ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
                 : "N/A";
-            let detailLine = '';
+            let detailLines = '';
             if (document.body.classList.contains('orbx-mode-clusters')) {
-                detailLine = `<strong>Role:</strong> ${getClusterRoleLabel(entity, now)} <br>`;
+                detailLines = `<div><strong>Role:</strong> ${getClusterRoleLabel(entity, now)}</div>`;
                 const cl = getClusterLabelFromEntity(entity, now);
                 if (cl !== null && cl !== -1) {
-                    detailLine += `<strong>Cluster ID:</strong> ${cl} <br>`;
+                    detailLines += `<div><strong>Cluster ID:</strong> ${cl}</div>`;
                 }
             } else {
-                detailLine = `<strong>Uniqueness:</strong> ${uniquenessStr} <br>`;
+                detailLines = `<div><strong>Uniqueness:</strong> ${uniquenessStr}</div>`;
             }
-            infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">
-                    <strong>NORAD ID:</strong> ${entity.id} <br>
-                    <strong>Name:</strong> ${entity.name || "N/A"} <br>
-                    ${detailLine}
+            infoBox.innerHTML = `<div class="infoBox-hover-content">
+                    <div><strong>NORAD ID:</strong> ${entity.id}</div>
+                    <div><strong>Name:</strong> ${entity.name || "N/A"}</div>
+                    ${detailLines}
                 </div>`;
         } else {
-            infoBox.innerHTML = `<div style="padding: 5px 10px; white-space: nowrap;">Entity ID: ${entityId}</div>`;
+            infoBox.innerHTML = `<div class="infoBox-hover-content">Entity ID: ${entityId}</div>`;
         }
         
-        // Ensure the infoBox resizes to fit its content.
+        infoBox.classList.add('infoBox--hover');
         infoBox.style.display = 'inline-block';
         infoBox.style.position = 'absolute';
-        infoBox.style.fontSize = '12px';
-        infoBox.style.width = '10%';
-        infoBox.style.zIndex = '9999'; // Bring the info box to the front
+        infoBox.style.zIndex = '9999';
     
         // Initially position the infoBox to the right and below the cursor.
         infoBox.style.left = (mousePosition.x + offset) + 'px';
@@ -182,6 +180,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     function hideCompressedInfo() {
         infoBox.style.display = 'none';
         infoBox.innerHTML = '';
+        infoBox.classList.remove('infoBox--hover');
     }
 
     // // Re-enable left-click so that when a satellite is clicked, its orbit is toggled.

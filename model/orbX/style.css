@@ -10,8 +10,7 @@
 #clusterMemberListBox,
 #searchResults,
 #legendContainer,
-#openNavBtn,
-#infoBox {
+#openNavBtn {
     zoom: var(--orbx-ui-scale);
 }
 
@@ -163,6 +162,46 @@ body.orbx-mode-unique #clusterMemberListBox {
 #infoBox:hover {
     transform: scale(1.05);
     max-height: 85vh;
+}
+
+#infoBox.infoBox--hover {
+    top: auto;
+    right: auto;
+    margin: 0;
+    padding: 6px 11px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14);
+    background: rgba(255, 255, 255, 0.97);
+    max-height: none;
+    width: auto;
+    font-size: 9px;
+    line-height: 1.55;
+    letter-spacing: 0.01em;
+    transition: none;
+    display: inline-block;
+    flex-direction: unset;
+}
+
+#infoBox.infoBox--hover:hover {
+    transform: none;
+    max-height: none;
+}
+
+#infoBox.infoBox--hover strong {
+    display: inline;
+    font-size: inherit;
+    color: #3a3a3a;
+    margin-top: 0;
+    margin-right: 2px;
+    font-weight: 600;
+}
+
+.infoBox-hover-content {
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
 #infoBox strong {
