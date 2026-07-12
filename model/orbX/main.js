@@ -488,16 +488,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     const SYNTHETIC_PATH_COLOR_FRECHET = Cesium.Color.RED;
     const SYNTHETIC_PATH_COLOR_MAX_SEPARATION = Cesium.Color.BLUE;
 
-    function getPathColorForClusterEntity(entity, highlightEntity) {
+    function getPathColorForClusterEntity(entity, _highlightEntity) {
         const now = Cesium.JulianDate.now();
         const synthType = getSyntheticTypeFromEntity(entity, now);
         if (synthType === 'frechet') return SYNTHETIC_PATH_COLOR_FRECHET;
         if (synthType === 'max_separation') return SYNTHETIC_PATH_COLOR_MAX_SEPARATION;
-
-        const memberColor = Cesium.Color.fromCssColorString('#20c997');
-        const hl =
-            highlightEntity && String(entity.id) === String(highlightEntity.id);
-        return hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor;
+        return Cesium.Color.fromCssColorString('#20c997');
     }
 
     async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
@@ -846,7 +842,10 @@ document.addEventListener("DOMContentLoaded", async function() {
                         `</div>`;
                     searchResults.style.display = 'block';
                 }
-                showEntityPath(searchedEntity, Cesium.Color.BLUE);
+                showEntityPath(
+                    searchedEntity,
+                    Cesium.Color.fromCssColorString('#20c997')
+                );
                 await viewer.flyTo(searchedEntity, {
                     duration: 2,
                     offset: new Cesium.HeadingPitchRange(
