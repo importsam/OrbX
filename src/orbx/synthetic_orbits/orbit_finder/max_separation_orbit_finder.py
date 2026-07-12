@@ -112,6 +112,20 @@ def evaluate_max_separation_orbit(max_separation_kepler, kepler_list, eps=1e-12)
     }
 
 
+def safe_bounds(lo, hi, eps=1e-9):
+    if hi - lo < eps:
+        return lo - eps / 2, hi + eps / 2
+    return lo, hi
+
+def unwrap_to_ref(angle, ref):
+    return ((angle - ref + np.pi) % (2 * np.pi)) + ref - np.pi
+
+def shift_keplerian(k, omega_ref, raan_ref):
+    k_shifted = k.copy()
+    k_shifted[3] = unwrap_to_ref(k[3], omega_ref)
+    k_shifted[4] = unwrap_to_ref(k[4], raan_ref)
+    return k_shifted
+
 def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
     all_keplers = [get_keplerian_array_from_tle(row) for _, row in df.iterrows()]
     if len(all_keplers) < 2:
@@ -121,13 +135,29 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
     min_a = min(k[0] for k in all_keplers)
     min_e = min(k[1] for k in all_keplers)
     min_i = min(k[2] for k in all_keplers)
-    min_omega = min(k[3] for k in all_keplers)
-    min_raan = min(k[4] for k in all_keplers)
     max_a = max(k[0] for k in all_keplers)
     max_e = max(k[1] for k in all_keplers)
     max_i = max(k[2] for k in all_keplers)
-    max_omega = max(k[3] for k in all_keplers)
-    max_raan = max(k[4] for k in all_keplers)
+    
+    # apply safe bounds check for equal bounds values
+    min_a, max_a = safe_bounds(min_a, max_a)
+    min_e, max_e = safe_bounds(min_e, max_e)
+    min_i, max_i = safe_bounds(min_i, max_i)
+    
+    # # Angle wraparound resolution 
+    omega_vals = [k[3] for k in all_keplers]
+    raan_vals = [k[4] for k in all_keplers]
+    # # get omega and raan reference angles as just the mean
+    omega_ref = np.arctan2(np.mean(np.sin(omega_vals)), np.mean(np.cos(omega_vals)))
+    raan_ref = np.arctan2(np.mean(np.sin(raan_vals)), np.mean(np.cos(raan_vals)))
+
+    all_keplers_shifted = [shift_keplerian(k, omega_ref, raan_ref) for k in all_keplers]
+    
+    omega_vals_shifted = [k[3] for k in all_keplers_shifted]
+    raan_vals_shifted = [k[4] for k in all_keplers_shifted]
+    
+    min_omega, max_omega = safe_bounds(min(omega_vals_shifted), max(omega_vals_shifted))
+    min_raan, max_raan = safe_bounds(min(raan_vals_shifted), max(raan_vals_shifted))
 
     bounds = [
         (min_a, max_a),
@@ -138,10 +168,16 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
         (0.0, 2 * np.pi),
     ]
 
-    x0, r0 = sample_maxmin(all_keplers, bounds, n_samples=n_samples)
+    x0, r0 = sample_maxmin(all_keplers_shifted, bounds, n_samples=n_samples)
     print(f"Best sampled max_separation radius: {r0:.6f}")
 
-    x_star, r_star = refine_maxmin(x0, all_keplers, bounds)
+    x_star, r_star = refine_maxmin(x0, all_keplers_shifted, bounds)
+    
+    x_star = x_star.copy()
+    x_star[3] %= (2 * np.pi)
+    x_star[4] %= (2 * np.pi)
+    
+    
     print(f"Refined max_separation radius: {r_star:.6f}")
     print(
         "Maximally separated Keplerian Elements: "
