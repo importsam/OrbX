@@ -192,7 +192,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 
 | Demo                                                                 | Description                                                                     |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Unique Orbits (k-NN) Cesium Model](https://orbx.spaceprotocol.org/) | 3D Cesium visualisation of orbital neighbourhoods and uniqueness across regimes |
+| [OrbX Cesium Demonstration](https://importsam.github.io/OrbX/demo/) | 3D Cesium visualisation composed of an orbital neighbourhood uniqueness model and an orbital cluster and synthetic orbit model |
 
 
 ---
