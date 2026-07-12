@@ -17,42 +17,50 @@ def getPos(dSeconds, satrec, julianDate):
     
     return satrec.sgp4(julianDate + days, fraction)[1]
 
-def get_posvcs(TLE_LINE1, TLE_LINE2, only_one_period = True):
-    
+def get_posvcs(TLE_LINE1, TLE_LINE2, only_one_period=True):
     satrec = Satrec.twoline2rv(TLE_LINE1, TLE_LINE2)
     julianDate = satrec.jdsatepoch
-    
-    #getPos = lambda dSeconds: satrec.sgp4(julianDate, (dSeconds / 86400))[1]
-    getLat = lambda position: np.degrees(np.arctan2(position[2], np.sqrt(position[0]**2 + position[1]**2)))
+
+    getLat = lambda position: np.degrees(
+        np.arctan2(position[2], np.sqrt(position[0] ** 2 + position[1] ** 2))
+    )
     getLon = lambda position: np.degrees(np.arctan2(position[1], position[0]))
-    getAlt = lambda position: ((np.sqrt(position[0]**2 + position[1]**2 + position[2]**2) - 6371) * 1000)
+    getAlt = lambda position: ((np.sqrt(position[0] ** 2 + position[1] ** 2 + position[2] ** 2) - 6371) * 1000)
 
     positions = []
     coord_list = []
-    
-    mean_motion = satrec.no_kozai # radians per minute
-    periodInMinutes = np.pi * 2  / mean_motion
+
+    mean_motion = satrec.no_kozai  # radians per minute
+    periodInMinutes = (np.pi * 2) / mean_motion
     periodInSeconds = int(periodInMinutes * 60)
-    
-    if only_one_period:
-        time_limit = periodInSeconds
-    else:
-        time_limit = 86400
-    
+
+    time_limit = periodInSeconds if only_one_period else 86400
     stepSeconds = 600
-    
-    for dSeconds in range(0, time_limit + stepSeconds , stepSeconds):
+
+    # Sample [0, step, 2*step, ...) strictly before time_limit so we never
+    # go past one period, then close exactly at time_limit with the start pose.
+    for dSeconds in range(0, time_limit, stepSeconds):
         position = getPos(dSeconds, satrec, julianDate)
         positions.append(position)
-        lat = getLat(position)
-        lon = getLon(position)
-        alt = getAlt(position)
-        coord_list.extend([dSeconds, lon, lat, alt])
-    
-    if only_one_period:
-        coord_list.extend([periodInSeconds, getLon(positions[0]), getLat(positions[0]), getAlt(positions[0])])
-        
-    
+        coord_list.extend([dSeconds, getLon(position), getLat(position), getAlt(position)])
+
+    if only_one_period and positions:
+        coord_list.extend(
+            [
+                periodInSeconds,
+                getLon(positions[0]),
+                getLat(positions[0]),
+                getAlt(positions[0]),
+            ]
+        )
+    else:
+        # Day-long path: include the final sample at time_limit if not already hit.
+        if not coord_list or coord_list[-4] != time_limit:
+            position = getPos(time_limit, satrec, julianDate)
+            coord_list.extend(
+                [time_limit, getLon(position), getLat(position), getAlt(position)]
+            )
+
     return positions, coord_list
 
 def build_czml_live(df):
