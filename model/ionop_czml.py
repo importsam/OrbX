@@ -95,9 +95,7 @@ def ionop_czml(ACCESSTOKEN, folder):
 
 if __name__ == '__main__':
     ACCESSTOKEN_live = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkYjlmZDMxMy1lY2RmLTQyMDMtYTZhZS0wMmY4MzcyZDc4ZGEiLCJpZCI6MjQwODIwLCJpYXQiOjE3NzcxOTU0NTB9.M5SBzZZAebNNCMhZbSUqozkEm8LIul3abqANtS8URrU'
-    # ACCESSTOKEN_dev =  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI2YWY0OTU2MS03MDAyLTQ4ZmEtODI5MS0xN2ViMzQ3YTk3ZWIiLCJpZCI6Mjc0OTU4LCJpYXQiOjE3MzkyMzQ0MTB9.rCI2auPnYvNIVg-ypkDtLrPnA9U7Cq0v-Bxqj_duQ2c'
     try:
         ionop_czml(ACCESSTOKEN_live, 'live')
-        # ionop_czml(ACCESSTOKEN_dev, 'dev')
     except Exception as e:
         print(f"Error: {e}")
