@@ -1,19 +1,17 @@
 import contextlib
 import io
-from orbx.clustering.Schema import Schema
-from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
+
 import pandas as pd
+from tqdm import tqdm
+
+from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
+from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
 def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
     """Calculate variance-style density for one cluster DataFrame."""
     cluster_size = len(df_cluster)
     if cluster_size < 2:
         return 0.0
-
-    # Import here is because of Orekit dependency
-    # Keeping it at top level requires an orekit installation even if you don't use
-    # it directly.
-    from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 
     if verbose:
         frechet_orbit_result = frechet_orbit(df_cluster)
@@ -53,21 +51,24 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
     """
     Compute density per label group and return a summary DataFrame.
 
-    Arguments
-    _______________
+    Parameters
+    ----------
     df : pd.DataFrame
-        Each row should contain the satellite TLE and the cluster label it belongs to (at a minimum). Your df should contain
-        a "line1", "line2", and "label" in each row, corresponding to a satellite. If missing label, 
-        use cluster() to assign a label.
+        DataFrame containing orbit rows and a label column.
     label_column : str
         Name of the cluster label column. Defaults to "label".
     verbose : bool
         If True, print optimizer diagnostics while computing Fréchet means.
     """
-    Schema().validate(df)
+    required_columns = {label_column, "line1", "line2"}
+    missing_columns = required_columns - set(df.columns)
+    if missing_columns:
+        missing = ", ".join(sorted(missing_columns))
+        raise ValueError(f"DataFrame is missing required columns: {missing}")
 
     results = []
-    for label, group in df.groupby(label_column, dropna=False):
+    groups = list(df.groupby(label_column, dropna=False))
+    for label, group in tqdm(groups, desc="Calculating cluster densities"):
         cluster_density = _cluster_density(group, verbose=verbose)
         results.append({"label": label, "density": cluster_density})
 
