@@ -1629,6 +1629,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Example function to update the topBottomInfoBox content
     function updateRankingsDisplay(topEntities, bottomEntities) {
         hideClusterMemberList();
+        hideUiPanel(document.getElementById('searchResults'));
         showUiPanel(topBottomInfoBox, renderRankings(topEntities, bottomEntities));
         attachNeighbourLinkHandlers('.satellite-id');
     }
