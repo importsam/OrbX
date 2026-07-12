@@ -14,6 +14,20 @@
     zoom: var(--orbx-ui-scale);
 }
 
+/* Avoid one-frame unstyled/unzoomed flash when panels first get content */
+#topBottomInfoBox,
+#clusterMemberListBox,
+#searchResults {
+    opacity: 0;
+    transition: opacity 0.14s ease;
+}
+
+#topBottomInfoBox.is-styled-ready,
+#clusterMemberListBox.is-styled-ready,
+#searchResults.is-styled-ready {
+    opacity: 1;
+}
+
 html, body, #cesiumContainer {
     width: 100%;
     height: 100%;
