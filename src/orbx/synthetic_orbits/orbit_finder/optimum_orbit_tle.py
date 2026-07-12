@@ -150,12 +150,12 @@ def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
     print(templateTLE.getLine2())
 
     # Generate the fitted TLE
-    fixedPoint = LeastSquaresTleGenerationAlgorithm()
-    fittedTLE = TLE.stateToTLE(initial_state, templateTLE, fixedPoint)
+    least_squares = LeastSquaresTleGenerationAlgorithm()
+    fittedTLE = TLE.stateToTLE(initial_state, templateTLE, least_squares)
     
     print("\nGenerated TLE:")
     print(fittedTLE.getLine1())
     print(fittedTLE.getLine2())
 
-    return (fittedTLE.getLine1(), fittedTLE.getLine2())
-    # return (templateTLE.getLine1(), templateTLE.getLine2())
+    # return (fittedTLE.getLine1(), fittedTLE.getLine2())
+    return (templateTLE.getLine1(), templateTLE.getLine2())
