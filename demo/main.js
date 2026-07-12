@@ -310,6 +310,30 @@ document.addEventListener("DOMContentLoaded", async function() {
         dataSource.entities.values.forEach(entity => entity.show = false);
     }
 
+    function hideUiPanel(panel) {
+        if (!panel) return;
+        panel.classList.remove('is-styled-ready');
+        panel.style.display = 'none';
+    }
+
+    /** Show a panel after layout so CSS zoom does not flash unscaled content. */
+    function showUiPanel(panel, html) {
+        if (!panel) return;
+        panel.classList.remove('is-styled-ready');
+        if (html !== undefined) {
+            panel.innerHTML = html;
+        }
+        panel.style.display = 'block';
+        void panel.offsetWidth;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (panel.style.display !== 'none') {
+                    panel.classList.add('is-styled-ready');
+                }
+            });
+        });
+    }
+
     /** Fréchet / max-separation rows in CZML (SYN_* ids or synthetic_type property). */
     function isSyntheticEntity(entity, time) {
         if (!entity) return false;
@@ -488,16 +512,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     const SYNTHETIC_PATH_COLOR_FRECHET = Cesium.Color.RED;
     const SYNTHETIC_PATH_COLOR_MAX_SEPARATION = Cesium.Color.BLUE;
 
-    function getPathColorForClusterEntity(entity, highlightEntity) {
+    function getPathColorForClusterEntity(entity, _highlightEntity) {
         const now = Cesium.JulianDate.now();
         const synthType = getSyntheticTypeFromEntity(entity, now);
         if (synthType === 'frechet') return SYNTHETIC_PATH_COLOR_FRECHET;
         if (synthType === 'max_separation') return SYNTHETIC_PATH_COLOR_MAX_SEPARATION;
-
-        const memberColor = Cesium.Color.fromCssColorString('#20c997');
-        const hl =
-            highlightEntity && String(entity.id) === String(highlightEntity.id);
-        return hl ? Cesium.Color.fromCssColorString('#00bfff') : memberColor;
+        return Cesium.Color.fromCssColorString('#20c997');
     }
 
     async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
@@ -610,7 +630,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     
         topEntities.forEach(entity => showEntityPath(entity, Cesium.Color.RED));
         bottomEntities.forEach(entity => showEntityPath(entity, Cesium.Color.GREEN));
-    
+
+        updateRankingsDisplay(topEntities, bottomEntities);
+
         // Zoom in on the displayed satellites
         await viewer.flyTo(
             [...topEntities, ...bottomEntities],
@@ -622,8 +644,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 )
             }
         );
-
-        updateRankingsDisplay(topEntities, bottomEntities);
     }
 
     // if there is a change in any of the orbit filter radios
@@ -733,25 +753,29 @@ document.addEventListener("DOMContentLoaded", async function() {
             }
 
             const searchResults = document.getElementById('searchResults');
-            topBottomInfoBox.style.display = 'none';
+            hideUiPanel(topBottomInfoBox);
             hideClusterMemberList();
 
             if (!neighbourEntities || neighbourEntities.length === 0) {
                 console.log("No neighbours found for NORAD ID: " + searchId);
                 if (searchResults) {
-                    searchResults.innerHTML = `<p>No neighbours found for NORAD ID: ${searchId}</p>`;
-                    searchResults.style.display = 'block';
+                    showUiPanel(
+                        searchResults,
+                        `<p>No neighbours found for NORAD ID: ${searchId}</p>`
+                    );
                 }
                 return;
             }
 
             if (searchResults) {
                 console.log("searchResults found");
-                searchResults.innerHTML = generateNeighbourSatelliteList({
-                    targetId: searchId,
-                    list: neighbourEntities,
-                });
-                searchResults.style.display = 'block';
+                showUiPanel(
+                    searchResults,
+                    generateNeighbourSatelliteList({
+                        targetId: searchId,
+                        list: neighbourEntities,
+                    })
+                );
                 attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
                 attachOrbitToggleRowHandlers('.neighbour-row');
             }
@@ -801,87 +825,57 @@ document.addEventListener("DOMContentLoaded", async function() {
             }
 
             const searchedEntity = dataSource.entities.getById(searchId);
+            const searchResults = document.getElementById('searchResults');
+            hideUiPanel(clusterMemberListBox);
+
+            const showNotInClusterModel = () => {
+                hideClusterMemberList();
+                hideUiPanel(topBottomInfoBox);
+                removeAllEntityPaths();
+                removeEntities();
+                if (searchResults) {
+                    showUiPanel(
+                        searchResults,
+                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                        `<strong>NORAD ${searchId}</strong> does not exist in the cluster model.<br>` +
+                        `This mode only includes satellites that exist in the 300-700km altitude range. ` +
+                        `Try the Unique orbits mode, or search a clustered NORAD ID.` +
+                        `</div>`
+                    );
+                }
+            };
+
             if (!searchedEntity) {
-                alert("NORAD ID not found in data source");
+                showNotInClusterModel();
                 return;
             }
 
             const now = Cesium.JulianDate.now();
             const lab = getClusterLabelFromEntity(searchedEntity, now);
 
-            const searchResults = document.getElementById('searchResults');
-            if (clusterMemberListBox) clusterMemberListBox.style.display = 'none';
+            if (lab === null || lab === -1) {
+                showNotInClusterModel();
+                return;
+            }
 
             removeAllEntityPaths();
             removeEntities();
 
-            if (lab === null || lab === -1) {
-                if (searchResults) {
-                    searchResults.innerHTML =
-                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                        `<strong>NORAD ${searchId}</strong><br>` +
-                        `Noise / unclustered — no cluster assignment (not shown).</div>`;
-                    searchResults.style.display = 'block';
-                }
-
-                const neighbourIds = searchedEntity.properties.neighbours?.getValue();
-                const neighbourEntities = [];
-                if (neighbourIds) {
-                    Object.values(neighbourIds).forEach(neighbourId => {
-                        const ne = dataSource.entities.getById(neighbourId);
-                        if (ne) neighbourEntities.push(ne);
-                    });
-                }
-
-                if (neighbourEntities.length === 0) {
-                    showEntityPath(searchedEntity, Cesium.Color.BLUE);
-                    await viewer.flyTo(searchedEntity, {
-                        duration: 2,
-                        offset: new Cesium.HeadingPitchRange(
-                            Cesium.Math.toRadians(0),
-                            Cesium.Math.toRadians(-90)
-                        )
-                    });
-                    return;
-                }
-
-                if (searchResults) {
-                    searchResults.innerHTML += generateNeighbourSatelliteList({
-                        targetId: searchId,
-                        list: neighbourEntities,
-                    });
-                    attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
-                    attachOrbitToggleRowHandlers('.neighbour-row');
-                }
-
-                neighbourEntities.forEach(neighbour =>
-                    showEntityPath(neighbour, Cesium.Color.YELLOW));
-                showEntityPath(searchedEntity, Cesium.Color.BLUE);
-
-                await viewer.flyTo(
-                    [...neighbourEntities, searchedEntity],
-                    {
-                        duration: 2,
-                        offset: new Cesium.HeadingPitchRange(
-                            Cesium.Math.toRadians(0),
-                            Cesium.Math.toRadians(-90)
-                        )
-                    }
-                );
-                return;
-            }
-
             if (!clusterHasSyntheticPair(lab)) {
                 if (searchResults) {
-                    searchResults.innerHTML =
+                    showUiPanel(
+                        searchResults,
                         `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
                         `<strong>NORAD ${searchId}</strong><br>` +
                         `Cluster ID: <strong>${lab}</strong><br>` +
                         `This cluster has no synthetic orbits in the dataset (Fréchet + max-separation not generated for this cluster).` +
-                        `</div>`;
-                    searchResults.style.display = 'block';
+                        `</div>`
+                    );
                 }
-                showEntityPath(searchedEntity, Cesium.Color.BLUE);
+                showEntityPath(
+                    searchedEntity,
+                    Cesium.Color.fromCssColorString('#20c997')
+                );
                 await viewer.flyTo(searchedEntity, {
                     duration: 2,
                     offset: new Cesium.HeadingPitchRange(
@@ -1060,10 +1054,23 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function hideClusterMemberList() {
+        hideUiPanel(clusterMemberListBox);
         if (clusterMemberListBox) {
-            clusterMemberListBox.style.display = 'none';
             clusterMemberListBox.innerHTML = '';
         }
+    }
+
+    function displayClusterMemberList(clusterLabel, members, highlightEntity) {
+        if (!clusterMemberListBox || !members || members.length === 0) return;
+
+        hideUiPanel(document.getElementById('searchResults'));
+
+        showUiPanel(
+            clusterMemberListBox,
+            renderClusterMemberList(clusterLabel, members, highlightEntity)
+        );
+        attachNeighbourLinkHandlers('.cluster-member-table .satellite-id');
+        attachOrbitToggleRowHandlers('.cluster-member-row');
     }
 
     function sortClusterMembersForList(members) {
@@ -1159,24 +1166,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         `;
     }
 
-    function displayClusterMemberList(clusterLabel, members, highlightEntity) {
-        if (!clusterMemberListBox || !members || members.length === 0) return;
-
-        const searchResults = document.getElementById('searchResults');
-        if (searchResults) {
-            searchResults.style.display = 'none';
-        }
-
-        clusterMemberListBox.innerHTML = renderClusterMemberList(
-            clusterLabel,
-            members,
-            highlightEntity
-        );
-        clusterMemberListBox.style.display = 'block';
-        attachNeighbourLinkHandlers('.cluster-member-table .satellite-id');
-        attachOrbitToggleRowHandlers('.cluster-member-row');
-    }
-
     function generateSatelliteList(satellites) {
         return `<ul style="padding-left: 20px; list-style-type: none;">
             ${satellites.map(satellite => {
@@ -1235,9 +1224,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     async function displayUniqueOrbitList() {
         console.log("displayUniqueOrbitList called");
         hideClusterMemberList();
-        // close the search results panel
-        const searchResults = document.getElementById('searchResults');
-        searchResults.style.display = 'none';
+        hideUiPanel(document.getElementById('searchResults'));
         
         const selectedOrbit = getSelectedOrbit();
         // get the top and bottom 5 entities
@@ -1248,12 +1235,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         let infoboxContent = `<h3><span class="box red"></span>5 Most Unique Orbits (${selectedOrbit})</h3>` + generateSatelliteList(topEntities);
         infoboxContent += `<h3><span class="box green"></span>5 Least Unique Orbits (${selectedOrbit})</h3>` + generateSatelliteList(bottomEntities);
     
-        const topBottomInfoBox = document.getElementById('topBottomInfoBox');
-        topBottomInfoBox.innerHTML = infoboxContent;
-        
-        
-        topBottomInfoBox.style.display = 'block';
-
+        showUiPanel(topBottomInfoBox, infoboxContent);
         attachNeighbourLinkHandlers('.satellite-id');
     }
 
@@ -1360,6 +1342,18 @@ document.addEventListener("DOMContentLoaded", async function() {
         viewer.camera.up = cameraState.up.clone();
     }
 
+    function restoreUiPanel(panel, html, display) {
+        if (!panel) return;
+        if (display === 'block') {
+            showUiPanel(panel, html || '');
+        } else {
+            if (html !== undefined) {
+                panel.innerHTML = html || '';
+            }
+            hideUiPanel(panel);
+        }
+    }
+
     function attachPanelLinkHandlers() {
         attachNeighbourLinkHandlers('.satellite-id');
         attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
@@ -1409,14 +1403,18 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         restorePathEntities(state.pathSnapshots);
 
-        topBottomInfoBox.innerHTML = state.topBottomInfoBoxHTML || '';
-        topBottomInfoBox.style.display = state.topBottomInfoBoxDisplay || 'none';
+        restoreUiPanel(
+            topBottomInfoBox,
+            state.topBottomInfoBoxHTML || '',
+            state.topBottomInfoBoxDisplay || 'none'
+        );
 
         const searchResults = document.getElementById('searchResults');
-        if (searchResults) {
-            searchResults.innerHTML = state.searchResultsHTML || '';
-            searchResults.style.display = state.searchResultsDisplay || 'none';
-        }
+        restoreUiPanel(
+            searchResults,
+            state.searchResultsHTML || '',
+            state.searchResultsDisplay || 'none'
+        );
 
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
@@ -1457,17 +1455,18 @@ document.addEventListener("DOMContentLoaded", async function() {
     async function restoreClusterModeState() {
         const state = modeViewState.clusters;
         hideCompressedInfo();
-        topBottomInfoBox.style.display = 'none';
+        hideUiPanel(topBottomInfoBox);
 
         if (state.category) {
             setSelectedClusterCategory(state.category);
         }
 
         const searchResults = document.getElementById('searchResults');
-        if (searchResults) {
-            searchResults.innerHTML = state.searchResultsHTML || '';
-            searchResults.style.display = state.searchResultsDisplay || 'none';
-        }
+        restoreUiPanel(
+            searchResults,
+            state.searchResultsHTML || '',
+            state.searchResultsDisplay || 'none'
+        );
 
         const clusterSearchInput = document.getElementById('clusterSearchInput');
         if (clusterSearchInput) {
@@ -1492,10 +1491,12 @@ document.addEventListener("DOMContentLoaded", async function() {
                 }
             });
             applyHiddenPathRows(state.hiddenPathIds);
-        } else if (clusterMemberListBox) {
-            clusterMemberListBox.innerHTML = state.clusterMemberListHTML || '';
-            clusterMemberListBox.style.display =
-                state.clusterMemberListDisplay || 'none';
+        } else {
+            restoreUiPanel(
+                clusterMemberListBox,
+                state.clusterMemberListHTML || '',
+                state.clusterMemberListDisplay || 'none'
+            );
         }
 
         attachPanelLinkHandlers();
@@ -1503,12 +1504,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function handleOrbitToggle() {
-        // console.log("handleOrbitToggle called");
         removeEntities();
-        showUniqueOrbits();
-        displayUniqueOrbitList();
-        //clear entities
-        
+        void showUniqueOrbits();
     }
 
     function enterClusteringPlaceholderView() {
@@ -1524,7 +1521,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (dataSource) {
             dataSource.show = true;
         }
-        topBottomInfoBox.style.display = 'none';
+        hideUiPanel(topBottomInfoBox);
 
         if (modeViewState.clusters.initialized) {
             void restoreClusterModeState();
@@ -1532,10 +1529,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             removeAllEntityPaths();
             removeEntities();
             hideClusterMemberList();
-            const sr = document.getElementById('searchResults');
-            if (sr) {
-                sr.style.display = 'none';
-            }
+            hideUiPanel(document.getElementById('searchResults'));
             rebuildClusterIndex();
             const initialCategory = getSelectedClusterCategory();
             const showInitialCluster = initialCategory
@@ -1635,9 +1629,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Example function to update the topBottomInfoBox content
     function updateRankingsDisplay(topEntities, bottomEntities) {
         hideClusterMemberList();
-        const topBottomInfoBox = document.getElementById('topBottomInfoBox');
-        topBottomInfoBox.innerHTML = renderRankings(topEntities, bottomEntities);
-        topBottomInfoBox.style.display = 'block';
+        hideUiPanel(document.getElementById('searchResults'));
+        showUiPanel(topBottomInfoBox, renderRankings(topEntities, bottomEntities));
         attachNeighbourLinkHandlers('.satellite-id');
     }
 
