@@ -801,75 +801,40 @@ document.addEventListener("DOMContentLoaded", async function() {
             }
 
             const searchedEntity = dataSource.entities.getById(searchId);
+            const searchResults = document.getElementById('searchResults');
+            if (clusterMemberListBox) clusterMemberListBox.style.display = 'none';
+
+            const showNotInClusterModel = () => {
+                hideClusterMemberList();
+                topBottomInfoBox.style.display = 'none';
+                removeAllEntityPaths();
+                removeEntities();
+                if (searchResults) {
+                    searchResults.innerHTML =
+                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
+                        `<strong>NORAD ${searchId}</strong> does not exist in the cluster model.<br>` +
+                        `This mode only includes satellites that exist in the 300-700km altitude range. ` +
+                        `Try the Unique orbits mode, or search a clustered NORAD ID.` +
+                        `</div>`;
+                    searchResults.style.display = 'block';
+                }
+            };
+
             if (!searchedEntity) {
-                alert("NORAD ID not found in data source");
+                showNotInClusterModel();
                 return;
             }
 
             const now = Cesium.JulianDate.now();
             const lab = getClusterLabelFromEntity(searchedEntity, now);
 
-            const searchResults = document.getElementById('searchResults');
-            if (clusterMemberListBox) clusterMemberListBox.style.display = 'none';
+            if (lab === null || lab === -1) {
+                showNotInClusterModel();
+                return;
+            }
 
             removeAllEntityPaths();
             removeEntities();
-
-            if (lab === null || lab === -1) {
-                if (searchResults) {
-                    searchResults.innerHTML =
-                        `<div style="padding:12px;background:rgba(30,30,30,0.85);color:#eee;border-radius:8px;max-width:420px;font-family:Arial,sans-serif;font-size:14px;">` +
-                        `<strong>NORAD ${searchId}</strong><br>` +
-                        `Noise / unclustered — no cluster assignment (not shown).</div>`;
-                    searchResults.style.display = 'block';
-                }
-
-                const neighbourIds = searchedEntity.properties.neighbours?.getValue();
-                const neighbourEntities = [];
-                if (neighbourIds) {
-                    Object.values(neighbourIds).forEach(neighbourId => {
-                        const ne = dataSource.entities.getById(neighbourId);
-                        if (ne) neighbourEntities.push(ne);
-                    });
-                }
-
-                if (neighbourEntities.length === 0) {
-                    showEntityPath(searchedEntity, Cesium.Color.BLUE);
-                    await viewer.flyTo(searchedEntity, {
-                        duration: 2,
-                        offset: new Cesium.HeadingPitchRange(
-                            Cesium.Math.toRadians(0),
-                            Cesium.Math.toRadians(-90)
-                        )
-                    });
-                    return;
-                }
-
-                if (searchResults) {
-                    searchResults.innerHTML += generateNeighbourSatelliteList({
-                        targetId: searchId,
-                        list: neighbourEntities,
-                    });
-                    attachNeighbourLinkHandlers('.neighbour-list-container .satellite-id');
-                    attachOrbitToggleRowHandlers('.neighbour-row');
-                }
-
-                neighbourEntities.forEach(neighbour =>
-                    showEntityPath(neighbour, Cesium.Color.YELLOW));
-                showEntityPath(searchedEntity, Cesium.Color.BLUE);
-
-                await viewer.flyTo(
-                    [...neighbourEntities, searchedEntity],
-                    {
-                        duration: 2,
-                        offset: new Cesium.HeadingPitchRange(
-                            Cesium.Math.toRadians(0),
-                            Cesium.Math.toRadians(-90)
-                        )
-                    }
-                );
-                return;
-            }
 
             if (!clusterHasSyntheticPair(lab)) {
                 if (searchResults) {
