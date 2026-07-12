@@ -128,11 +128,6 @@ def optimize_frechet_kepler(all_keplers):
     max_e = max(k[1] for k in all_keplers)
     max_i = max(k[2] for k in all_keplers)
     
-    # min_omega = min(k[3] for k in all_keplers)
-    # min_raan = min(k[4] for k in all_keplers)
-    # max_omega = max(k[3] for k in all_keplers)
-    # max_raan = max(k[4] for k in all_keplers)
-    
     # apply safe bounds check for equal bounds values
     min_a, max_a = safe_bounds(min_a, max_a)
     min_e, max_e = safe_bounds(min_e, max_e)
@@ -168,7 +163,7 @@ def optimize_frechet_kepler(all_keplers):
     best_cost = np.inf
 
     for initial_guess in all_keplers_shifted:
-        result = find_optimum_keplerian(initial_guess, all_keplers, lower_bounds, upper_bounds)
+        result = find_optimum_keplerian(initial_guess, all_keplers_shifted, lower_bounds, upper_bounds)
         print(f"Cost for initial guess {initial_guess[:5]}: {result.cost:.6f}")
         if result.cost < best_cost:
             best_cost = result.cost
