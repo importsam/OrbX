@@ -7,7 +7,7 @@ This project was developed as part of the following paper:
 > **OrbX: A Framework for Orbital Capacity Management**  
 > Sam White, Samya Bagchi, Yasir Latif  
 > 12th Annual Space Traffic Management Conference, Austin TX, February 2026  
-> [Paper link](https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf)
+> [Paper link](https://importsam.github.io/OrbX/paper/)
 
 OrbX is designed for workflows such as:
 
@@ -203,7 +203,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | Ref | Resource                   | Link                                                                                                                                                             |
 | --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [1] | scikit-learn `HDBSCAN` API | [https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html) |
-| [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf)         |
+| [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://importsam.github.io/OrbX/paper/)         |
 | [3] | Two-line element set (TLE) | [https://en.wikipedia.org/wiki/Two-line_element_set](https://en.wikipedia.org/wiki/Two-line_element_set)                                                         |
 
 
