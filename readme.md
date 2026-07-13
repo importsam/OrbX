@@ -18,6 +18,8 @@ OrbX is designed for workflows such as:
 
 ---
 
+
+
 ## Installation
 
 ```bash
@@ -35,6 +37,8 @@ pip install orbx
 > ```
 
 ---
+
+
 
 ## Quick Start
 
@@ -68,6 +72,8 @@ density_df = density(clustered_df)
 
 ---
 
+
+
 ## What OrbX Does
 
 OrbX exposes three core functions:
@@ -83,11 +89,15 @@ Generates one or more synthetic orbits for each non-noise cluster. Two modes are
 - `"frechet"` — computes a Fréchet mean orbit, which acts like a centroid in a non-Euclidean orbital metric space
 - `"max_separation"` — finds an orbit inside the cluster region that maximises separation from existing members, highlighting available space within the neighbourhood
 
+
+
 ### `density()`
 
-Computes a density score for each labelled cluster by measuring dispersion around the cluster's Fréchet mean orbit. Useful for ranking or comparing how concentrated orbital neighbourhoods are within.
+Computes a density score for each labelled cluster by measuring dispersion around the cluster's Fréchet mean orbit. Useful for ranking or comparing how concentrated orbital neighbourhoods are within. The smaller the value, the higher the density.
 
 ---
+
+
 
 ## Input Format
 
@@ -108,7 +118,11 @@ After clustering, add the returned labels back onto the DataFrame in a `label` c
 
 ---
 
+
+
 ## API Reference
+
+
 
 ### `cluster(df, min_samples=3, min_cluster_size=2, verbose=False)`
 
@@ -135,6 +149,8 @@ Groups similar TLEs into orbital neighbourhoods and returns one cluster label pe
 
 ---
 
+
+
 ### `synthetic_orbit(df, mode="max_separation", n_samples=5000, verbose=False)`
 
 Generates synthetic orbits for each cluster in a labelled DataFrame. Two modes are supported:
@@ -157,6 +173,8 @@ Generates synthetic orbits for each cluster in a labelled DataFrame. Two modes a
 
 ---
 
+
+
 ### `density(df, label_column="label", verbose=False)`
 
 Computes a density score for each cluster by measuring the spread of member orbits around the cluster's Fréchet mean orbit.
@@ -175,6 +193,8 @@ Computes a density score for each cluster by measuring the spread of member orbi
 
 ---
 
+
+
 ## Outputs
 
 
@@ -187,15 +207,19 @@ Computes a density score for each cluster by measuring the spread of member orbi
 
 ---
 
+
+
 ## Demo
 
 
-| Demo                                                                 | Description                                                                     |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Demo                                                                | Description                                                                                                                    |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | [OrbX Cesium Demonstration](https://importsam.github.io/OrbX/demo/) | 3D Cesium visualisation composed of an orbital neighbourhood uniqueness model and an orbital cluster and synthetic orbit model |
 
 
 ---
+
+
 
 ## References
 
@@ -203,7 +227,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | Ref | Resource                   | Link                                                                                                                                                             |
 | --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [1] | scikit-learn `HDBSCAN` API | [https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html) |
-| [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://importsam.github.io/OrbX/paper/)         |
+| [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://importsam.github.io/OrbX/paper/)               |
 | [3] | Two-line element set (TLE) | [https://en.wikipedia.org/wiki/Two-line_element_set](https://en.wikipedia.org/wiki/Two-line_element_set)                                                         |
 
 
