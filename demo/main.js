@@ -70,8 +70,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         const resource = await Cesium.IonResource.fromAssetId(assetId);
         dataSource = await Cesium.CzmlDataSource.load(resource);
         await viewer.dataSources.add(dataSource);
-        viewer.clock.currentTime = Cesium.JulianDate.now();
-        viewer.clock.multiplier = 50;
+        syncClockToDataAvailability();
+        // Fall back only if CZML had no availability window.
+        if (!dataSource.entities.values.some((e) => e.availability && e.availability.length)) {
+            viewer.clock.currentTime = Cesium.JulianDate.now();
+        }
+        viewer.clock.multiplier = 1;
 
         const step = 10;
 
@@ -224,8 +228,10 @@ document.addEventListener("DOMContentLoaded", async function() {
     // initialise the model
     removeEntities();
     document.getElementById('radio-leo').checked = true;
-    handleOrbitToggle();
-    snapshotUniqueModeState();
+    void (async () => {
+        await handleOrbitToggle();
+        snapshotUniqueModeState();
+    })();
 
     function syncOrbitRowVisibility(entityId) {
         const entity =
@@ -258,7 +264,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const orbit_color = color || entity.orbitColor || Cesium.Color.WHITE;
         // Store the color on the entity for later toggling.
         entity.orbitColor = orbit_color;
-        
+
         // Create or update the entity path with the correct color.
         if (entity.path) {
             entity.path.material = new Cesium.ColorMaterialProperty(orbit_color);
@@ -271,9 +277,15 @@ document.addEventListener("DOMContentLoaded", async function() {
                 width: 2
             });
         }
-        
+
+        // Historical OrbX pattern: temporarily host shown satellites on viewer.entities
+        // so path rendering + camera targeting stay consistent.
         if (!viewer.entities.contains(entity)) {
-            viewer.entities.add(entity);
+            try {
+                viewer.entities.add(entity);
+            } catch (_) {
+                // Entity may still belong to the CZML dataSource collection.
+            }
         }
         entity.show = true;
     }
@@ -281,7 +293,11 @@ document.addEventListener("DOMContentLoaded", async function() {
     function removeEntityPath(entity) {
         if (entity.path) {
             entity.path = undefined;
+        }
+        try {
             viewer.entities.remove(entity);
+        } catch (_) {
+            /* ignore */
         }
     }
 
@@ -292,22 +308,30 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
         dataSource.entities.values.forEach(entity => {
             if (entity.path) {
-                entity.path = undefined;    // remove path
-                viewer.entities.remove(entity); // remove entity from viewer
+                entity.path = undefined;
+            }
+            try {
+                viewer.entities.remove(entity);
+            } catch (_) {
+                /* ignore */
             }
         });
         highlightedEntities = [];
     }
 
     function removeEntities() {
-        // Clear any manually added orbit paths
-        viewer.entities.removeAll();
-
-        // Also hide dataSource entities if needed
+        try {
+            viewer.entities.removeAll();
+        } catch (_) {
+            /* ignore */
+        }
         if (!dataSource || !dataSource.entities) {
             return;
         }
-        dataSource.entities.values.forEach(entity => entity.show = false);
+        dataSource.entities.values.forEach(entity => {
+            entity.path = undefined;
+            entity.show = false;
+        });
     }
 
     function hideUiPanel(panel) {
@@ -330,6 +354,101 @@ document.addEventListener("DOMContentLoaded", async function() {
                 if (panel.style.display !== 'none') {
                     panel.classList.add('is-styled-ready');
                 }
+            });
+        });
+    }
+
+    function syncClockToDataAvailability() {
+        if (!dataSource) return;
+
+        if (dataSource.clock) {
+            dataSource.clock.getValue(viewer.clock);
+            return;
+        }
+
+        for (const entity of dataSource.entities.values) {
+            const availability = entity.availability;
+            if (!availability || availability.length === 0) continue;
+            const interval = availability.get(0);
+            if (!interval || !interval.start) continue;
+
+            const start = interval.start;
+            const stop = interval.stop;
+            const span = Math.max(
+                60,
+                Cesium.JulianDate.secondsDifference(stop, start)
+            );
+            // Sit a little into the window so sampled positions are available.
+            viewer.clock.currentTime = Cesium.JulianDate.addSeconds(
+                start,
+                Math.min(3600, span * 0.1),
+                new Cesium.JulianDate()
+            );
+            viewer.clock.startTime = start.clone();
+            viewer.clock.stopTime = stop.clone();
+            viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+            return;
+        }
+    }
+
+    function getEntityPositions(entities, time) {
+        const positions = [];
+        (entities || []).forEach((entity) => {
+            if (!entity || !entity.position || typeof entity.position.getValue !== 'function') {
+                return;
+            }
+            try {
+                const position = entity.position.getValue(time);
+                if (Cesium.defined(position)) {
+                    positions.push(position);
+                }
+            } catch (_) {
+                /* ignore */
+            }
+        });
+        return positions;
+    }
+
+    /**
+     * Always-on camera move for newly shown satellites.
+     * viewer.flyTo often no-ops when path bounding spheres aren't ready;
+     * flying to an explicit sphere from current positions is reliable.
+     */
+    async function flyToEntities(targets, options = {}) {
+        const entities = (Array.isArray(targets) ? targets : [targets]).filter(Boolean);
+        if (entities.length === 0) return;
+
+        viewer.resize();
+
+        let time = viewer.clock.currentTime;
+        let positions = getEntityPositions(entities, time);
+        if (positions.length === 0) {
+            // One frame later positions sometimes become available after show=true.
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+            time = viewer.clock.currentTime;
+            positions = getEntityPositions(entities, time);
+        }
+        if (positions.length === 0) {
+            console.warn('[OrbX] flyTo skipped — no entity positions at clock time');
+            return;
+        }
+
+        const bs = Cesium.BoundingSphere.fromPoints(positions);
+        // Position-only spheres are often tight for LEO / small clusters.
+        // Keep a higher floor so the framing stays more Earth-wide.
+        const range = Math.max(bs.radius * 4.5, 2.2e7);
+        const duration = options.duration ?? 1.5;
+
+        await new Promise((resolve) => {
+            viewer.camera.flyToBoundingSphere(bs, {
+                duration,
+                offset: new Cesium.HeadingPitchRange(
+                    0,
+                    Cesium.Math.toRadians(-90),
+                    range
+                ),
+                complete: resolve,
+                cancel: resolve,
             });
         });
     }
@@ -542,13 +661,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
         displayClusterMemberList(clusterLabel, members, highlightEntity);
         if (!options.skipFlyTo) {
-            await viewer.flyTo(members, {
-                duration: 2,
-                offset: new Cesium.HeadingPitchRange(
-                    Cesium.Math.toRadians(0),
-                    Cesium.Math.toRadians(-90)
-                )
-            });
+            await flyToEntities(members, { duration: 2 });
         }
     }
 
@@ -634,16 +747,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         updateRankingsDisplay(topEntities, bottomEntities);
 
         // Zoom in on the displayed satellites
-        await viewer.flyTo(
-            [...topEntities, ...bottomEntities],
-            {
-                duration: 1,
-                offset: new Cesium.HeadingPitchRange(
-                    Cesium.Math.toRadians(0),
-                    Cesium.Math.toRadians(-90),
-                )
-            }
-        );
+        await flyToEntities([...topEntities, ...bottomEntities], { duration: 1 });
     }
 
     // if there is a change in any of the orbit filter radios
@@ -655,8 +759,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     return;
                 }
                 console.log("radio change event");
-                removeEntities();
-                handleOrbitToggle();
+                void handleOrbitToggle();
             });
         }
     });
@@ -786,16 +889,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             neighbourEntities.forEach(neighbour => showEntityPath(neighbour, Cesium.Color.YELLOW));
             showEntityPath(searchedEntity, Cesium.Color.BLUE);
 
-            await viewer.flyTo(
-                [...neighbourEntities, searchedEntity],
-                {
-                    duration: 2,
-                    offset: new Cesium.HeadingPitchRange(
-                        Cesium.Math.toRadians(0),
-                        Cesium.Math.toRadians(-90)
-                    )
-                }
-            );
+            await flyToEntities([...neighbourEntities, searchedEntity], { duration: 2 });
 
             console.log("You should see results now");
         } catch (error) {
@@ -876,13 +970,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     searchedEntity,
                     Cesium.Color.fromCssColorString('#20c997')
                 );
-                await viewer.flyTo(searchedEntity, {
-                    duration: 2,
-                    offset: new Cesium.HeadingPitchRange(
-                        Cesium.Math.toRadians(0),
-                        Cesium.Math.toRadians(-90)
-                    )
-                });
+                await flyToEntities(searchedEntity, { duration: 2 });
                 return;
             }
 
@@ -1503,9 +1591,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         restoreCamera(state.camera);
     }
 
-    function handleOrbitToggle() {
+    async function handleOrbitToggle() {
         removeEntities();
-        void showUniqueOrbits();
+        await showUniqueOrbits();
     }
 
     function enterClusteringPlaceholderView() {
@@ -1566,8 +1654,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (modeViewState.unique.initialized) {
             restoreUniqueModeState();
         } else {
-            handleOrbitToggle();
-            snapshotUniqueModeState();
+            void handleOrbitToggle().then(() => {
+                snapshotUniqueModeState();
+            });
         }
 
         viewer.scene.requestRender();
