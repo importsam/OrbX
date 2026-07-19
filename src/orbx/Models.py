@@ -18,10 +18,3 @@ class Satellite:
     def __post_init__(self):
         # Normalize satellite number
         self.sat_no = str(self.sat_no).replace('.0', '').zfill(5)
-        
-        
-# @dataclass
-# class ClusterResult:
-#     labels: np.ndarray
-#     density_df: pd.DataFrame
-

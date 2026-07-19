@@ -1,10 +1,12 @@
-# frechet_orbit_finder.py
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import least_squares
 from sgp4.api import Satrec
 from datetime import datetime, timedelta, timezone
+
+""" 
+This file holds standalone functions for finding the frechet mean orbit for a cluster of orbits.
+"""
 
 try:
     from orekit.pyhelpers import datetime_to_absolutedate

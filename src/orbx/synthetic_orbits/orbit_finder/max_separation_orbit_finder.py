@@ -1,5 +1,3 @@
-# max_separation_orbit_finder.py
-
 import numpy as np
 import pandas as pd
 from sgp4.api import Satrec
