@@ -656,6 +656,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         currentClusterHighlightId = highlightEntity
             ? String(highlightEntity.id)
             : null;
+        // Keep size-band radios in sync when search/random lands on a cluster
+        // (category clicks already match; re-checking is harmless).
+        const tier = clusterSizeTier(getClusterRealMemberCount(members));
+        if (tier) {
+            setSelectedClusterCategory(tier);
+        }
         members.forEach((entity) => {
             showEntityPath(entity, getPathColorForClusterEntity(entity, highlightEntity));
         });
@@ -823,11 +829,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 searchId = realEntities[randomIndex].id;
             }
 
-            const radios = ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'];
-            radios.forEach(radio => {
-                document.getElementById(radio).checked = false;
-            });
-
             const searchedEntity = dataSource.entities.getById(searchId);
             if (!searchedEntity) {
                 alert("NORAD ID not found in data source");
@@ -839,6 +840,11 @@ document.addEventListener("DOMContentLoaded", async function() {
                     'Use Orbital clusters mode, or search a real NORAD ID.'
                 );
                 return;
+            }
+
+            const orbitClass = searchedEntity.properties.orbit_class?.getValue();
+            if (orbitClass) {
+                setSelectedOrbit(orbitClass);
             }
 
             const neighbourIds = searchedEntity.properties.neighbours?.getValue();
@@ -906,7 +912,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             rebuildClusterIndex();
 
             if (searchId.toLowerCase() === 'random') {
-                clearClusterCategoryRadios();
                 const clusterId = pickRandomClusterLabelAny();
                 if (clusterId === null) {
                     alert(
