@@ -13,8 +13,8 @@ OrbX is designed for workflows such as:
 
 - grouping similar resident space objects into orbital neighbourhoods/clusters
 - identifying representative reference orbits for a cluster
-- finding the most geometrically isolated orbit within a neighbourhood
-- comparing cluster density
+- identifying the most geometrically isolated orbit within a neighbourhood
+- calculating cluster density
 
 ---
 
