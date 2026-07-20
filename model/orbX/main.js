@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     viewer.scene.sun = new Cesium.Sun();
     viewer.scene.moon = new Cesium.Moon();
     wireViewerResize(viewer);
+    wireTrackpadPinchZoom(viewer);
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
     const clusterMemberListBox = document.getElementById('clusterMemberListBox');
     const modelModePanel = document.getElementById('modelModePanel');
@@ -1793,4 +1794,66 @@ function wireViewerResize(viewer) {
     const resize = () => viewer.resize();
     window.addEventListener('resize', resize);
     requestAnimationFrame(() => requestAnimationFrame(resize));
+}
+
+/**
+ * Laptop trackpads usually expose pinch as ctrl+wheel (Chrome/Edge/Firefox)
+ * or Safari gesture* events — not Cesium's touch PINCH. Map those to camera zoom
+ * so pinch/spread works more like Google Earth.
+ */
+function wireTrackpadPinchZoom(viewer) {
+    const canvas = viewer.scene.canvas;
+    if (!canvas) return;
+
+    const zoomFromDelta = (deltaY) => {
+        const camera = viewer.camera;
+        const cartographic = camera.positionCartographic;
+        const height = cartographic
+            ? Math.max(cartographic.height, 1.0)
+            : Math.max(Cesium.Cartesian3.magnitude(camera.position), 1.0);
+        // Scale with altitude so pinch feels consistent from LEO to global views.
+        const amount = Math.abs(deltaY) * height * 0.0025;
+        if (amount <= 0) return;
+        // Browser convention: positive deltaY = pinch-in = zoom out.
+        if (deltaY > 0) {
+            camera.zoomOut(amount);
+        } else {
+            camera.zoomIn(amount);
+        }
+        viewer.scene.requestRender();
+    };
+
+    canvas.addEventListener(
+        'wheel',
+        (event) => {
+            // Trackpad pinch is reported as a wheel event with ctrlKey set.
+            if (!event.ctrlKey && !event.metaKey) return;
+            event.preventDefault();
+            event.stopPropagation();
+            zoomFromDelta(event.deltaY);
+        },
+        { passive: false, capture: true }
+    );
+
+    // Safari (and some WebKit builds) use gesture events for trackpad pinch.
+    let lastGestureScale = 1;
+    const onGestureStart = (event) => {
+        event.preventDefault();
+        lastGestureScale = event.scale || 1;
+    };
+    const onGestureChange = (event) => {
+        event.preventDefault();
+        const scale = event.scale || 1;
+        const ratio = scale / (lastGestureScale || 1);
+        lastGestureScale = scale;
+        if (!Number.isFinite(ratio) || ratio === 1) return;
+        // Convert scale ratio to a wheel-like delta: spread (ratio>1) → zoom in.
+        const deltaY = (1 - ratio) * 120;
+        zoomFromDelta(deltaY);
+    };
+    canvas.addEventListener('gesturestart', onGestureStart, { passive: false });
+    canvas.addEventListener('gesturechange', onGestureChange, { passive: false });
+    canvas.addEventListener('gestureend', (event) => event.preventDefault(), {
+        passive: false,
+    });
 }
