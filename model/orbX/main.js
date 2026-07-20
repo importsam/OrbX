@@ -1197,12 +1197,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         const rowClass = isHighlight
             ? 'cluster-member-row cluster-member-row-highlight neighbour-row'
             : 'cluster-member-row neighbour-row';
+        // Keep the real CZML entity id in data-id for path toggles; show 99999 for synthetics.
+        const displayNorad = isSyntheticEntity(entity, now) ? '99999' : entity.id;
 
         return `
             <tr class="${rowClass}" data-id="${entity.id}">
                 <td>${index + 1}</td>
                 <td class="${roleClass}">${roleLabel}</td>
-                <td><a href="#" class="satellite-id" data-id="${entity.id}">${entity.id}</a></td>
+                <td><a href="#" class="satellite-id" data-id="${entity.id}">${displayNorad}</a></td>
                 <td class="sat-name">${entity.name || 'N/A'}</td>
             </tr>
         `;
