@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     let dataSource;
     let highlightedEntities = [];
+    let visibleOrbitEntities = [];
     const clusterLabelToEntities = new Map();
     const modeViewState = {
         unique: { initialized: false },
@@ -64,6 +65,10 @@ document.addEventListener("DOMContentLoaded", async function() {
     let activeModelMode = 'unique';
     let currentClusterLabel = null;
     let currentClusterHighlightId = null;
+
+    function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
     try {
         const latestAsset = await fetchLatestAsset();
         const assetId = latestAsset.id;
@@ -91,7 +96,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             });
         }
 
-        loadingScreen.style.display = 'none';
         if (modelModePanel) {
             modelModePanel.classList.add('is-ready');
         }
@@ -104,7 +108,15 @@ document.addEventListener("DOMContentLoaded", async function() {
             performSearch(idFromURL);
         }
 
-        dataSource.entities.values.forEach(entity => entity.show = false);
+        dataSource.entities.values.forEach(entity => {
+            entity.show = false;
+            // Orbits-only view: never keep live trails or point markers.
+            if (!String(entity.id || '').endsWith('-orbit-ring')) {
+                entity.path = undefined;
+                entity.point = undefined;
+            }
+        });
+        rebuildClusterIndex();
 
     } catch (error) {
         console.log(error);
@@ -149,8 +161,9 @@ document.addEventListener("DOMContentLoaded", async function() {
             } else {
                 detailLines = `<div><strong>Uniqueness:</strong> ${uniquenessStr}</div>`;
             }
+            const displayNorad = formatHoverNoradId(entity, now);
             infoBox.innerHTML = `<div class="infoBox-hover-content">
-                    <div><strong>NORAD ID:</strong> ${entity.id}</div>
+                    <div><strong>NORAD ID:</strong> ${displayNorad}</div>
                     <div><strong>Name:</strong> ${entity.name || "N/A"}</div>
                     ${detailLines}
                 </div>`;
@@ -232,14 +245,23 @@ document.addEventListener("DOMContentLoaded", async function() {
     void (async () => {
         await handleOrbitToggle();
         snapshotUniqueModeState();
+        // Keep the loading screen up briefly after orbits are ready.
+        await delay(3000);
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
     })();
+
+    function isOrbitVisible(entity) {
+        return !!(entity && entity.orbxOrbitVisible);
+    }
 
     function syncOrbitRowVisibility(entityId) {
         const entity =
             dataSource && dataSource.entities && dataSource.entities.getById
                 ? dataSource.entities.getById(entityId)
                 : null;
-        const isVisible = !!(entity && entity.path);
+        const isVisible = isOrbitVisible(entity);
         document.querySelectorAll(`tr[data-id="${entityId}"]`).forEach((row) => {
             row.classList.toggle('orbit-row-hidden', !isVisible);
         });
@@ -251,7 +273,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             ? dataSource.entities.getById(entityId)
             : null;
         if (!entity) return;
-        if (entity.path) {
+        if (isOrbitVisible(entity)) {
             removeEntityPath(entity);
         } else {
             showEntityPath(entity, color);
@@ -260,78 +282,96 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     window.toggleOrbit = toggleOrbit;
 
+    function getOrbitRingEntity(entity) {
+        if (!entity || !dataSource || !dataSource.entities) return null;
+        const id = String(entity.id || '');
+        if (!id || id.endsWith('-orbit-ring')) return null;
+        // Synthetics carry the orbit polyline on the SYN_* entity itself.
+        if (id.startsWith('SYN_') && entity.polyline) return entity;
+        return dataSource.entities.getById(`${id}-orbit-ring`) || null;
+    }
+
+    function setOrbitRingVisible(entity, visible, color) {
+        const ring = getOrbitRingEntity(entity);
+        if (!ring) return;
+        ring.show = !!visible;
+        if (ring.polyline) {
+            ring.polyline.show = !!visible;
+            if (visible && color) {
+                ring.polyline.material = new Cesium.ColorMaterialProperty(color);
+                ring.polyline.width = 2;
+            }
+        }   
+    }
+
     function showEntityPath(entity, color=undefined) {
         // Use the passed color, or the saved color, otherwise default to white.
         const orbit_color = color || entity.orbitColor || Cesium.Color.WHITE;
         // Store the color on the entity for later toggling.
         entity.orbitColor = orbit_color;
 
-        // Create or update the entity path with the correct color.
-        if (entity.path) {
-            entity.path.material = new Cesium.ColorMaterialProperty(orbit_color);
-            entity.path.width = 2;
-            entity.path.show = true;
-        } else {
-            entity.path = new Cesium.PathGraphics({
-                show: true,
-                material: new Cesium.ColorMaterialProperty(orbit_color),
-                width: 2
-            });
+        // Orbits only: strip live trails and point markers.
+        entity.path = undefined;
+        entity.point = undefined;
+        if (entity.billboard) {
+            entity.billboard = undefined;
+        }
+        if (entity.label) {
+            entity.label = undefined;
         }
 
-        // Historical OrbX pattern: temporarily host shown satellites on viewer.entities
-        // so path rendering + camera targeting stay consistent.
-        if (!viewer.entities.contains(entity)) {
-            try {
-                viewer.entities.add(entity);
-            } catch (_) {
-                // Entity may still belong to the CZML dataSource collection.
-            }
-        }
+        // Frozen common-epoch orbit ring = shape comparison geometry.
+        setOrbitRingVisible(entity, true, orbit_color);
+        entity.orbxOrbitVisible = true;
         entity.show = true;
+        if (!visibleOrbitEntities.includes(entity)) {
+            visibleOrbitEntities.push(entity);
+        }
     }
 
     function removeEntityPath(entity) {
+        if (!entity) return;
         if (entity.path) {
             entity.path = undefined;
         }
-        try {
-            viewer.entities.remove(entity);
-        } catch (_) {
-            /* ignore */
-        }
+        entity.orbxOrbitVisible = false;
+        setOrbitRingVisible(entity, false);
+        entity.show = false;
+        visibleOrbitEntities = visibleOrbitEntities.filter((e) => e !== entity);
     }
 
     function removeAllEntityPaths() {
-        if (!dataSource || !dataSource.entities) {
-            highlightedEntities = [];
-            return;
-        }
-        dataSource.entities.values.forEach(entity => {
+        const pending = visibleOrbitEntities.slice();
+        visibleOrbitEntities = [];
+        pending.forEach((entity) => {
+            if (!entity) return;
             if (entity.path) {
                 entity.path = undefined;
             }
-            try {
-                viewer.entities.remove(entity);
-            } catch (_) {
-                /* ignore */
-            }
+            entity.orbxOrbitVisible = false;
+            setOrbitRingVisible(entity, false);
+            entity.show = false;
         });
         highlightedEntities = [];
     }
 
     function removeEntities() {
-        try {
-            viewer.entities.removeAll();
-        } catch (_) {
-            /* ignore */
-        }
+        removeAllEntityPaths();
         if (!dataSource || !dataSource.entities) {
             return;
         }
         dataSource.entities.values.forEach(entity => {
             entity.path = undefined;
-            entity.show = false;
+            entity.orbxOrbitVisible = false;
+            if (String(entity.id || '').endsWith('-orbit-ring')) {
+                entity.show = false;
+                if (entity.polyline) {
+                    entity.polyline.show = false;
+                }
+            } else {
+                setOrbitRingVisible(entity, false);
+                entity.show = false;
+            }
         });
     }
 
@@ -359,19 +399,41 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    function syncClockToDataAvailability() {
-        if (!dataSource) return;
-
-        if (dataSource.clock) {
-            dataSource.clock.getValue(viewer.clock);
-            return;
+    function getEntityAvailabilityInterval(entity) {
+        if (!entity || !entity.availability || entity.availability.length === 0) {
+            return null;
         }
+        const interval = entity.availability.get(0);
+        if (!interval || !interval.start) return null;
+        return interval;
+    }
 
-        for (const entity of dataSource.entities.values) {
-            const availability = entity.availability;
-            if (!availability || availability.length === 0) continue;
-            const interval = availability.get(0);
-            if (!interval || !interval.start) continue;
+    /**
+     * Jump viewer clock into a shared cluster availability window so PathGraphics
+     * resolve (common-time CZML: all members share one display epoch).
+     *
+     * PathGraphics only draws lead/trail around currentTime. Parking near
+     * availability start leaves almost no past samples → short strips.
+     * Place the clock far enough in that trailTime (~5600 s) has history.
+     */
+    function syncClockToEntities(entities, preferEntity) {
+        const list = (entities || []).filter(Boolean);
+        if (preferEntity) {
+            list.unshift(preferEntity);
+        }
+        list.sort((a, b) => {
+            const rank = (e) => {
+                const id = String(e.id || '');
+                if (id.startsWith('SYN_frechet_')) return 0;
+                if (id.startsWith('SYN_max_separation_')) return 1;
+                return 2;
+            };
+            return rank(a) - rank(b);
+        });
+
+        for (const entity of list) {
+            const interval = getEntityAvailabilityInterval(entity);
+            if (!interval) continue;
 
             const start = interval.start;
             const stop = interval.stop;
@@ -379,32 +441,80 @@ document.addEventListener("DOMContentLoaded", async function() {
                 60,
                 Cesium.JulianDate.secondsDifference(stop, start)
             );
-            // Sit a little into the window so sampled positions are available.
+
+            // Need enough history for the short PathGraphics trail (~900 s).
+            const trailSeconds = 900;
+            const desiredOffset = Math.min(
+                Math.max(trailSeconds + 60, span * 0.5),
+                Math.max(60, span - 60)
+            );
+
             viewer.clock.currentTime = Cesium.JulianDate.addSeconds(
                 start,
-                Math.min(3600, span * 0.1),
+                desiredOffset,
                 new Cesium.JulianDate()
             );
             viewer.clock.startTime = start.clone();
             viewer.clock.stopTime = stop.clone();
             viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+            viewer.clock.multiplier = 1;
+
+            if (viewer.timeline) {
+                viewer.timeline.zoomTo(viewer.clock.startTime, viewer.clock.stopTime);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function syncClockToDataAvailability() {
+        if (!dataSource) return;
+
+        // Prefer entity availability (common display epoch). Ion packages often
+        // pin dataSource.clock to "now", outside the CZML window.
+        if (syncClockToEntities(dataSource.entities.values)) {
             return;
+        }
+
+        if (dataSource.clock) {
+            dataSource.clock.getValue(viewer.clock);
         }
     }
 
     function getEntityPositions(entities, time) {
         const positions = [];
         (entities || []).forEach((entity) => {
-            if (!entity || !entity.position || typeof entity.position.getValue !== 'function') {
-                return;
-            }
-            try {
-                const position = entity.position.getValue(time);
-                if (Cesium.defined(position)) {
-                    positions.push(position);
+            if (!entity) return;
+            let got = false;
+            if (entity.position && typeof entity.position.getValue === 'function') {
+                try {
+                    const position = entity.position.getValue(time);
+                    if (Cesium.defined(position)) {
+                        positions.push(position);
+                        got = true;
+                    }
+                } catch (_) {
+                    /* ignore */
                 }
-            } catch (_) {
-                /* ignore */
+            }
+            // Fallback: frozen orbit ring vertices (clock-independent).
+            if (!got) {
+                const ring = getOrbitRingEntity(entity);
+                const poly = (ring && ring.polyline) || entity.polyline;
+                if (poly && poly.positions) {
+                    try {
+                        const polyPos = poly.positions.getValue(time);
+                        if (Cesium.defined(polyPos) && polyPos.length) {
+                            for (let i = 0; i < polyPos.length; i++) {
+                                if (Cesium.defined(polyPos[i])) {
+                                    positions.push(polyPos[i]);
+                                }
+                            }
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
             }
         });
         return positions;
@@ -420,6 +530,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (entities.length === 0) return;
 
         viewer.resize();
+
+        syncClockToEntities(entities, options.preferEntity);
 
         let time = viewer.clock.currentTime;
         let positions = getEntityPositions(entities, time);
@@ -469,6 +581,26 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (raw === null || raw === undefined) return false;
         const normalized = String(raw).trim().toLowerCase();
         return normalized === 'frechet' || normalized === 'max_separation';
+    }
+
+    /** Hover / table NORAD label: synthetics → 99999; strip -orbit-ring from reals. */
+    function formatHoverNoradId(entity, time) {
+        if (!entity) return 'N/A';
+        if (isSyntheticEntity(entity, time)) return '99999';
+        let id = String(entity.id || '');
+        if (id.endsWith('-orbit-ring')) {
+            id = id.slice(0, -'-orbit-ring'.length);
+        }
+        return id || 'N/A';
+    }
+
+    function formatDisplayNoradFromId(entityId) {
+        let id = String(entityId || '');
+        if (id.startsWith('SYN_')) return '99999';
+        if (id.endsWith('-orbit-ring')) {
+            id = id.slice(0, -'-orbit-ring'.length);
+        }
+        return id || 'N/A';
     }
 
     function isRealSatelliteEntity(entity, time) {
@@ -569,6 +701,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!dataSource || !dataSource.entities) return;
         const now = Cesium.JulianDate.now();
         dataSource.entities.values.forEach((entity) => {
+            if (String(entity.id || '').endsWith('-orbit-ring')) return;
             const lab = getClusterLabelFromEntity(entity, now);
             if (lab === null) return;
             if (!clusterLabelToEntities.has(lab)) {
@@ -641,13 +774,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
-        rebuildClusterIndex();
         if (!clusterHasSyntheticPair(clusterLabel)) {
             console.warn('[OrbX] Cluster has no synthetic orbit pair:', clusterLabel);
             return;
         }
         removeAllEntityPaths();
-        removeEntities();
+        viewer.scene.requestRender();
+        // Give Cesium a beat to clear the previous rings before drawing the next set.
+        await delay(100);
         const members = clusterLabelToEntities.get(clusterLabel);
         if (!members || members.length === 0) {
             console.warn('[OrbX] No entities for cluster label', clusterLabel);
@@ -663,12 +797,17 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (tier) {
             setSelectedClusterCategory(tier);
         }
+        const prefer =
+            highlightEntity ||
+            members.find((e) => String(e.id).startsWith('SYN_frechet_')) ||
+            members[0];
+        syncClockToEntities(members, prefer);
         members.forEach((entity) => {
             showEntityPath(entity, getPathColorForClusterEntity(entity, highlightEntity));
         });
         displayClusterMemberList(clusterLabel, members, highlightEntity);
         if (!options.skipFlyTo) {
-            await flyToEntities(members, { duration: 2 });
+            await flyToEntities(members, { duration: 2, preferEntity: prefer });
         }
     }
 
@@ -867,11 +1006,11 @@ document.addEventListener("DOMContentLoaded", async function() {
             hideClusterMemberList();
 
             if (!neighbourEntities || neighbourEntities.length === 0) {
-                console.log("No neighbours found for NORAD ID: " + searchId);
+                console.log("No neighbours found for NORAD ID: " + formatDisplayNoradFromId(searchId));
                 if (searchResults) {
                     showUiPanel(
                         searchResults,
-                        `<p>No neighbours found for NORAD ID: ${searchId}</p>`
+                        `<p>No neighbours found for NORAD ID: ${formatDisplayNoradFromId(searchId)}</p>`
                     );
                 }
                 return;
@@ -1199,7 +1338,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             ? 'cluster-member-row cluster-member-row-highlight neighbour-row'
             : 'cluster-member-row neighbour-row';
         // Keep the real CZML entity id in data-id for path toggles; show 99999 for synthetics.
-        const displayNorad = isSyntheticEntity(entity, now) ? '99999' : entity.id;
+        const displayNorad = formatHoverNoradId(entity, now);
 
         return `
             <tr class="${rowClass}" data-id="${entity.id}">
@@ -1340,21 +1479,23 @@ document.addEventListener("DOMContentLoaded", async function() {
         const uniquenessStr = (typeof uniqueness === 'number')
             ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
             : "N/A";
+        const displayNorad = formatDisplayNoradFromId(satellite.id);
         return `
             <tr>
                 <td>${index + 1}</td>
                 <td class="score-cell">${uniquenessStr}</td>
-                <td><a href="#" class="satellite-id" data-id="${satellite.id}">${satellite.id}</a></td>
+                <td><a href="#" class="satellite-id" data-id="${satellite.id}">${displayNorad}</a></td>
                 <td class="sat-name">${satellite.name || "N/A"}</td>
             </tr>
         `;
     }
     
     function generateNeighbourRow(satellite, index) {
+        const displayNorad = formatDisplayNoradFromId(satellite.id);
         return `
             <tr class="neighbour-row" data-id="${satellite.id}">
                 <td>${index + 1}</td>
-                <td><a href="#" class="satellite-id" data-id="${satellite.id}">${satellite.id}</a></td>
+                <td><a href="#" class="satellite-id" data-id="${satellite.id}">${displayNorad}</a></td>
                 <td class="neighbour-list-sat-name">${satellite.name}</td>
             </tr>
         `;
@@ -1405,7 +1546,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     function snapshotPathEntities() {
         if (!dataSource || !dataSource.entities) return [];
         return dataSource.entities.values
-            .filter((entity) => entity.path)
+            .filter((entity) => isOrbitVisible(entity))
             .map((entity) => ({
                 id: entity.id,
                 color: serializeColor(entity.orbitColor),
@@ -1460,7 +1601,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     function getHiddenPathIdsForMembers(members) {
         return (members || [])
-            .filter((entity) => entity && !entity.path)
+            .filter((entity) => entity && !isOrbitVisible(entity))
             .map((entity) => String(entity.id));
     }
 
@@ -1582,7 +1723,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             const members = clusterLabelToEntities.get(state.clusterLabel) || [];
             const hiddenSet = new Set(state.hiddenPathIds || []);
             members.forEach((entity) => {
-                if (hiddenSet.has(String(entity.id)) && entity.path) {
+                if (hiddenSet.has(String(entity.id)) && isOrbitVisible(entity)) {
                     removeEntityPath(entity);
                 }
             });
@@ -1601,6 +1742,8 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     async function handleOrbitToggle() {
         removeEntities();
+        viewer.scene.requestRender();
+        await delay(200);
         await showUniqueOrbits();
     }
 
@@ -1754,11 +1897,12 @@ document.addEventListener("DOMContentLoaded", async function() {
               <tbody>`;
         
         satellites.list.forEach((sat, index) => {
+            const displayNorad = formatDisplayNoradFromId(sat.id);
             html += `
                 <tr class="neighbour-row" data-id="${sat.id}">
                     <td>${index + 1}</td>
                     <td>
-                    <a href="#" class="satellite-id" data-id="${sat.id}">${sat.id}</a>
+                    <a href="#" class="satellite-id" data-id="${sat.id}">${displayNorad}</a>
                     </td>
                     <td class="neighbour-list-sat-name">${sat.name}</td>
                 </tr>`;

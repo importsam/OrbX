@@ -1,136 +1,388 @@
+"""CZML builder — dual display per object:
+
+1. Timed FIXED positions: TEME→ITRS at each sample's own time (live ECEF motion).
+2. Static frozen orbit polyline: closed mean-Keplerian ellipse from TLE mean
+   elements, all converted to ITRS at the *same* cluster display epoch.
+
+PathGraphics should only draw a short trail of (1). The closed rings come from (2).
+"""
+
 import numpy as np
-from sgp4.api import Satrec
+import datetime as dt
 import os
 import json
 
-import datetime as dt
+from sgp4.api import Satrec, jday
+from astropy import units as u
+from astropy.time import Time
+from astropy.coordinates import (
+    TEME,
+    ITRS,
+    CartesianRepresentation,
+)
 
 
-def getPos(dSeconds, satrec, julianDate):
-    
-    fraction = dSeconds / 86400
-    
-    days = 0
-    if fraction > 1:
-        days = int(fraction)
-        fraction -= days
-    
-    return satrec.sgp4(julianDate + days, fraction)[1]
+STEP_SECONDS = 15
+# Timed path window: enough for a short PathGraphics lead/trail, not a spiral ring.
+TIMED_PATH_SECONDS = 1800  # 30 minutes
+# SGP4 uses the WGS-72 gravitational parameter.
+MU_WGS72_KM3_S2 = 398600.8
 
-def get_posvcs(TLE_LINE1, TLE_LINE2, only_one_period=True):
-    satrec = Satrec.twoline2rv(TLE_LINE1, TLE_LINE2)
-    julianDate = satrec.jdsatepoch
 
-    getLat = lambda position: np.degrees(
-        np.arctan2(position[2], np.sqrt(position[0] ** 2 + position[1] ** 2))
+def satrec_epoch_utc(satrec: Satrec) -> dt.datetime:
+    year = 2000 + satrec.epochyr if satrec.epochyr < 100 else satrec.epochyr
+    return dt.datetime(year, 1, 1, tzinfo=dt.timezone.utc) + dt.timedelta(
+        days=satrec.epochdays - 1
     )
-    getLon = lambda position: np.degrees(np.arctan2(position[1], position[0]))
-    getAlt = lambda position: ((np.sqrt(position[0] ** 2 + position[1] ** 2 + position[2] ** 2) - 6371) * 1000)
 
-    positions = []
-    coord_list = []
 
-    mean_motion = satrec.no_kozai  # radians per minute
-    periodInMinutes = (np.pi * 2) / mean_motion
-    periodInSeconds = int(periodInMinutes * 60)
+def _fmt_czml_time(when: dt.datetime) -> str:
+    return when.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    time_limit = periodInSeconds if only_one_period else 86400
-    stepSeconds = 600
 
-    # Sample [0, step, 2*step, ...) strictly before time_limit so we never
-    # go past one period, then close exactly at time_limit with the start pose.
-    for dSeconds in range(0, time_limit, stepSeconds):
-        position = getPos(dSeconds, satrec, julianDate)
-        positions.append(position)
-        coord_list.extend([dSeconds, getLon(position), getLat(position), getAlt(position)])
-
-    if only_one_period and positions:
-        coord_list.extend(
-            [
-                periodInSeconds,
-                getLon(positions[0]),
-                getLat(positions[0]),
-                getAlt(positions[0]),
-            ]
-        )
+def _datetime_to_jd_fr(when: dt.datetime):
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=dt.timezone.utc)
     else:
-        # Day-long path: include the final sample at time_limit if not already hit.
-        if not coord_list or coord_list[-4] != time_limit:
-            position = getPos(time_limit, satrec, julianDate)
-            coord_list.extend(
-                [time_limit, getLon(position), getLat(position), getAlt(position)]
-            )
+        when = when.astimezone(dt.timezone.utc)
+    return jday(
+        when.year,
+        when.month,
+        when.day,
+        when.hour,
+        when.minute,
+        when.second + when.microsecond * 1e-6,
+    )
 
-    return positions, coord_list
+
+def teme_to_itrs_metres(position_teme_km, earth_orient_utc: dt.datetime):
+    """Live motion: TEME km at ``earth_orient_utc`` → ITRS at the same instant."""
+    obstime = Time(earth_orient_utc)
+    teme = TEME(
+        CartesianRepresentation(
+            position_teme_km[0] * u.km,
+            position_teme_km[1] * u.km,
+            position_teme_km[2] * u.km,
+        ),
+        obstime=obstime,
+    )
+    itrs = teme.transform_to(ITRS(obstime=obstime))
+    xyz_m = itrs.cartesian.xyz.to_value(u.m)
+    return float(xyz_m[0]), float(xyz_m[1]), float(xyz_m[2])
+
+
+def teme_vector_to_frozen_itrs_metres(
+    position_teme_km,
+    reference_utc: dt.datetime,
+):
+    """
+    Static visual orbit geometry.
+
+    Interpret a TEME-like cartesian vector in axes frozen at reference_utc,
+    then convert once into the corresponding fixed Earth frame.
+    """
+    reference_time = Time(reference_utc)
+
+    frozen_teme = TEME(
+        CartesianRepresentation(
+            position_teme_km[0] * u.km,
+            position_teme_km[1] * u.km,
+            position_teme_km[2] * u.km,
+        ),
+        obstime=reference_time,
+    )
+
+    frozen_itrs = frozen_teme.transform_to(ITRS(obstime=reference_time))
+    xyz_m = frozen_itrs.cartesian.xyz.to_value(u.m)
+    return float(xyz_m[0]), float(xyz_m[1]), float(xyz_m[2])
+
+
+def orbital_period_seconds(satrec: Satrec) -> float:
+    """Nominal Keplerian period from Kozai mean motion (seconds, not truncated)."""
+    return float((2.0 * np.pi / satrec.no_kozai) * 60.0)
+
+
+def _sgp4_teme_km(satrec: Satrec, when: dt.datetime):
+    jd, fr = _datetime_to_jd_fr(when)
+    error, teme_km, _ = satrec.sgp4(jd, fr)
+    if error != 0 or teme_km is None:
+        raise ValueError(f"SGP4 error {error} at {when.isoformat()}")
+    return teme_km
+
+
+def sample_live_ecef_path(
+    tle_line1,
+    tle_line2,
+    t_display: dt.datetime,
+    duration_seconds: int,
+    step_seconds: int = STEP_SECONDS,
+):
+    """Moving-path samples: ECEF(r_TEME(t), EarthOrientation(t))."""
+    satrec = Satrec.twoline2rv(tle_line1, tle_line2)
+    offsets = list(range(0, duration_seconds, step_seconds))
+    if not offsets or offsets[-1] != duration_seconds:
+        offsets.append(duration_seconds)
+
+    timed = []
+    for seconds in offsets:
+        when = t_display + dt.timedelta(seconds=int(seconds))
+        teme_km = _sgp4_teme_km(satrec, when)
+        x_m, y_m, z_m = teme_to_itrs_metres(teme_km, when)
+        timed.extend([int(seconds), x_m, y_m, z_m])
+    return timed
+
+
+def sample_frozen_orbit_ring(
+    tle_line1,
+    tle_line2,
+    t_ref: dt.datetime,
+    step_seconds: int = STEP_SECONDS,
+    norad_id: str = "",
+):
+    """
+    Exact closed mean-Keplerian orbit ring.
+
+    Static shape-comparison visual from the TLE's mean elements (not an
+    SGP4 time-propagated track). All vertices use TEME-like axes frozen at
+    ``t_ref``, then transform once to ITRS at that same epoch.
+
+    ``step_seconds`` is unused (phase sampling); kept for call-site compatibility.
+    """
+    del step_seconds  # phase-sampled ellipse; wall-clock step is irrelevant
+    satrec = Satrec.twoline2rv(tle_line1, tle_line2)
+
+    # no_kozai: radians per minute in the SGP4 library.
+    n_rad_s = float(satrec.no_kozai) / 60.0
+    if n_rad_s <= 0.0:
+        raise ValueError(f"{norad_id or 'ring'}: invalid mean motion")
+
+    # TLE mean semi-major axis, km.
+    a_km = (MU_WGS72_KM3_S2 / (n_rad_s * n_rad_s)) ** (1.0 / 3.0)
+    e = float(satrec.ecco)
+
+    if not (0.0 <= e < 1.0):
+        raise ValueError(f"{norad_id or 'ring'}: invalid eccentricity {e}")
+
+    inc = float(satrec.inclo)
+    raan = float(satrec.nodeo)
+    argp = float(satrec.argpo)
+
+    # Visual density only; 720 gives 0.5 degree phase spacing.
+    vertex_count = 720
+    eccentric_anomaly = np.linspace(
+        0.0,
+        2.0 * np.pi,
+        vertex_count,
+        endpoint=False,
+    )
+
+    # Ellipse in perifocal coordinates, km.
+    b_km = a_km * np.sqrt(1.0 - e * e)
+    x_pf = a_km * (np.cos(eccentric_anomaly) - e)
+    y_pf = b_km * np.sin(eccentric_anomaly)
+
+    # Perifocal -> TEME-like inertial axes:
+    # R3(RAAN) @ R1(inclination) @ R3(argument of perigee)
+    cO, sO = np.cos(raan), np.sin(raan)
+    ci, si = np.cos(inc), np.sin(inc)
+    cw, sw = np.cos(argp), np.sin(argp)
+
+    rotation = np.array(
+        [
+            [
+                cO * cw - sO * sw * ci,
+                -cO * sw - sO * cw * ci,
+                sO * si,
+            ],
+            [
+                sO * cw + cO * sw * ci,
+                -sO * sw + cO * cw * ci,
+                -cO * si,
+            ],
+            [
+                sw * si,
+                cw * si,
+                ci,
+            ],
+        ]
+    )
+
+    perifocal_xyz_km = np.vstack(
+        (
+            x_pf,
+            y_pf,
+            np.zeros_like(x_pf),
+        )
+    )
+
+    inertial_xyz_km = rotation @ perifocal_xyz_km
+
+    ring = []
+    for xyz_km in inertial_xyz_km.T:
+        x_m, y_m, z_m = teme_vector_to_frozen_itrs_metres(
+            xyz_km,
+            reference_utc=t_ref,
+        )
+        ring.extend([x_m, y_m, z_m])
+
+    # Exact duplicate of vertex zero: mathematically and numerically closed.
+    ring.extend(ring[:3])
+
+    print(
+        f"{norad_id or 'ring'}: "
+        f"a={a_km:.3f} km, e={e:.8f}, "
+        f"vertices={vertex_count}, mean-element ring"
+    )
+
+    return ring
+
+
+def _validate_cartesian_timed(samples):
+    coords = []
+    for i, coord in enumerate(samples):
+        if i % 4 == 0:
+            value = int(coord)
+        else:
+            value = float(coord)
+            if np.isnan(value) or np.isinf(value):
+                raise ValueError(f"Invalid cartesian value: {value}")
+        coords.append(value)
+    return coords
+
+
+def _validate_cartesian_ring(samples):
+    coords = []
+    for coord in samples:
+        value = float(coord)
+        if np.isnan(value) or np.isinf(value):
+            raise ValueError(f"Invalid ring coordinate: {value}")
+        coords.append(value)
+    return coords
+
+
+def _synthetic_type_of(row) -> str:
+    st = row.get("synthetic_type", None)
+    if st is None or (isinstance(st, float) and np.isnan(st)):
+        return "None"
+    return str(st)
+
+
+def cluster_display_epoch_and_period(group):
+    epochs = []
+    periods = []
+    frechet_ep = frechet_period = None
+    maxsep_ep = maxsep_period = None
+
+    for _, row in group.iterrows():
+        sat = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
+        ep = satrec_epoch_utc(sat)
+        per = orbital_period_seconds(sat)
+        epochs.append(ep)
+        periods.append(per)
+        st = _synthetic_type_of(row)
+        if st == "frechet":
+            frechet_ep, frechet_period = ep, per
+        elif st == "max_separation":
+            maxsep_ep, maxsep_period = ep, per
+
+    if frechet_ep is not None:
+        return frechet_ep, frechet_period
+    if maxsep_ep is not None:
+        return maxsep_ep, maxsep_period
+
+    mean_ts = float(np.mean([e.timestamp() for e in epochs]))
+    t_display = dt.datetime.fromtimestamp(mean_ts, tz=dt.timezone.utc)
+    return t_display, float(max(periods))
+
 
 def build_czml_live(df):
-    print("building czml for live")
-    
-    epochTime = dt.datetime.now(dt.timezone.utc)
-    endTime = epochTime + dt.timedelta(days=65)
-    epochStr, endTimeStr = map(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.%fZ'), [epochTime, endTime])
-                     
-    czml = [{'id': 'document', 'version': '1.0'}]
-    
+    import pandas as pd
+
+    print("building czml")
+
+    czml = [{"id": "document", "version": "1.0"}]
     property_keys = [k for k in df.columns if k.startswith("prop_")]
 
-    for _, row in df.iterrows():
+    label_col = "label" if "label" in df.columns else "cluster_label"
+    display_by_label = {}
+    for lab, group in df.groupby(label_col, dropna=False):
         try:
-            _, coordinates = get_posvcs(row['TLE_LINE1'], row['TLE_LINE2'])
-            
-            # Validate coordinates before adding them
-            coords = []
-            for i, coord in enumerate(coordinates):
-                # Convert to appropriate type and validate
-                try:
-                    if i % 4 == 0:
-                        coord_value = int(coord)
-                    else:
-                        coord_value = float(coord)
-                    
-                    # Check for NaN, Infinity values
-                    if (isinstance(coord_value, float) and 
-                        (np.isnan(coord_value) or np.isinf(coord_value))):
-                        print(f"Invalid coordinate value found: {coord_value} for satellite {row['NORAD_CAT_ID']}")
-                        # Skip this satellite
-                        raise ValueError("Invalid coordinate detected")
-                    
-                    coords.append(coord_value)
-                except (ValueError, TypeError) as e:
-                    print(f"Error converting coordinate {coord}: {e}")
-                    raise ValueError("Coordinate conversion error")
-            
-            # Convert neighbours list into a dictionary with string keys
+            lab_key = int(lab) if pd.notna(lab) else -1
+        except (TypeError, ValueError):
+            lab_key = -1
+        t_disp, _period_s = cluster_display_epoch_and_period(group)
+        display_by_label[lab_key] = t_disp
+
+    for _, row in df.iterrows():
+        norad_id = str(row["NORAD_CAT_ID"])
+        try:
+            raw_lab = row.get(label_col, -1)
+            try:
+                lab_key = int(raw_lab) if raw_lab == raw_lab else -1
+            except (TypeError, ValueError):
+                lab_key = -1
+
+            t_display = display_by_label.get(lab_key)
+            if t_display is None:
+                sat = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
+                t_display = satrec_epoch_utc(sat)
+
+            duration_s = int(TIMED_PATH_SECONDS)
+            timed = sample_live_ecef_path(
+                row["TLE_LINE1"],
+                row["TLE_LINE2"],
+                t_display,
+                duration_s,
+                step_seconds=STEP_SECONDS,
+            )
+            coords = _validate_cartesian_timed(timed)
+
+            ring = sample_frozen_orbit_ring(
+                row["TLE_LINE1"],
+                row["TLE_LINE2"],
+                t_display,
+                step_seconds=STEP_SECONDS,
+                norad_id=str(row.get("NORAD_CAT_ID", "")),
+            )
+            ring_coords = _validate_cartesian_ring(ring)
+
+            avail_start = t_display
+            avail_stop = t_display + dt.timedelta(seconds=duration_s + 600)
+            epoch_str = _fmt_czml_time(t_display)
+            avail_str = f"{_fmt_czml_time(avail_start)}/{_fmt_czml_time(avail_stop)}"
+
             neighbours = row.get("neighbours", [])
             neighbours_dict = {}
             for i, neighbour in enumerate(neighbours):
                 if isinstance(neighbour, (str, int, float, bool, type(None))):
-                    neighbours_dict[str(i+1)] = neighbour
+                    neighbours_dict[str(i + 1)] = neighbour
                 else:
-                    neighbours_dict[str(i+1)] = str(neighbour)
+                    neighbours_dict[str(i + 1)] = str(neighbour)
 
-            raw_cluster_label = row.get("label", row.get("cluster_label"))
-            cluster_label = str(raw_cluster_label)
-
-            synthetic_type = row.get("synthetic_type", None)
-            if synthetic_type is None or (isinstance(synthetic_type, float) and np.isnan(synthetic_type)):
-                synthetic_type = "None"
+            cluster_label = str(raw_lab)
+            synthetic_type = _synthetic_type_of(row)
 
             cluster_density = row.get("cluster_density", None)
-            if cluster_density is None or (isinstance(cluster_density, float) and np.isnan(cluster_density)):
+            if cluster_density is None or (
+                isinstance(cluster_density, float) and np.isnan(cluster_density)
+            ):
                 cluster_density = "None"
             else:
                 cluster_density = float(cluster_density)
 
+            sat_native = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
+            tle_epoch_str = _fmt_czml_time(satrec_epoch_utc(sat_native))
+
             additional_properties = {
-                'uniqueness_range': row.get('uniqueness_range', 'none'),
-                'neighbours': neighbours_dict,
-                'cluster_label': cluster_label,
-                'synthetic_type': synthetic_type,
-                'cluster_density': cluster_density
+                "uniqueness_range": row.get("uniqueness_range", "none"),
+                "neighbours": neighbours_dict,
+                "cluster_label": cluster_label,
+                "synthetic_type": synthetic_type,
+                "cluster_density": cluster_density,
+                "tle_epoch": tle_epoch_str,
+                "display_epoch": epoch_str,
             }
-            
-            # Convert properties and check for valid JSON values
+
             cleaned_properties = {}
             for key in property_keys:
                 prop_value = row.get(key)
@@ -146,51 +398,84 @@ def build_czml_live(df):
                 else:
                     cleaned_properties[key[5:]] = str(prop_value)
 
-            if synthetic_type == 'frechet':
-                point_style = {'color': {'rgba': [0, 255, 128, 255]}, 'pixelSize': 2}
-            elif synthetic_type == 'max_separation':
-                point_style = {'color': {'rgba': [255, 80, 80, 255]}, 'pixelSize': 2}
+            if synthetic_type == "frechet":
+                ring_rgba = [255, 0, 0, 255]
+            elif synthetic_type == "max_separation":
+                ring_rgba = [0, 100, 255, 255]
             else:
-                point_style = {'color': {'rgba': [255, 255, 0, 255]}, 'pixelSize': 2}
-            
-            czml.append({
-                'id': str(row['NORAD_CAT_ID']),  # Ensure ID is a string
-                'name': str(row['OBJECT_NAME']),  # Ensure name is a string
-                'availability': f"{epochStr}/{endTimeStr}",
-                'position': {
-                    'epoch': epochStr, 
-                    'cartographicDegrees': coords, 
-                    'interpolationDegree': 3,
-                    'interpolationAlgorithm': 'LAGRANGE'
-                },
-                'properties': {**cleaned_properties, **additional_properties},
-                'point': point_style
-            })
-            
+                ring_rgba = [32, 201, 151, 255]
+
+            object_name = str(row["OBJECT_NAME"])
+            is_synthetic = synthetic_type in ("frechet", "max_separation")
+
+            if not is_synthetic:
+                # Real satellite: position entity for picking/camera (no point marker).
+                czml.append(
+                    {
+                        "id": norad_id,
+                        "name": object_name,
+                        "availability": avail_str,
+                        "position": {
+                            "epoch": epoch_str,
+                            "referenceFrame": "FIXED",
+                            "cartesian": coords,
+                            "interpolationDegree": 1,
+                            "interpolationAlgorithm": "LINEAR",
+                        },
+                        "properties": {**cleaned_properties, **additional_properties},
+                    }
+                )
+
+            # Orbit ring for shape comparison (no availability — always drawable).
+            # Synthetics use the bare SYN_* id (no -orbit-ring suffix).
+            ring_id = norad_id if is_synthetic else f"{norad_id}-orbit-ring"
+            czml.append(
+                {
+                    "id": ring_id,
+                    "name": object_name,
+                    "polyline": {
+                        "positions": {"cartesian": ring_coords},
+                        "width": 2,
+                        "material": {
+                            "solidColor": {"color": {"rgba": ring_rgba}}
+                        },
+                        "arcType": "NONE",
+                        "clampToGround": False,
+                        "show": False,
+                    },
+                    "properties": {
+                        "cluster_label": cluster_label,
+                        "synthetic_type": synthetic_type,
+                        "parent_norad": norad_id,
+                        **(
+                            {**cleaned_properties, **additional_properties}
+                            if is_synthetic
+                            else {}
+                        ),
+                    },
+                }
+            )
+
         except Exception as e:
-            # Log the error and continue with the next satellite
-            print(f"Error processing satellite {row.get('NORAD_CAT_ID', 'Unknown')}: {e}")
+            print(f"Error processing satellite {norad_id}: {e}")
             continue
-    
-    # Write file with error checking
-    output_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+    output_dir = os.path.join(os.path.dirname(__file__), "data")
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, 'output.czml')
-    
+    output_file = os.path.join(output_dir, "output.czml")
+
     try:
-        with open(output_file, 'w') as file:
-            # Use simplejson if available for better NaN handling
+        with open(output_file, "w") as file:
             try:
                 import simplejson as json_module
             except ImportError:
                 import json as json_module
-            
-            json_module.dump(czml, file, indent=2, separators=(',', ': '))
-            
-        # Validate the file works
-        with open(output_file, 'r') as file:
+
+            json_module.dump(czml, file, indent=2, separators=(",", ": "))
+
+        with open(output_file, "r") as file:
             _ = json_module.load(file)
             print("CZML file validated successfully")
-            
+
     except Exception as e:
         print(f"Error writing or validating CZML file: {e}")
