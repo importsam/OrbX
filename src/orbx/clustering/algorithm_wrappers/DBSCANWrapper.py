@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
-from orbx.clustering.metrics.quality_metrics import QualityMetrics
 from orbx.Models import ClusterResult
 from tqdm import tqdm
 import pandas as pd
@@ -15,7 +14,6 @@ class DBSCANWrapper:
         self.target_cluster_range = (200, 500)
         self.target_cluster_center = 350
         self.max_noise_fraction = 0.6
-        self.quality_metrics = QualityMetrics()
 
     def run(self, distance_matrix: np.ndarray, X: np.ndarray):
         return self.fit(distance_matrix, X)

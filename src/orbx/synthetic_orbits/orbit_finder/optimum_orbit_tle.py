@@ -18,13 +18,31 @@ with contextlib.redirect_stdout(io.StringIO()):
 
 
 import numpy as np
+from sgp4.api import Satrec
+
 from org.orekit.propagation.analytical.tle import TLE
 from org.orekit.orbits import KeplerianOrbit, PositionAngleType
 from org.orekit.frames import FramesFactory
 from org.orekit.utils import Constants
 from org.orekit.propagation import SpacecraftState
-from org.orekit.propagation.analytical.tle.generation import LeastSquaresTleGenerationAlgorithm
+from org.orekit.propagation.conversion.osc2mean import TLETheory, LeastSquaresConverter
+from org.hipparchus.optim.nonlinear.vector.leastsquares import LevenbergMarquardtOptimizer
+
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
+
+
+def average_bstar(df, fallback=1e-5) -> float:
+    """Calc. the average B* (drag coefficient) from the cluster. 
+    Just a simple way of assigning one to the synthetic TLE without
+    it having to be a fixed value for all of them."""
+    values = []
+    for _, row in df.iterrows():
+        sat = Satrec.twoline2rv(row["line1"], row["line2"])
+        if sat.error == 0:
+            values.append(float(sat.bstar))
+    if not values:
+        return float(fallback)
+    return float(np.mean(values))
 
 def test_orbit(df):
     """
@@ -65,7 +83,14 @@ def test_orbit(df):
     
     return sorted_candidates
 
-def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
+def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate, bStar=1e-5):
+    
+    """
+    In this function, we are taking the elements derived from the keplerian element optimisation algorithms - that is, the 
+    frechet and max separated. We create the synthetic TLEs by using some placeholder info and then injecting the 
+    optimised keplerian elements. 
+    We do not treat these elements as osculating, nor as mean elements, they're synthetic.
+    """
 
     # Define TLE meta-data
     satNo = 99999
@@ -73,7 +98,7 @@ def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
     launchYear = 2020
     launchNumber = 42
     launchPiece = 'A'
-    bStar = 1e-5
+    bStar = float(bStar)
     mean_motion_first_derivative = 0.0
     mean_motion_second_derivative = 0.0
     ephemeris_type = 0
@@ -98,7 +123,7 @@ def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
             raan,
             M,
             PositionAngleType.MEAN, # anomaly type
-            FramesFactory.getEME2000(), # inertial frame
+            FramesFactory.getTEME(), # inertial frame
             initialDate, # epoch date
             Constants.IERS2010_EARTH_MU  # Earth's gravitational parameter
         )
@@ -145,17 +170,25 @@ def convert_kep_to_tle(keplerian_elements, mean_anomaly, initialDate):
         traceback.print_exc()
         raise
 
-    print("\nTemplate TLE:")
+    # Here, we're selecting the least squares converter for SGP4 TLE generation.
+    # theory = TLETheory(templateTLE);
+    # least_squares_optimiser = LevenbergMarquardtOptimizer()
+    
+    # converter = LeastSquaresConverter(theory, least_squares_optimiser);
+    
+    # Here, we convert the osculating elements to mean elements and insert in the TLE.
+    # try:
+    #     fittedTLE = TLE.stateToTLE(initial_state, templateTLE, converter)
+    # except Exception as e:
+    #     print(f"TLE fit failed: {e}")
+    #     return None
+    
+    # print("\nGenerated TLE:")
+    # print(fittedTLE.getLine1())
+    # print(fittedTLE.getLine2())
+    
+    print("\nGenerated TLE:")
     print(templateTLE.getLine1())
     print(templateTLE.getLine2())
 
-    # Generate the fitted TLE
-    fixedPoint = LeastSquaresTleGenerationAlgorithm()
-    fittedTLE = TLE.stateToTLE(initial_state, templateTLE, fixedPoint)
-    
-    print("\nGenerated TLE:")
-    print(fittedTLE.getLine1())
-    print(fittedTLE.getLine2())
-
-    # return (fittedTLE.getLine1(), fittedTLE.getLine2())
     return (templateTLE.getLine1(), templateTLE.getLine2())

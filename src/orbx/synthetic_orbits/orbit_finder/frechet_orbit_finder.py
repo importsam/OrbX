@@ -1,10 +1,12 @@
-# frechet_orbit_finder.py
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import least_squares
 from sgp4.api import Satrec
 from datetime import datetime, timedelta, timezone
+
+""" 
+This file holds standalone functions for finding the frechet mean orbit for a cluster of orbits.
+"""
 
 try:
     from orekit.pyhelpers import datetime_to_absolutedate
@@ -15,7 +17,10 @@ except ImportError:
     )
 
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
-from orbx.synthetic_orbits.orbit_finder.optimum_orbit_tle import convert_kep_to_tle
+from orbx.synthetic_orbits.orbit_finder.optimum_orbit_tle import (
+    average_bstar,
+    convert_kep_to_tle,
+)
 
 
 # ---------- helpers ----------
@@ -43,17 +48,19 @@ def mean_sq_distance_kepler(candidate_k, all_keplers):
         d2.append(d**2)
     return np.mean(d2)
 
-
 def residuals_keplerian(x, other_keplers):
+    """Residuals for ordinary Fréchet: least_squares minimizes sum(r**2) = sum(q).
+    """
     x_copy = x.copy()
     candidate = VectorizedKeplerianOrbit(make_complete_orbit(x_copy))
     residuals = []
     for kepler in other_keplers:
         other = VectorizedKeplerianOrbit(make_complete_orbit(kepler))
-        dist = VectorizedKeplerianOrbit.DistanceMetric(candidate, other)
-        residuals.append(dist)
-    return np.asarray(residuals).ravel()
-
+        q = VectorizedKeplerianOrbit.DistanceMetric(candidate, other)
+        q = float(np.asarray(q).reshape(-1)[0])
+        """q is returned as a squared distance, we root to avoid fourth-power loss."""
+        residuals.append(np.sqrt(np.maximum(q, 0.0)))
+    return np.asarray(residuals, dtype=float).ravel()
 
 def find_optimum_keplerian(initial_guess, other_keplers, lower_bounds, upper_bounds):
     return least_squares(
@@ -217,7 +224,7 @@ def frechet_orbit(df, return_diagnostics=False):
     all_keplers = [get_keplerian_array_from_tle(row) for _, row in df.iterrows()]
     if len(all_keplers) < 2:
         print("Not enough orbits for optimization.")
-        return None if return_diagnostics else df
+        return None
 
     initial_candidate = get_initial_candidate(df)
     initial_keplerian = get_keplerian_array_from_tle(initial_candidate)
@@ -238,7 +245,12 @@ def frechet_orbit(df, return_diagnostics=False):
     mean_anomaly = satrec.mo
     optimum_keplerian[5] = mean_anomaly
     initialDate = datetime_to_absolutedate(avg_epoch)
-    line1, line2 = convert_kep_to_tle(optimum_keplerian, mean_anomaly, initialDate)
+    line1, line2 = convert_kep_to_tle(
+        optimum_keplerian,
+        mean_anomaly,
+        initialDate,
+        bStar=average_bstar(df),
+    )
 
     opt_row = {
         "satNo": "99999",

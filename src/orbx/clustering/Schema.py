@@ -1,14 +1,12 @@
-import pandas as pd 
-from .data_handling.TLEParser import TLEParser
+import pandas as pd
+from sgp4.io import twoline2rv
+import sgp4.earth_gravity as earth_gravity
 
 REQUIRED_COLUMNS = {"line1", "line2"}
 
-class Schema: 
-    
-    def __init__(self):
-        self.tle_parser = TLEParser()
+class Schema:
 
-    def validate(self, df: pd.DataFrame) -> pd.DataFrame:
+    def validate(self, df: pd.DataFrame) -> None:
         """
         Validates input DataFrame and computes all derived orbital elements.
         
@@ -27,9 +25,17 @@ class Schema:
                 f"Input DataFrame is missing required columns: {missing}\n"
                 f"DataFrame must contain at minimum 'line1' and 'line2'."
             )
-        df = df.copy()
-        df_kep = self.tle_parser.tle_to_keplerian(df)
+        if df.empty: 
+            raise ValueError("Input DataFrame is empty")
+        if df[["line1", "line2"]].isnull().any().any():
+            raise ValueError("Input DataFrame contains null values in 'line1' or 'line2' columns")
         
-        if "name" not in df_kep.columns:
-            df_kep["name"] = df_kep["sat_id"]
-        return df_kep
+        # Next we want to validate the two line elements.
+        
+        for _, row in df.iterrows():
+            try:
+                _ = twoline2rv(row['line1'], row['line2'], earth_gravity.wgs72)
+            except ValueError as e:
+                raise ValueError(f"Invalid TLE format for TLE: {row['line1']}, {row['line2']}: {e}")
+
+        return None

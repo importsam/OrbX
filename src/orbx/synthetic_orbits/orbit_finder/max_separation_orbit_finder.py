@@ -1,5 +1,3 @@
-# max_separation_orbit_finder.py
-
 import numpy as np
 import pandas as pd
 from sgp4.api import Satrec
@@ -8,7 +6,10 @@ from orekit.pyhelpers import datetime_to_absolutedate
 from scipy.optimize import minimize
 
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
-from orbx.synthetic_orbits.orbit_finder.optimum_orbit_tle import convert_kep_to_tle
+from orbx.synthetic_orbits.orbit_finder.optimum_orbit_tle import (
+    average_bstar,
+    convert_kep_to_tle,
+)
 
 def get_keplerian_array_from_tle(row):
     line1_array = np.array([row["line1"]])
@@ -52,16 +53,25 @@ def min_distance_to_catalog(x, kepler_list):
     return float(np.min(dmins))
 
 
-def sample_maxmin(kepler_list, bounds, n_samples=10000):
-    best_x = None
-    best_r = -np.inf
+def sample_maxmin(kepler_list, bounds, n_samples=10000, top_k=5):
+    """
+    Randomly sample candidate orbits and keep the ``top_k`` with the largest
+    min-distance to the catalog (for subsequent local refinement).
+    """
+    top = []  # list of (r_x, x), ascending by r_x
     for _ in range(n_samples):
         x = np.array([np.random.uniform(lo, hi) for lo, hi in bounds])
         r_x = min_distance_to_catalog(x, kepler_list)
-        if r_x > best_r:
-            best_r = r_x
-            best_x = x
-    return best_x, best_r
+        if len(top) < top_k:
+            top.append((r_x, x))
+            top.sort(key=lambda t: t[0])
+        elif r_x > top[0][0]:
+            top[0] = (r_x, x)
+            top.sort(key=lambda t: t[0])
+
+    # Best-first for refinement reporting.
+    top.sort(key=lambda t: t[0], reverse=True)
+    return [(x, r) for r, x in top]
 
 
 def refine_maxmin(x0, kepler_list, bounds):
@@ -126,11 +136,11 @@ def shift_keplerian(k, omega_ref, raan_ref):
     k_shifted[4] = unwrap_to_ref(k[4], raan_ref)
     return k_shifted
 
-def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
+def get_maximally_separated_orbit(df, n_samples=5000, top_k=5, return_diagnostics=True):
     all_keplers = [get_keplerian_array_from_tle(row) for _, row in df.iterrows()]
     if len(all_keplers) < 2:
         print("Not enough orbits for max-min optimization.")
-        return (df, None) if return_diagnostics else df
+        return (None, None)
 
     min_a = min(k[0] for k in all_keplers)
     min_e = min(k[1] for k in all_keplers)
@@ -165,24 +175,38 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
         (min_i, max_i),
         (min_omega, max_omega),
         (min_raan, max_raan),
-        (0.0, 2 * np.pi),
     ]
 
-    x0, r0 = sample_maxmin(all_keplers_shifted, bounds, n_samples=n_samples)
-    print(f"Best sampled max_separation radius: {r0:.6f}")
+    candidates = sample_maxmin(
+        all_keplers_shifted, bounds, n_samples=n_samples, top_k=top_k
+    )
+    if not candidates:
+        print("No max-separation candidates sampled.")
+        return (None, None)
 
-    x_star, r_star = refine_maxmin(x0, all_keplers_shifted, bounds)
-    
+    print(
+        "Top sampled max_separation radii: "
+        + ", ".join(f"{r0:.6f}" for _, r0 in candidates)
+    )
+
+    x_star, r_star = None, -np.inf
+    for i, (x0, r0) in enumerate(candidates):
+        x_ref, r_ref = refine_maxmin(x0, all_keplers_shifted, bounds)
+        print(f"Refined candidate {i + 1}/{len(candidates)}: {r0:.6f} -> {r_ref:.6f}")
+        if r_ref > r_star:
+            r_star = r_ref
+            x_star = x_ref
+
     x_star = x_star.copy()
     x_star[3] %= (2 * np.pi)
     x_star[4] %= (2 * np.pi)
     
     
-    print(f"Refined max_separation radius: {r_star:.6f}")
+    print(f"Best refined max_separation radius: {r_star:.6f}")
     print(
         "Maximally separated Keplerian Elements: "
-        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f; v: %.6f;}"
-        % tuple(x_star)
+        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f;}"
+        % tuple(x_star[:5])
     )
 
     avg_epoch = calculate_average_epoch(df)
@@ -190,8 +214,13 @@ def get_maximally_separated_orbit(df, n_samples=5000, return_diagnostics=True):
     ref_row = df.iloc[0]
     satrec = Satrec.twoline2rv(ref_row["line1"], ref_row["line2"])
     mean_anomaly = satrec.mo
-    x_star[5] = mean_anomaly
-    line1, line2 = convert_kep_to_tle(x_star, mean_anomaly, initialDate)
+    
+    line1, line2 = convert_kep_to_tle(
+        x_star,
+        mean_anomaly,
+        initialDate,
+        bStar=average_bstar(df),
+    )
 
     max_separation_entry = {
         "satNo": "99999",

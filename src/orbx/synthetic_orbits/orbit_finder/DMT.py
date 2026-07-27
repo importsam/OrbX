@@ -1,6 +1,24 @@
 from sgp4.api import Satrec
 import numpy as np
 
+"""
+This file contains the code for the distance metric between two orbits. 
+It takes the two-line elements, breaks it down into keplerian elements,
+converts those to two different vectors:
+1. The vector which  is normal to the orbital plane (3 components)
+2. The LRL vector. (3 components)
+
+This makes each orbit represented as a point in a 6D space.
+
+The distance metric is then the Euclidean distance between these two points. If they are very similar,
+the distances are going to be quite small, and that distance will grow as they differ.
+
+Please refer to the following paper for details:
+https://academic.oup.com/mnras/article/462/2/2275/2589463
+
+Credit to Dr. Yasir Latif (of Space Protocol) for this implementation of equation 22 from the paper.
+"""
+
 class VectorizedKeplerianOrbit:
     def __init__(self, line1_array, line2_array=None):
         if line2_array is not None:

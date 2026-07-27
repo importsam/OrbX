@@ -7,7 +7,7 @@ from orbx.clustering.data_handling.DataHandler import DataHandler
 
 class Core:
     def __init__(self):
-        self.schema = Schema()
+
         self.cluster_wrapper = ClusterWrapper()
         self.data_handler = DataHandler()
 
@@ -22,6 +22,9 @@ class Core:
         extract the keplerian elements. These must then be concatenated to the
         original df
         """
+        
+        # Validate the input dataframe
+        # Schema().validate(df)
         
         df = self.data_handler.tle_to_keplerian(df)
         

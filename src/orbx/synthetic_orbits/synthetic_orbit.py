@@ -2,11 +2,8 @@ from collections.abc import Iterable
 import warnings
 import io
 from contextlib import redirect_stdout
-
+from orbx.clustering.Schema import Schema
 import pandas as pd
-
-from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
-from orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import get_maximally_separated_orbit
 
 def synthetic_orbit(
     df: pd.DataFrame,
@@ -55,10 +52,12 @@ def synthetic_orbit(
     if n_samples < 1:
         raise ValueError("n_samples must be >= 1")
 
-    required = {"line1", "line2", "label"}
-    missing = required - set(df.columns)
-    if missing:
-        raise ValueError(f"Input DataFrame is missing columns: {missing}")
+    Schema().validate(df)
+
+    from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
+    from orbx.synthetic_orbits.orbit_finder.max_separation_orbit_finder import (
+        get_maximally_separated_orbit,
+    )
 
     synthetic_rows = []
 
@@ -73,10 +72,18 @@ def synthetic_orbit(
                 else:
                     with redirect_stdout(io.StringIO()):
                         df_aug = frechet_orbit(df_cluster.copy())
-                synth_row = df_aug.iloc[-1].copy()
-                synth_row["label"] = label
-                synth_row["synthetic_type"] = "frechet"
-                synthetic_rows.append(synth_row[output_columns])
+                        
+                if df_aug is None:
+                    if verbose: 
+                        warnings.warn(
+                            f"Fréchet failed for label {label}: insufficient members ({len(df_cluster)})",
+                            stacklevel=2,
+                        )
+                else:
+                    synth_row = df_aug.iloc[-1].copy()
+                    synth_row["label"] = label
+                    synth_row["synthetic_type"] = "frechet"
+                    synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
                 if verbose:
                     warnings.warn(f"Fréchet failed for label {label}: {e}", stacklevel=2)
@@ -92,10 +99,18 @@ def synthetic_orbit(
                         df_aug, _ = get_maximally_separated_orbit(
                             df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
                         )
-                synth_row = df_aug.iloc[-1].copy()
-                synth_row["label"] = label
-                synth_row["synthetic_type"] = "max_separation"
-                synthetic_rows.append(synth_row[output_columns])
+                
+                if df_aug is None:
+                    if verbose:
+                        warnings.warn(
+                            f"Max-separation failed for label {label}: insufficient members ({len(df_cluster)})",
+                            stacklevel=2,
+                        )
+                else:
+                    synth_row = df_aug.iloc[-1].copy()
+                    synth_row["label"] = label
+                    synth_row["synthetic_type"] = "max_separation"
+                    synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
                 if verbose:
                     warnings.warn(
