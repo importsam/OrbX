@@ -16,7 +16,7 @@ the distances are going to be quite small, and that distance will grow as they d
 Please refer to the following paper for details:
 https://academic.oup.com/mnras/article/462/2/2275/2589463
 
-Credit to Dr. Yasir Latif (of Space Protocol) for the translation of the concept from paper to the Python code in this file.
+Credit to Dr. Yasir Latif (of Space Protocol) for this implementation of equation 22 from the paper.
 """
 
 class VectorizedKeplerianOrbit:

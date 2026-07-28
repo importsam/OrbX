@@ -72,10 +72,18 @@ def synthetic_orbit(
                 else:
                     with redirect_stdout(io.StringIO()):
                         df_aug = frechet_orbit(df_cluster.copy())
-                synth_row = df_aug.iloc[-1].copy()
-                synth_row["label"] = label
-                synth_row["synthetic_type"] = "frechet"
-                synthetic_rows.append(synth_row[output_columns])
+                        
+                if df_aug is None:
+                    if verbose: 
+                        warnings.warn(
+                            f"Fréchet failed for label {label}: insufficient members ({len(df_cluster)})",
+                            stacklevel=2,
+                        )
+                else:
+                    synth_row = df_aug.iloc[-1].copy()
+                    synth_row["label"] = label
+                    synth_row["synthetic_type"] = "frechet"
+                    synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
                 if verbose:
                     warnings.warn(f"Fréchet failed for label {label}: {e}", stacklevel=2)
@@ -91,10 +99,18 @@ def synthetic_orbit(
                         df_aug, _ = get_maximally_separated_orbit(
                             df_cluster.copy(), n_samples=n_samples, return_diagnostics=True
                         )
-                synth_row = df_aug.iloc[-1].copy()
-                synth_row["label"] = label
-                synth_row["synthetic_type"] = "max_separation"
-                synthetic_rows.append(synth_row[output_columns])
+                
+                if df_aug is None:
+                    if verbose:
+                        warnings.warn(
+                            f"Max-separation failed for label {label}: insufficient members ({len(df_cluster)})",
+                            stacklevel=2,
+                        )
+                else:
+                    synth_row = df_aug.iloc[-1].copy()
+                    synth_row["label"] = label
+                    synth_row["synthetic_type"] = "max_separation"
+                    synthetic_rows.append(synth_row[output_columns])
             except Exception as e:
                 if verbose:
                     warnings.warn(
