@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
     const clusterMemberListBox = document.getElementById('clusterMemberListBox');
     const modelModePanel = document.getElementById('modelModePanel');
-    document.body.classList.add('orbx-mode-unique');
+    document.body.classList.add('orbx-mode-clusters');
 
     // on load or refresh, clear the search bars
     document.getElementById('searchInput').value = '';
@@ -62,9 +62,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         unique: { initialized: false },
         clusters: { initialized: false },
     };
-    let activeModelMode = 'unique';
+    let activeModelMode = 'clusters';
     let currentClusterLabel = null;
     let currentClusterHighlightId = null;
+    // Guards against overlapping async cluster switches leaving old rings visible.
+    let clusterDisplayGeneration = 0;
+    // True while unique mode is showing a search/random neighbour set
+    // rather than the default top/bottom uniqueness view for a regime.
+    let uniqueModeShowingNeighbours = false;
 
     function delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -96,9 +101,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             });
         }
 
-        if (modelModePanel) {
-            modelModePanel.classList.add('is-ready');
-        }
         wireModelModeRadios();
         viewer.resize();
 
@@ -239,14 +241,17 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // ensure all entities are not shown
 
-    // initialise the model
+    // initialise the model in cluster mode (default)
     removeEntities();
     document.getElementById('radio-leo').checked = true;
     void (async () => {
-        await handleOrbitToggle();
-        snapshotUniqueModeState();
-        // Keep the loading screen up briefly after orbits are ready.
+        enterClusteringPlaceholderView();
+        // Keep the loading screen up briefly after data is ready.
         await delay(3000);
+        document.body.classList.remove('orbx-app-loading');
+        if (modelModePanel) {
+            modelModePanel.classList.add('is-ready');
+        }
         if (loadingScreen) {
             loadingScreen.style.display = 'none';
         }
@@ -355,24 +360,26 @@ document.addEventListener("DOMContentLoaded", async function() {
         highlightedEntities = [];
     }
 
-    function removeEntities() {
-        removeAllEntityPaths();
+    /** Hard-hide every orbit polyline, not just the ones we think are visible. */
+    function hideAllOrbitGeometry() {
+        visibleOrbitEntities = [];
+        highlightedEntities = [];
         if (!dataSource || !dataSource.entities) {
             return;
         }
-        dataSource.entities.values.forEach(entity => {
+        dataSource.entities.values.forEach((entity) => {
+            if (!entity) return;
             entity.path = undefined;
             entity.orbxOrbitVisible = false;
-            if (String(entity.id || '').endsWith('-orbit-ring')) {
-                entity.show = false;
-                if (entity.polyline) {
-                    entity.polyline.show = false;
-                }
-            } else {
-                setOrbitRingVisible(entity, false);
-                entity.show = false;
+            entity.show = false;
+            if (entity.polyline) {
+                entity.polyline.show = false;
             }
         });
+    }
+
+    function removeEntities() {
+        hideAllOrbitGeometry();
     }
 
     function hideUiPanel(panel) {
@@ -793,17 +800,27 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
+        const generation = ++clusterDisplayGeneration;
         if (!clusterHasSyntheticPair(clusterLabel)) {
             console.warn('[OrbX] Cluster has no synthetic orbit pair:', clusterLabel);
             return;
         }
-        removeAllEntityPaths();
+        // Full sweep — tracked-list clears alone can miss leftovers under race.
+        hideAllOrbitGeometry();
         viewer.scene.requestRender();
         // Give Cesium a beat to clear the previous rings before drawing the next set.
         await delay(100);
+        if (generation !== clusterDisplayGeneration) {
+            return;
+        }
         const members = clusterLabelToEntities.get(clusterLabel);
         if (!members || members.length === 0) {
             console.warn('[OrbX] No entities for cluster label', clusterLabel);
+            return;
+        }
+        // Hide again immediately before showing, in case another switch interleaved.
+        hideAllOrbitGeometry();
+        if (generation !== clusterDisplayGeneration) {
             return;
         }
         currentClusterLabel = clusterLabel;
@@ -827,6 +844,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         displayClusterMemberList(clusterLabel, members, highlightEntity);
         if (!options.skipFlyTo) {
             await flyToEntities(members, { duration: 2, preferEntity: prefer });
+        }
+        // If a newer cluster switch started during flyTo, it owns the scene now.
+        if (generation !== clusterDisplayGeneration) {
+            return;
         }
     }
 
@@ -909,24 +930,42 @@ document.addEventListener("DOMContentLoaded", async function() {
         topEntities.forEach(entity => showEntityPath(entity, Cesium.Color.RED));
         bottomEntities.forEach(entity => showEntityPath(entity, Cesium.Color.GREEN));
 
+        uniqueModeShowingNeighbours = false;
         updateRankingsDisplay(topEntities, bottomEntities);
 
         // Zoom in on the displayed satellites
         await flyToEntities([...topEntities, ...bottomEntities], { duration: 1 });
     }
 
-    // if there is a change in any of the orbit filter radios
+    // Changing regime always restores the default top/bottom view.
+    // Re-activating the *same* regime (radio or label text) does so only
+    // after a neighbour search.
     ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'].forEach(id => {
         const radio = document.getElementById(id);
-        if (radio) {
-            radio.addEventListener('change', function() {
-                if (!document.getElementById('radio-mode-unique').checked) {
-                    return;
-                }
-                console.log("radio change event");
-                void handleOrbitToggle();
-            });
-        }
+        if (!radio) return;
+        const option = radio.closest('.orbit-option') || radio;
+
+        let wasCheckedBeforeActivate = false;
+        option.addEventListener('pointerdown', function() {
+            wasCheckedBeforeActivate = radio.checked;
+        });
+        option.addEventListener('click', function() {
+            if (!document.getElementById('radio-mode-unique').checked) {
+                return;
+            }
+            if (!wasCheckedBeforeActivate || !uniqueModeShowingNeighbours) {
+                return;
+            }
+            console.log("orbit regime re-select restore:", id);
+            void handleOrbitToggle();
+        });
+        radio.addEventListener('change', function() {
+            if (!document.getElementById('radio-mode-unique').checked) {
+                return;
+            }
+            console.log("orbit regime change:", id);
+            void handleOrbitToggle();
+        });
     });
 
     function clearClusterCategoryRadios() {
@@ -1054,6 +1093,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
             neighbourEntities.forEach(neighbour => showEntityPath(neighbour, Cesium.Color.YELLOW));
             showEntityPath(searchedEntity, Cesium.Color.BLUE);
+            uniqueModeShowingNeighbours = true;
 
             await flyToEntities([...neighbourEntities, searchedEntity], { duration: 2 });
 
@@ -1640,6 +1680,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         modeViewState.unique = {
             initialized: true,
             selectedOrbit: getSelectedOrbit(),
+            showingNeighbours: uniqueModeShowingNeighbours,
             pathSnapshots: snapshotPathEntities(),
             topBottomInfoBoxHTML: topBottomInfoBox.innerHTML,
             topBottomInfoBoxDisplay: topBottomInfoBox.style.display,
@@ -1659,6 +1700,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             setSelectedOrbit(state.selectedOrbit);
         }
 
+        uniqueModeShowingNeighbours = !!state.showingNeighbours;
         restorePathEntities(state.pathSnapshots);
 
         restoreUiPanel(

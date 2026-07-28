@@ -73,7 +73,7 @@ html, body, #cesiumContainer {
     justify-content: center;
     align-items: center;
     font-size: 24px;
-    z-index: 1000;
+    z-index: 30000;
     flex-direction: column;
 }
 
@@ -84,9 +84,44 @@ html, body, #cesiumContainer {
 }
 
 #loadingScreen p {
-    font-family: 'Arial', sans-serif;
-    font-size: 18px;
-    color: #333;
+    font-family: 'Roboto', 'Arial', sans-serif;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.82);
+    margin: 0 24px 18px;
+    text-align: center;
+    max-width: 420px;
+    line-height: 1.4;
+}
+
+.loading-bar {
+    width: min(280px, 70vw);
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+}
+
+.loading-bar-fill {
+    width: 40%;
+    height: 100%;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    animation: loading-bar-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-bar-slide {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(320%); }
+}
+
+/* Keep UI chrome hidden until the loading screen is dismissed. */
+body.orbx-app-loading #sideNav,
+body.orbx-app-loading #modelModePanel,
+body.orbx-app-loading #topBottomInfoBox,
+body.orbx-app-loading #clusterMemberListBox,
+body.orbx-app-loading #searchResults {
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 .model-mode-panel {
