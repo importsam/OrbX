@@ -349,7 +349,10 @@ body.orbx-mode-unique #clusterMemberListBox {
     color: white;
     z-index: 1000;
     max-height: 500px;
+    width: max-content;
+    max-width: calc(100vw - 40px);
     overflow-y: auto;
+    overflow-x: auto;
     display: none;
 }
 
@@ -714,6 +717,20 @@ tr.orbit-row-hidden .satellite-id {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
+}
+
+.cluster-member-card {
+    width: max-content;
+    min-width: 100%;
+}
+
+.cluster-member-card .card-title {
+    white-space: nowrap;
+}
+
+.cluster-member-card .rankings-table {
+    width: max-content;
+    min-width: 100%;
 }
   
 .rankings-table {
