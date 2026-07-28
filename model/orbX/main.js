@@ -67,6 +67,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     let currentClusterHighlightId = null;
     // Guards against overlapping async cluster switches leaving old rings visible.
     let clusterDisplayGeneration = 0;
+    // True while unique mode is showing a search/random neighbour set
+    // rather than the default top/bottom uniqueness view for a regime.
+    let uniqueModeShowingNeighbours = false;
 
     function delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -926,24 +929,42 @@ document.addEventListener("DOMContentLoaded", async function() {
         topEntities.forEach(entity => showEntityPath(entity, Cesium.Color.RED));
         bottomEntities.forEach(entity => showEntityPath(entity, Cesium.Color.GREEN));
 
+        uniqueModeShowingNeighbours = false;
         updateRankingsDisplay(topEntities, bottomEntities);
 
         // Zoom in on the displayed satellites
         await flyToEntities([...topEntities, ...bottomEntities], { duration: 1 });
     }
 
-    // if there is a change in any of the orbit filter radios
+    // Changing regime always restores the default top/bottom view.
+    // Re-activating the *same* regime (radio or label text) does so only
+    // after a neighbour search.
     ['radio-leo', 'radio-meo', 'radio-geo', 'radio-heo'].forEach(id => {
         const radio = document.getElementById(id);
-        if (radio) {
-            radio.addEventListener('change', function() {
-                if (!document.getElementById('radio-mode-unique').checked) {
-                    return;
-                }
-                console.log("radio change event");
-                void handleOrbitToggle();
-            });
-        }
+        if (!radio) return;
+        const option = radio.closest('.orbit-option') || radio;
+
+        let wasCheckedBeforeActivate = false;
+        option.addEventListener('pointerdown', function() {
+            wasCheckedBeforeActivate = radio.checked;
+        });
+        option.addEventListener('click', function() {
+            if (!document.getElementById('radio-mode-unique').checked) {
+                return;
+            }
+            if (!wasCheckedBeforeActivate || !uniqueModeShowingNeighbours) {
+                return;
+            }
+            console.log("orbit regime re-select restore:", id);
+            void handleOrbitToggle();
+        });
+        radio.addEventListener('change', function() {
+            if (!document.getElementById('radio-mode-unique').checked) {
+                return;
+            }
+            console.log("orbit regime change:", id);
+            void handleOrbitToggle();
+        });
     });
 
     function clearClusterCategoryRadios() {
@@ -1071,6 +1092,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
             neighbourEntities.forEach(neighbour => showEntityPath(neighbour, Cesium.Color.YELLOW));
             showEntityPath(searchedEntity, Cesium.Color.BLUE);
+            uniqueModeShowingNeighbours = true;
 
             await flyToEntities([...neighbourEntities, searchedEntity], { duration: 2 });
 
@@ -1657,6 +1679,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         modeViewState.unique = {
             initialized: true,
             selectedOrbit: getSelectedOrbit(),
+            showingNeighbours: uniqueModeShowingNeighbours,
             pathSnapshots: snapshotPathEntities(),
             topBottomInfoBoxHTML: topBottomInfoBox.innerHTML,
             topBottomInfoBoxDisplay: topBottomInfoBox.style.display,
@@ -1676,6 +1699,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             setSelectedOrbit(state.selectedOrbit);
         }
 
+        uniqueModeShowingNeighbours = !!state.showingNeighbours;
         restorePathEntities(state.pathSnapshots);
 
         restoreUiPanel(
