@@ -180,6 +180,16 @@ def _synthetic_type_of(row) -> str:
     return str(st)
 
 
+def global_display_epoch(df):
+    epochs = []
+    for _, row in df.iterrows():
+        sat = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
+        epochs.append(satrec_epoch_utc(sat))
+
+    mean_ts = float(np.mean([e.timestamp() for e in epochs]))
+    return dt.datetime.fromtimestamp(mean_ts, tz=dt.timezone.utc)
+
+
 def cluster_display_epoch_and_period(group):
     epochs = []
     periods = []
@@ -215,30 +225,14 @@ def build_czml(df):
 
     czml = [{"id": "document", "version": "1.0"}]
     property_keys = [k for k in df.columns if k.startswith("prop_")]
-
+    t_display_global = global_display_epoch(df)
     label_col = "label" if "label" in df.columns else "cluster_label"
-    display_by_label = {}
-    for lab, group in df.groupby(label_col, dropna=False):
-        try:
-            lab_key = int(lab) if pd.notna(lab) else -1
-        except (TypeError, ValueError):
-            lab_key = -1
-        t_disp, _period_s = cluster_display_epoch_and_period(group)
-        display_by_label[lab_key] = t_disp
 
     for _, row in df.iterrows():
         norad_id = str(row["NORAD_CAT_ID"])
         try:
             raw_lab = row.get(label_col, -1)
-            try:
-                lab_key = int(raw_lab) if raw_lab == raw_lab else -1
-            except (TypeError, ValueError):
-                lab_key = -1
-
-            t_display = display_by_label.get(lab_key)
-            if t_display is None:
-                sat = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
-                t_display = satrec_epoch_utc(sat)
+            t_display = t_display_global
 
             ring = sample_frozen_orbit_ring(
                 row["TLE_LINE1"],
