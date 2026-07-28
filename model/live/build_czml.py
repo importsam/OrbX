@@ -279,17 +279,21 @@ def build_czml(df):
             cleaned_properties = {}
             for key in property_keys:
                 prop_value = row.get(key)
+                short_key = key[5:]
                 if prop_value is None:
-                    cleaned_properties[key[5:]] = "None"
-                elif isinstance(prop_value, (str, int, bool)):
-                    cleaned_properties[key[5:]] = prop_value
-                elif isinstance(prop_value, float):
+                    cleaned_properties[short_key] = None
+                elif isinstance(prop_value, (np.floating, float)):
+                    prop_value = float(prop_value)
                     if np.isnan(prop_value) or np.isinf(prop_value):
-                        cleaned_properties[key[5:]] = "None"
+                        cleaned_properties[short_key] = None
                     else:
-                        cleaned_properties[key[5:]] = prop_value
+                        cleaned_properties[short_key] = prop_value
+                elif isinstance(prop_value, (np.integer, int)):
+                    cleaned_properties[short_key] = int(prop_value)
+                elif isinstance(prop_value, (str, bool)):
+                    cleaned_properties[short_key] = prop_value
                 else:
-                    cleaned_properties[key[5:]] = str(prop_value)
+                    cleaned_properties[short_key] = str(prop_value)
 
             if synthetic_type == "frechet":
                 ring_rgba = [255, 0, 0, 255]
@@ -333,11 +337,10 @@ def build_czml(df):
                         "cluster_label": cluster_label,
                         "synthetic_type": synthetic_type,
                         "parent_norad": norad_id,
-                        **(
-                            {**cleaned_properties, **additional_properties}
-                            if is_synthetic
-                            else {}
-                        ),
+                        # Rings are what Cesium picks on hover; keep uniqueness
+                        # metadata on them as well as on the bare NORAD entity.
+                        **cleaned_properties,
+                        **additional_properties,
                     },
                 }
             )

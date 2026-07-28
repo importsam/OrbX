@@ -149,10 +149,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 hideCompressedInfo();
                 return;
             }
-            const uniqueness = entity.properties.uniqueness?.getValue(now);
-            const uniquenessStr = (typeof uniqueness === 'number')
-                ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
-                : "N/A";
+            const uniquenessStr = formatUniquenessScore(entity, now);
             let detailLines = '';
             if (document.body.classList.contains('orbx-mode-clusters')) {
                 detailLines = `<div><strong>Role:</strong> ${getClusterRoleLabel(entity, now)}</div>`;
@@ -294,6 +291,65 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Synthetics carry the orbit polyline on the SYN_* entity itself.
         if (id.startsWith('SYN_') && entity.polyline) return entity;
         return dataSource.entities.getById(`${id}-orbit-ring`) || null;
+    }
+
+    /** Bare NORAD / SYN_* entity that holds uniqueness / neighbours metadata. */
+    function getPropertySourceEntity(entity, time) {
+        if (!entity) return null;
+        const id = String(entity.id || '');
+        if (id.endsWith('-orbit-ring')) {
+            const parentId =
+                readEntityProperty(entity, 'parent_norad', time) ||
+                id.slice(0, -'-orbit-ring'.length);
+            const parent =
+                dataSource && dataSource.entities
+                    ? dataSource.entities.getById(String(parentId))
+                    : null;
+            return parent || entity;
+        }
+        return entity;
+    }
+
+    function readEntityProperty(entity, name, time) {
+        if (!entity || !entity.properties) return undefined;
+        const t = time || viewer.clock.currentTime;
+        let prop = entity.properties[name];
+        if (prop === undefined || prop === null) {
+            // Some Cesium builds expose custom props only via getValue bag.
+            if (typeof entity.properties.getValue === 'function') {
+                const bag = entity.properties.getValue(t);
+                if (bag && Object.prototype.hasOwnProperty.call(bag, name)) {
+                    return bag[name];
+                }
+            }
+            return undefined;
+        }
+        if (typeof prop.getValue === 'function') {
+            return prop.getValue(t);
+        }
+        return prop;
+    }
+
+    function readNumericEntityProperty(entity, name, time) {
+        const source = getPropertySourceEntity(entity, time);
+        const raw = readEntityProperty(source, name, time);
+        if (raw === null || raw === undefined) return null;
+        if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+        if (typeof raw === 'string') {
+            const trimmed = raw.trim();
+            if (!trimmed || trimmed.toLowerCase() === 'none') return null;
+            const n = Number(trimmed);
+            return Number.isFinite(n) ? n : null;
+        }
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function formatUniquenessScore(entity, time) {
+        const uniqueness = readNumericEntityProperty(entity, 'uniqueness', time);
+        if (uniqueness === null) return 'N/A';
+        if (uniqueness < 0.01) return uniqueness.toExponential(2);
+        return uniqueness.toFixed(2);
     }
 
     function setOrbitRingVisible(entity, visible, color) {
@@ -866,11 +922,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     function getOrbitEntities(selectedOrbit){
         const entities = dataSource.entities.values;
 
-        // console.log("getOrbitEntities called with selectedOrbit: ", selectedOrbit);
-
         const orbitEntities = entities.filter((entity) => {
-            if (!isRealSatelliteEntity(entity)) return false;
-            const orbit_class = entity.properties.orbit_class?.getValue();
+            if (!isLookupRealSatelliteEntity(entity)) return false;
+            const orbit_class = readEntityProperty(entity, 'orbit_class');
             return orbit_class === selectedOrbit;
         });
         return orbitEntities;
@@ -896,7 +950,11 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         // console.log("number of entities: ", entities.length);
         // sort the entities and get the top and bottom 5
-        entities.sort((a, b) => a.properties.rank?.getValue() - b.properties.rank?.getValue());
+        entities.sort((a, b) => {
+            const ra = readNumericEntityProperty(a, 'rank');
+            const rb = readNumericEntityProperty(b, 'rank');
+            return (ra ?? Number.POSITIVE_INFINITY) - (rb ?? Number.POSITIVE_INFINITY);
+        });
 
         const topEntities = entities.slice(0, 5);
         const bottomEntities = entities.slice(-5);
@@ -1041,12 +1099,12 @@ document.addEventListener("DOMContentLoaded", async function() {
                 return;
             }
 
-            const orbitClass = searchedEntity.properties.orbit_class?.getValue();
+            const orbitClass = readEntityProperty(searchedEntity, 'orbit_class');
             if (orbitClass) {
                 setSelectedOrbit(orbitClass);
             }
 
-            const neighbourIds = searchedEntity.properties.neighbours?.getValue();
+            const neighbourIds = readEntityProperty(searchedEntity, 'neighbours');
             console.log("neighbourIds: ", neighbourIds);
 
             const neighbourEntities = [];
@@ -1465,10 +1523,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     function generateSatelliteList(satellites) {
         return `<ul style="padding-left: 20px; list-style-type: none;">
             ${satellites.map(satellite => {
-                const uniqueness = satellite.properties.uniqueness?.getValue();
-                const uniquenessStr = (typeof uniqueness === 'number')
-                    ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
-                    : "N/A";
+                const uniquenessStr = formatUniquenessScore(satellite);
                 return `<li>
                     Score: <b>${uniquenessStr}</b> 
                     (<a href="#" class="satellite-id" data-id="${satellite.id}" style="cursor: pointer; color: blue; text-decoration: underline;">
@@ -1536,10 +1591,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function generateRankingRow(satellite, index) {
-        const uniqueness = satellite.properties.uniqueness?.getValue();
-        const uniquenessStr = (typeof uniqueness === 'number')
-            ? (uniqueness < 0.01 ? uniqueness.toExponential(2) : uniqueness.toFixed(2))
-            : "N/A";
+        const uniquenessStr = formatUniquenessScore(satellite);
         const displayNorad = formatDisplayNoradFromId(satellite.id);
         return `
             <tr>
