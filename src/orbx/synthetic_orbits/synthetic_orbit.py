@@ -24,12 +24,14 @@ def synthetic_orbit(
     skip_errors: bool = False,
 ) -> pd.DataFrame:
     """
-    Generate synthetic orbit rows for each non-noise cluster.
+    Generate synthetic orbit rows for each label group.
 
     Parameters
     ----------
     df : pd.DataFrame
         Must contain columns: ``line1``, ``line2``, and ``label``.
+        Noise labels (``-1``) are processed like any other group; a notice is
+        printed when they are present. Filter them out yourself if unwanted.
     mode : str | Iterable[str], default "max_separation"
         Synthetic orbit mode(s) to run per cluster. Supported modes:
         ``"frechet"`` and ``"max_separation"``.
@@ -111,7 +113,11 @@ def synthetic_orbit(
 
     for label, df_cluster in df.groupby("label"):
         if label == -1:
-            continue
+            print(
+                f"Notice: processing noise label -1 "
+                f"({len(df_cluster)} orbit(s)). "
+                "Filter noise before calling synthetic_orbit if this is unintended."
+            )
 
         if "frechet" in selected_modes:
             _run_mode(

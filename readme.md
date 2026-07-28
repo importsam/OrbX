@@ -84,7 +84,7 @@ Clusters satellite orbits based on geometric similarity, using [HDBSCAN](https:/
 
 ### `synthetic_orbit()`
 
-Generates one or more synthetic orbits for each non-noise cluster. Two modes are supported:
+Generates one or more synthetic orbits for each cluster. Two modes are supported:
 
 - `"frechet"` — computes a Fréchet mean orbit, which acts like a centroid in a non-Euclidean orbital metric space
 - `"max_separation"` — finds an orbit inside the cluster region that maximises separation from existing members, highlighting available space within the neighbourhood
@@ -185,7 +185,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 
 | Argument       | Type        | Description                                                              |
 | -------------- | ----------- | ------------------------------------------------------------------------ |
-| `df`           | `DataFrame` | Must contain `line1`, `line2`, and a cluster label column.               |
+| `df`           | `DataFrame` | Must contain `line1`, `line2`, and a cluster label column. TLEs are Schema-validated. |
 | `label_column` | `str`       | Name of the column containing cluster IDs. Defaults to `"label"`.        |
 | `verbose`      | `bool`      | If `True`, shows optimiser diagnostics while computing the Fréchet mean. |
 
