@@ -1,18 +1,11 @@
-"""CZML builder — dual display per object:
-
-1. Timed FIXED positions: TEME→ITRS at each sample's own time (live ECEF motion).
-2. Static frozen orbit polyline: closed mean-Keplerian ellipse from TLE mean
-   elements, all converted to ITRS at the *same* cluster display epoch.
-
-PathGraphics should only draw a short trail of (1). The closed rings come from (2).
-"""
+"""CZML builder for frozen mean-element orbit rings only."""
 
 import numpy as np
 import datetime as dt
 import os
 import json
 
-from sgp4.api import Satrec, jday
+from sgp4.api import Satrec
 from astropy import units as u
 from astropy.time import Time
 from astropy.coordinates import (
@@ -22,9 +15,6 @@ from astropy.coordinates import (
 )
 
 
-STEP_SECONDS = 15
-# Timed path window: enough for a short PathGraphics lead/trail, not a spiral ring.
-TIMED_PATH_SECONDS = 1800  # 30 minutes
 # SGP4 uses the WGS-72 gravitational parameter.
 MU_WGS72_KM3_S2 = 398600.8
 
@@ -38,37 +28,6 @@ def satrec_epoch_utc(satrec: Satrec) -> dt.datetime:
 
 def _fmt_czml_time(when: dt.datetime) -> str:
     return when.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-
-def _datetime_to_jd_fr(when: dt.datetime):
-    if when.tzinfo is None:
-        when = when.replace(tzinfo=dt.timezone.utc)
-    else:
-        when = when.astimezone(dt.timezone.utc)
-    return jday(
-        when.year,
-        when.month,
-        when.day,
-        when.hour,
-        when.minute,
-        when.second + when.microsecond * 1e-6,
-    )
-
-
-def teme_to_itrs_metres(position_teme_km, earth_orient_utc: dt.datetime):
-    """Live motion: TEME km at ``earth_orient_utc`` → ITRS at the same instant."""
-    obstime = Time(earth_orient_utc)
-    teme = TEME(
-        CartesianRepresentation(
-            position_teme_km[0] * u.km,
-            position_teme_km[1] * u.km,
-            position_teme_km[2] * u.km,
-        ),
-        obstime=obstime,
-    )
-    itrs = teme.transform_to(ITRS(obstime=obstime))
-    xyz_m = itrs.cartesian.xyz.to_value(u.m)
-    return float(xyz_m[0]), float(xyz_m[1]), float(xyz_m[2])
 
 
 def teme_vector_to_frozen_itrs_metres(
@@ -102,41 +61,10 @@ def orbital_period_seconds(satrec: Satrec) -> float:
     return float((2.0 * np.pi / satrec.no_kozai) * 60.0)
 
 
-def _sgp4_teme_km(satrec: Satrec, when: dt.datetime):
-    jd, fr = _datetime_to_jd_fr(when)
-    error, teme_km, _ = satrec.sgp4(jd, fr)
-    if error != 0 or teme_km is None:
-        raise ValueError(f"SGP4 error {error} at {when.isoformat()}")
-    return teme_km
-
-
-def sample_live_ecef_path(
-    tle_line1,
-    tle_line2,
-    t_display: dt.datetime,
-    duration_seconds: int,
-    step_seconds: int = STEP_SECONDS,
-):
-    """Moving-path samples: ECEF(r_TEME(t), EarthOrientation(t))."""
-    satrec = Satrec.twoline2rv(tle_line1, tle_line2)
-    offsets = list(range(0, duration_seconds, step_seconds))
-    if not offsets or offsets[-1] != duration_seconds:
-        offsets.append(duration_seconds)
-
-    timed = []
-    for seconds in offsets:
-        when = t_display + dt.timedelta(seconds=int(seconds))
-        teme_km = _sgp4_teme_km(satrec, when)
-        x_m, y_m, z_m = teme_to_itrs_metres(teme_km, when)
-        timed.extend([int(seconds), x_m, y_m, z_m])
-    return timed
-
-
 def sample_frozen_orbit_ring(
     tle_line1,
     tle_line2,
     t_ref: dt.datetime,
-    step_seconds: int = STEP_SECONDS,
     norad_id: str = "",
 ):
     """
@@ -146,9 +74,7 @@ def sample_frozen_orbit_ring(
     SGP4 time-propagated track). All vertices use TEME-like axes frozen at
     ``t_ref``, then transform once to ITRS at that same epoch.
 
-    ``step_seconds`` is unused (phase sampling); kept for call-site compatibility.
     """
-    del step_seconds  # phase-sampled ellipse; wall-clock step is irrelevant
     satrec = Satrec.twoline2rv(tle_line1, tle_line2)
 
     # no_kozai: radians per minute in the SGP4 library.
@@ -237,19 +163,6 @@ def sample_frozen_orbit_ring(
     return ring
 
 
-def _validate_cartesian_timed(samples):
-    coords = []
-    for i, coord in enumerate(samples):
-        if i % 4 == 0:
-            value = int(coord)
-        else:
-            value = float(coord)
-            if np.isnan(value) or np.isinf(value):
-                raise ValueError(f"Invalid cartesian value: {value}")
-        coords.append(value)
-    return coords
-
-
 def _validate_cartesian_ring(samples):
     coords = []
     for coord in samples:
@@ -295,10 +208,10 @@ def cluster_display_epoch_and_period(group):
     return t_display, float(max(periods))
 
 
-def build_czml_live(df):
+def build_czml(df):
     import pandas as pd
 
-    print("building czml")
+    print("Building CZML: frozen mean-element orbit rings only")
 
     czml = [{"id": "document", "version": "1.0"}]
     property_keys = [k for k in df.columns if k.startswith("prop_")]
@@ -327,29 +240,15 @@ def build_czml_live(df):
                 sat = Satrec.twoline2rv(row["TLE_LINE1"], row["TLE_LINE2"])
                 t_display = satrec_epoch_utc(sat)
 
-            duration_s = int(TIMED_PATH_SECONDS)
-            timed = sample_live_ecef_path(
-                row["TLE_LINE1"],
-                row["TLE_LINE2"],
-                t_display,
-                duration_s,
-                step_seconds=STEP_SECONDS,
-            )
-            coords = _validate_cartesian_timed(timed)
-
             ring = sample_frozen_orbit_ring(
                 row["TLE_LINE1"],
                 row["TLE_LINE2"],
                 t_display,
-                step_seconds=STEP_SECONDS,
                 norad_id=str(row.get("NORAD_CAT_ID", "")),
             )
             ring_coords = _validate_cartesian_ring(ring)
 
-            avail_start = t_display
-            avail_stop = t_display + dt.timedelta(seconds=duration_s + 600)
             epoch_str = _fmt_czml_time(t_display)
-            avail_str = f"{_fmt_czml_time(avail_start)}/{_fmt_czml_time(avail_stop)}"
 
             neighbours = row.get("neighbours", [])
             neighbours_dict = {}
@@ -409,19 +308,12 @@ def build_czml_live(df):
             is_synthetic = synthetic_type in ("frechet", "max_separation")
 
             if not is_synthetic:
-                # Real satellite: position entity for picking/camera (no point marker).
+                # Keep a lightweight lookup entity so the frontend can still
+                # search by bare NORAD id and map it to the orbit ring.
                 czml.append(
                     {
                         "id": norad_id,
                         "name": object_name,
-                        "availability": avail_str,
-                        "position": {
-                            "epoch": epoch_str,
-                            "referenceFrame": "FIXED",
-                            "cartesian": coords,
-                            "interpolationDegree": 1,
-                            "interpolationAlgorithm": "LINEAR",
-                        },
                         "properties": {**cleaned_properties, **additional_properties},
                     }
                 )

@@ -7,7 +7,7 @@ if str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
 from ionop_czml import ionop_czml
-from live.build_czml import build_czml_live
+from live.build_czml import build_czml
 import pandas as pd
 
 from orbx.clustering import cluster
@@ -20,7 +20,7 @@ def _norm_norad(x) -> str:
 
 
 # None = all non-noise clusters. Use this for testing on a smaller number of clusters first before scaling.
-CLUSTER_SAMPLE_SIZE = None
+CLUSTER_SAMPLE_SIZE = 20
 
 if __name__ == '__main__':
     # builds the czml files
@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
         print(f"Clusters in CZML: {len(active_labels)}")
         print(f"Total entities for CZML: {len(combined_df)} ({len(results_for_czml)} real + {len(synth_rows)} synthetic)")
-        build_czml_live(combined_df)
+        build_czml(combined_df)
 
     except Exception as e:
         print(f"Error: {e}")
