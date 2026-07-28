@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     const topBottomInfoBox = document.getElementById('topBottomInfoBox');
     const clusterMemberListBox = document.getElementById('clusterMemberListBox');
     const modelModePanel = document.getElementById('modelModePanel');
-    document.body.classList.add('orbx-mode-unique');
+    document.body.classList.add('orbx-mode-clusters');
 
     // on load or refresh, clear the search bars
     document.getElementById('searchInput').value = '';
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         unique: { initialized: false },
         clusters: { initialized: false },
     };
-    let activeModelMode = 'unique';
+    let activeModelMode = 'clusters';
     let currentClusterLabel = null;
     let currentClusterHighlightId = null;
 
@@ -239,12 +239,11 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // ensure all entities are not shown
 
-    // initialise the model
+    // initialise the model in cluster mode (default)
     removeEntities();
     document.getElementById('radio-leo').checked = true;
     void (async () => {
-        await handleOrbitToggle();
-        snapshotUniqueModeState();
+        enterClusteringPlaceholderView();
         // Keep the loading screen up briefly after orbits are ready.
         await delay(3000);
         if (loadingScreen) {
