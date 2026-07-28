@@ -25,7 +25,7 @@ def cluster(
     min_cluster_size: int, default 2
         HDBSCAN minimum cluster size parameter. Refer to HDBSCAN documentation for more details.
     verbose: bool, default False
-        If ``True``, print internal clustering progress and allow warnings.
+        If ``True``, print short clustering status lines and allow warnings.
         If ``False`` (default), suppress stdout and ``FutureWarning`` noise.
     """
 

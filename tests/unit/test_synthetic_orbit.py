@@ -86,6 +86,57 @@ def test_synthetic_orbit_skip_errors_warns_and_continues(sample_tle_df):
     assert list(result.columns) == ["line1", "line2", "label", "synthetic_type"]
 
 
+def test_synthetic_orbit_verbose_prints_status(sample_tle_df, capsys):
+    df = sample_tle_df.copy()
+    df["label"] = 0
+
+    synth_row = pd.Series(
+        {
+            "line1": df.iloc[0]["line1"],
+            "line2": df.iloc[0]["line2"],
+            "label": 0,
+            "synthetic_type": "max_separation",
+        }
+    )
+    aug = pd.concat([df, synth_row.to_frame().T], ignore_index=True)
+    max_sep = MagicMock(return_value=(aug, {}))
+
+    with patch(
+        "orbx.synthetic_orbits.synthetic_orbit._load_finders",
+        return_value=(MagicMock(), max_sep),
+    ):
+        synthetic_orbit(df, mode="max_separation", verbose=True)
+
+    out = capsys.readouterr().out
+    assert "synthetic_orbit: label=0 mode=max_separation ok" in out
+    assert "synthetic_orbit: done —" in out
+
+
+def test_synthetic_orbit_quiet_suppresses_status(sample_tle_df, capsys):
+    df = sample_tle_df.copy()
+    df["label"] = 0
+
+    synth_row = pd.Series(
+        {
+            "line1": df.iloc[0]["line1"],
+            "line2": df.iloc[0]["line2"],
+            "label": 0,
+            "synthetic_type": "max_separation",
+        }
+    )
+    aug = pd.concat([df, synth_row.to_frame().T], ignore_index=True)
+    max_sep = MagicMock(return_value=(aug, {}))
+
+    with patch(
+        "orbx.synthetic_orbits.synthetic_orbit._load_finders",
+        return_value=(MagicMock(), max_sep),
+    ):
+        synthetic_orbit(df, mode="max_separation", verbose=False)
+
+    out = capsys.readouterr().out
+    assert "synthetic_orbit:" not in out
+
+
 def test_synthetic_orbit_notices_when_processing_noise(sample_tle_df, capsys):
     df = sample_tle_df.copy()
     df["label"] = [-1, -1]

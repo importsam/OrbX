@@ -8,7 +8,7 @@ from orbx.clustering.Schema import Schema
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
 
-def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
+def _cluster_density(df_cluster: pd.DataFrame) -> float:
     """Variance-style dispersion around the Fréchet mean (smaller = tighter)."""
     cluster_size = len(df_cluster)
     if cluster_size < 2:
@@ -16,12 +16,9 @@ def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
 
     from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbit
 
-    if verbose:
+    # Always suppress raw Fréchet / Orekit dumps from the public API.
+    with contextlib.redirect_stdout(io.StringIO()):
         frechet_orbit_result = frechet_orbit(df_cluster)
-    else:
-        # Suppress verbose optimizer logs unless explicitly requested.
-        with contextlib.redirect_stdout(io.StringIO()):
-            frechet_orbit_result = frechet_orbit(df_cluster)
     if frechet_orbit_result is None:
         raise ValueError("Unable to compute Fréchet mean orbit for cluster.")
 
@@ -65,7 +62,8 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
     label_column : str
         Name of the cluster label column. Defaults to "label".
     verbose : bool
-        If True, print optimizer diagnostics while computing Fréchet means.
+        If ``True``, show a progress bar and a short per-label density line.
+        Internal optimiser dumps are always suppressed.
     """
     if label_column not in df.columns:
         raise ValueError(f"DataFrame is missing required column: '{label_column}'")
@@ -74,8 +72,20 @@ def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False
 
     results = []
     groups = list(df.groupby(label_column, dropna=False))
-    for label, group in tqdm(groups, desc="Calculating cluster densities"):
-        cluster_density = _cluster_density(group, verbose=verbose)
+    for label, group in tqdm(
+        groups,
+        desc="Calculating cluster densities",
+        disable=not verbose,
+    ):
+        cluster_density = _cluster_density(group)
         results.append({"label": label, "density": cluster_density})
+        if verbose:
+            print(
+                f"density: label={label} score={cluster_density:.6g} "
+                f"(n={len(group)})"
+            )
+
+    if verbose:
+        print(f"density: done — {len(results)} label(s)")
 
     return pd.DataFrame(results)

@@ -136,7 +136,7 @@ Groups similar TLEs into orbital neighbourhoods and returns one cluster label pe
 | `df`               | `DataFrame` | Must contain `line1` and `line2` TLE columns. Each row is one object.                                                          |
 | `min_samples`      | `int`       | Controls clustering conservativeness. Higher values require stronger local support, which can increase noise points (`-1`).    |
 | `min_cluster_size` | `int`       | Minimum cluster size HDBSCAN will return. Higher values suppress small clusters and favour larger, more stable neighbourhoods. |
-| `verbose`          | `bool`      | If `True`, shows internal clustering output and warnings.                                                                      |
+| `verbose`          | `bool`      | If `True`, prints short clustering status lines.                                                           |
 
 
 **Tuning notes:**
@@ -166,7 +166,7 @@ Generates synthetic orbits for each cluster in a labelled DataFrame. Two modes a
 | `df`          | `DataFrame`     | Must contain `line1`, `line2`, and `label` columns.                                                           |
 | `mode`        | `str` or `list` | `"frechet"`, `"max_separation"`, or `["frechet", "max_separation"]` to run both.                              |
 | `n_samples`   | `int`           | Initial candidate samples for `"max_separation"` search. Higher values improve quality, but increase runtime. |
-| `verbose`     | `bool`          | If `True`, shows optimiser progress on stdout.                                                                |
+| `verbose`     | `bool`          | If `True`, prints short per-label status and a final summary.                   |
 | `skip_errors` | `bool`          | If `False` (default), raise on the first cluster/mode failure. If `True`, skip failures and warn.             |
 
 
@@ -187,7 +187,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | -------------- | ----------- | ------------------------------------------------------------------------ |
 | `df`           | `DataFrame` | Must contain `line1`, `line2`, and a cluster label column. TLEs are Schema-validated. |
 | `label_column` | `str`       | Name of the column containing cluster IDs. Defaults to `"label"`.        |
-| `verbose`      | `bool`      | If `True`, shows optimiser diagnostics while computing the Fréchet mean. |
+| `verbose`      | `bool`      | If `True`, shows a progress bar and per-label density scores. |
 
 
 **Returns:** DataFrame with one row per cluster and columns `label` and `density`. The score is a variance-style dispersion around the Fréchet mean — interpret relative to other clusters in the same analysis. Smaller values mean a more tightly packed neighbourhood (higher density); larger values mean more dispersed.

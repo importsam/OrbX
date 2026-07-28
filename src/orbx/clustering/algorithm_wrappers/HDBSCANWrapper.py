@@ -12,7 +12,11 @@ class HDBSCANWrapper:
 
     def fit(self, distance_matrix: np.ndarray, X: np.ndarray, min_samples: int = 3, min_cluster_size: int = 2) -> np.ndarray:
     
-        print(f"Running HDBSCAN: ms={min_samples}", flush=True)
+        print(
+            f"cluster: running HDBSCAN "
+            f"(min_samples={min_samples}, min_cluster_size={min_cluster_size})",
+            flush=True,
+        )
 
         clusterer = HDBSCAN(
             min_cluster_size=min_cluster_size,

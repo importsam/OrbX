@@ -39,7 +39,8 @@ def synthetic_orbit(
     n_samples : int, default 5000
         Number of random samples for initial candidate solutions in "max_separation" mode.
     verbose : bool, default False
-        If ``True``, show optimiser stdout. If ``False``, suppress stdout.
+        If ``True``, print a short per-label status and a final summary.
+        Internal optimiser dumps are always suppressed.
     skip_errors : bool, default False
         If ``False`` (default), raise on the first cluster/mode failure.
         If ``True``, skip failed clusters/modes and emit a warning instead.
@@ -79,6 +80,7 @@ def synthetic_orbit(
     frechet_orbit, get_maximally_separated_orbit = _load_finders()
 
     synthetic_rows = []
+    labels_seen = set()
 
     def _handle_failure(message: str, cause: Exception | None = None) -> None:
         if skip_errors:
@@ -90,11 +92,9 @@ def synthetic_orbit(
 
     def _run_mode(label, df_cluster, mode_name, synthetic_type, runner):
         try:
-            if verbose:
+            # Always suppress raw optimiser / Orekit dumps from the public API.
+            with redirect_stdout(io.StringIO()):
                 df_aug = runner()
-            else:
-                with redirect_stdout(io.StringIO()):
-                    df_aug = runner()
         except Exception as e:
             _handle_failure(f"{mode_name} failed for label {label}: {e}", cause=e)
             return
@@ -110,6 +110,13 @@ def synthetic_orbit(
         synth_row["label"] = label
         synth_row["synthetic_type"] = synthetic_type
         synthetic_rows.append(synth_row[output_columns])
+        labels_seen.add(label)
+
+        if verbose:
+            print(
+                f"synthetic_orbit: label={label} mode={synthetic_type} "
+                f"ok (n={len(df_cluster)})"
+            )
 
     for label, df_cluster in df.groupby("label"):
         if label == -1:
@@ -144,6 +151,12 @@ def synthetic_orbit(
                 "max_separation",
                 _max_sep,
             )
+
+    if verbose:
+        print(
+            f"synthetic_orbit: done — {len(synthetic_rows)} synthetic row(s) "
+            f"across {len(labels_seen)} label(s)"
+        )
 
     if not synthetic_rows:
         return pd.DataFrame(columns=output_columns)
