@@ -603,8 +603,22 @@ document.addEventListener("DOMContentLoaded", async function() {
         return id || 'N/A';
     }
 
+    function getBareEntityId(entityId) {
+        let id = String(entityId || '');
+        if (id.endsWith('-orbit-ring')) {
+            id = id.slice(0, -'-orbit-ring'.length);
+        }
+        return id;
+    }
+
     function isRealSatelliteEntity(entity, time) {
         return !!entity && !isSyntheticEntity(entity, time);
+    }
+
+    function isLookupRealSatelliteEntity(entity, time) {
+        if (!isRealSatelliteEntity(entity, time)) return false;
+        const id = String(entity.id || '');
+        return !!id && !id.endsWith('-orbit-ring');
     }
 
     function getSyntheticTypeFromEntity(entity, time) {
@@ -736,6 +750,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         return map[tier] || tier || '';
     }
 
+    function pickCandidateClusterLabel(candidates, excludedLabel = currentClusterLabel) {
+        if (!candidates || candidates.length === 0) return null;
+        const filtered = candidates.filter((label) => label !== excludedLabel);
+        const pool = filtered.length > 0 ? filtered : candidates;
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
     function pickRandomClusterLabelForTier(category) {
         const candidates = [];
         clusterLabelToEntities.forEach((entities, label) => {
@@ -746,8 +767,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 candidates.push(label);
             }
         });
-        if (candidates.length === 0) return null;
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return pickCandidateClusterLabel(candidates);
     }
 
     /** Random cluster with both synthetic orbits; excludes noise (-1). */
@@ -758,8 +778,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (!clusterHasSyntheticPair(label)) return;
             candidates.push(label);
         });
-        if (candidates.length === 0) return null;
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return pickCandidateClusterLabel(candidates);
     }
 
     const SYNTHETIC_PATH_COLOR_FRECHET = Cesium.Color.RED;
@@ -959,7 +978,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         try {
             if (searchId.toLowerCase() === 'random') {
                 const realEntities = dataSource.entities.values.filter((e) =>
-                    isRealSatelliteEntity(e)
+                    isLookupRealSatelliteEntity(e)
                 );
                 if (realEntities.length === 0) {
                     alert('No real satellites available in the data source.');
@@ -969,7 +988,8 @@ document.addEventListener("DOMContentLoaded", async function() {
                 searchId = realEntities[randomIndex].id;
             }
 
-            const searchedEntity = dataSource.entities.getById(searchId);
+            searchId = getBareEntityId(searchId);
+            const searchedEntity = getEntityFromId(searchId);
             if (!searchedEntity) {
                 alert("NORAD ID not found in data source");
                 return;
@@ -994,8 +1014,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (neighbourIds) {
                 const neighbourIdArray = Object.values(neighbourIds);
                 neighbourIdArray.forEach(neighbourId => {
-                    const neighbourEntity = dataSource.entities.getById(neighbourId);
-                    if (neighbourEntity && isRealSatelliteEntity(neighbourEntity)) {
+                    const neighbourEntity = getEntityFromId(neighbourId);
+                    if (neighbourEntity && isLookupRealSatelliteEntity(neighbourEntity)) {
                         neighbourEntities.push(neighbourEntity);
                     }
                 });
@@ -1279,8 +1299,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function getEntityFromId(entityId){
+        const lookupId = getBareEntityId(entityId);
         const entity = dataSource && dataSource.entities && typeof dataSource.entities.getById === 'function'
-            ? dataSource.entities.getById(entityId)
+            ? dataSource.entities.getById(lookupId)
             : null;
 
         return entity;
