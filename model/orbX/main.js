@@ -65,6 +65,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     let activeModelMode = 'clusters';
     let currentClusterLabel = null;
     let currentClusterHighlightId = null;
+    // Guards against overlapping async cluster switches leaving old rings visible.
+    let clusterDisplayGeneration = 0;
 
     function delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -354,24 +356,26 @@ document.addEventListener("DOMContentLoaded", async function() {
         highlightedEntities = [];
     }
 
-    function removeEntities() {
-        removeAllEntityPaths();
+    /** Hard-hide every orbit polyline, not just the ones we think are visible. */
+    function hideAllOrbitGeometry() {
+        visibleOrbitEntities = [];
+        highlightedEntities = [];
         if (!dataSource || !dataSource.entities) {
             return;
         }
-        dataSource.entities.values.forEach(entity => {
+        dataSource.entities.values.forEach((entity) => {
+            if (!entity) return;
             entity.path = undefined;
             entity.orbxOrbitVisible = false;
-            if (String(entity.id || '').endsWith('-orbit-ring')) {
-                entity.show = false;
-                if (entity.polyline) {
-                    entity.polyline.show = false;
-                }
-            } else {
-                setOrbitRingVisible(entity, false);
-                entity.show = false;
+            entity.show = false;
+            if (entity.polyline) {
+                entity.polyline.show = false;
             }
         });
+    }
+
+    function removeEntities() {
+        hideAllOrbitGeometry();
     }
 
     function hideUiPanel(panel) {
@@ -792,17 +796,27 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     async function displayClusterByLabel(clusterLabel, highlightEntity, options = {}) {
+        const generation = ++clusterDisplayGeneration;
         if (!clusterHasSyntheticPair(clusterLabel)) {
             console.warn('[OrbX] Cluster has no synthetic orbit pair:', clusterLabel);
             return;
         }
-        removeAllEntityPaths();
+        // Full sweep — tracked-list clears alone can miss leftovers under race.
+        hideAllOrbitGeometry();
         viewer.scene.requestRender();
         // Give Cesium a beat to clear the previous rings before drawing the next set.
         await delay(100);
+        if (generation !== clusterDisplayGeneration) {
+            return;
+        }
         const members = clusterLabelToEntities.get(clusterLabel);
         if (!members || members.length === 0) {
             console.warn('[OrbX] No entities for cluster label', clusterLabel);
+            return;
+        }
+        // Hide again immediately before showing, in case another switch interleaved.
+        hideAllOrbitGeometry();
+        if (generation !== clusterDisplayGeneration) {
             return;
         }
         currentClusterLabel = clusterLabel;
@@ -826,6 +840,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         displayClusterMemberList(clusterLabel, members, highlightEntity);
         if (!options.skipFlyTo) {
             await flyToEntities(members, { duration: 2, preferEntity: prefer });
+        }
+        // If a newer cluster switch started during flyTo, it owns the scene now.
+        if (generation !== clusterDisplayGeneration) {
+            return;
         }
     }
 
