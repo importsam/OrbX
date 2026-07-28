@@ -101,9 +101,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             });
         }
 
-        if (modelModePanel) {
-            modelModePanel.classList.add('is-ready');
-        }
         wireModelModeRadios();
         viewer.resize();
 
@@ -249,8 +246,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     document.getElementById('radio-leo').checked = true;
     void (async () => {
         enterClusteringPlaceholderView();
-        // Keep the loading screen up briefly after orbits are ready.
+        // Keep the loading screen up briefly after data is ready.
         await delay(3000);
+        document.body.classList.remove('orbx-app-loading');
+        if (modelModePanel) {
+            modelModePanel.classList.add('is-ready');
+        }
         if (loadingScreen) {
             loadingScreen.style.display = 'none';
         }

@@ -19,10 +19,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="orbx-app-loading">
     
     <div id="loadingScreen">
         <img src="loading.gif" alt="Loading">
+        <p>Please allow about 30 seconds for the model to load.</p>
+        <div class="loading-bar" aria-hidden="true">
+            <div class="loading-bar-fill"></div>
+        </div>
     </div>
     <div id="cesiumContainer"></div>
     <div id="modelModePanel" class="model-mode-panel" role="radiogroup" aria-label="Visualization mode">
