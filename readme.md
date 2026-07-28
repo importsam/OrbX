@@ -28,7 +28,7 @@ pip install orbx
 
 **Requirements:**
 
-- Python `3.9+`
+- Python `3.10+`
 
 > **Note:** [orekit](https://gitlab.orekit.org/orekit-labs/python-wrapper) is required for `density()` and `synthetic_orbit()`. Orekit is not pip installable, so install it via Conda if needed:
 >
@@ -231,4 +231,8 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | [2] | OrbX conference paper      | [https://github.com/importsam/OrbX/blob/main/OrbX__A_Framework_for_Orbital_Capacity_Characterization.pdf](https://importsam.github.io/OrbX/paper/)               |
 | [3] | Two-line element set (TLE) | [https://en.wikipedia.org/wiki/Two-line_element_set](https://en.wikipedia.org/wiki/Two-line_element_set)                                                         |
 
+
+---
+
+Developed by Sam White, supervised by Yasir Latif and Samya Bagchi of Space Protocol.
 
