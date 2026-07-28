@@ -151,7 +151,7 @@ Groups similar TLEs into orbital neighbourhoods and returns one cluster label pe
 
 
 
-### `synthetic_orbit(df, mode="max_separation", n_samples=5000, verbose=False)`
+### `synthetic_orbit(df, mode="max_separation", n_samples=5000, verbose=False, skip_errors=False)`
 
 Generates synthetic orbits for each cluster in a labelled DataFrame. Two modes are supported:
 
@@ -161,12 +161,13 @@ Generates synthetic orbits for each cluster in a labelled DataFrame. Two modes a
 **Arguments:**
 
 
-| Argument    | Type            | Description                                                                                                   |
-| ----------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `df`        | `DataFrame`     | Must contain `line1`, `line2`, and `label` columns.                                                           |
-| `mode`      | `str` or `list` | `"frechet"`, `"max_separation"`, or `["frechet", "max_separation"]` to run both.                              |
-| `n_samples` | `int`           | Initial candidate samples for `"max_separation"` search. Higher values improve quality, but increase runtime. |
-| `verbose`   | `bool`          | If `True`, shows optimiser warnings and progress.                                                             |
+| Argument      | Type            | Description                                                                                                   |
+| ------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `df`          | `DataFrame`     | Must contain `line1`, `line2`, and `label` columns.                                                           |
+| `mode`        | `str` or `list` | `"frechet"`, `"max_separation"`, or `["frechet", "max_separation"]` to run both.                              |
+| `n_samples`   | `int`           | Initial candidate samples for `"max_separation"` search. Higher values improve quality, but increase runtime. |
+| `verbose`     | `bool`          | If `True`, shows optimiser progress on stdout.                                                                |
+| `skip_errors` | `bool`          | If `False` (default), raise on the first cluster/mode failure. If `True`, skip failures and warn.             |
 
 
 **Returns:** DataFrame of synthetic TLE rows with columns `line1`, `line2`, `label`, and `synthetic_type`.
@@ -189,7 +190,7 @@ Computes a density score for each cluster by measuring the spread of member orbi
 | `verbose`      | `bool`      | If `True`, shows optimiser diagnostics while computing the Fréchet mean. |
 
 
-**Returns:** DataFrame with one row per cluster and columns `label` and `density`. Values should be interpreted relative to other clusters in the same analysis — lower density means a more dispersed neighbourhood, higher means more tightly packed.
+**Returns:** DataFrame with one row per cluster and columns `label` and `density`. The score is a variance-style dispersion around the Fréchet mean — interpret relative to other clusters in the same analysis. Smaller values mean a more tightly packed neighbourhood (higher density); larger values mean more dispersed.
 
 ---
 

@@ -8,7 +8,7 @@ from orbx.synthetic_orbits.orbit_finder.frechet_orbit_finder import frechet_orbi
 from orbx.synthetic_orbits.orbit_finder.DMT import VectorizedKeplerianOrbit
 
 def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
-    """Calculate variance-style density for one cluster DataFrame."""
+    """Variance-style dispersion around the Fréchet mean (smaller = tighter)."""
     cluster_size = len(df_cluster)
     if cluster_size < 2:
         return 0.0
@@ -41,15 +41,18 @@ def _cluster_density(df_cluster: pd.DataFrame, verbose: bool = False) -> float:
         df_cluster["line2"].values,
     )
 
-    distances = VectorizedKeplerianOrbit.DistanceMetric(mean_orbit, cluster_orbits).ravel()
-    total_squared_distance = float((distances**2).sum())
-
-    variance = total_squared_distance / (cluster_size - 1)
+    squared_distances = VectorizedKeplerianOrbit.DistanceMetric(
+        mean_orbit, cluster_orbits
+    ).ravel()
+    variance = float(squared_distances.sum()) / (cluster_size - 1)
     return float(variance)
 
 def density(df: pd.DataFrame, label_column: str = "label", verbose: bool = False) -> pd.DataFrame:
     """
-    Compute density per label group and return a summary DataFrame.
+    Compute a variance-style density score per label group.
+
+    Smaller scores mean member orbits are closer to the cluster Fréchet mean
+    (more tightly packed). Larger scores mean more dispersed.
 
     Parameters
     ----------

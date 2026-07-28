@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
 import pytest
 
@@ -35,3 +37,50 @@ def test_synthetic_orbit_validates_tle_input(sample_tle_df):
 
     with pytest.raises(ValueError, match="Invalid TLE format"):
         synthetic_orbit(df)
+
+
+def test_synthetic_orbit_requires_label_column(sample_tle_df):
+    with pytest.raises(ValueError, match="missing required column: 'label'"):
+        synthetic_orbit(sample_tle_df)
+
+
+def test_synthetic_orbit_raises_on_optimizer_failure(sample_tle_df):
+    df = sample_tle_df.copy()
+    df["label"] = 0
+
+    max_sep = MagicMock(side_effect=RuntimeError("optimizer blew up"))
+    with patch(
+        "orbx.synthetic_orbits.synthetic_orbit._load_finders",
+        return_value=(MagicMock(), max_sep),
+    ):
+        with pytest.raises(RuntimeError, match="Max-separation failed for label 0"):
+            synthetic_orbit(df, mode="max_separation")
+
+
+def test_synthetic_orbit_raises_when_finder_returns_none(sample_tle_df):
+    df = sample_tle_df.copy()
+    df["label"] = 0
+
+    max_sep = MagicMock(return_value=(None, {}))
+    with patch(
+        "orbx.synthetic_orbits.synthetic_orbit._load_finders",
+        return_value=(MagicMock(), max_sep),
+    ):
+        with pytest.raises(RuntimeError, match="insufficient members"):
+            synthetic_orbit(df, mode="max_separation")
+
+
+def test_synthetic_orbit_skip_errors_warns_and_continues(sample_tle_df):
+    df = sample_tle_df.copy()
+    df["label"] = 0
+
+    max_sep = MagicMock(side_effect=RuntimeError("optimizer blew up"))
+    with patch(
+        "orbx.synthetic_orbits.synthetic_orbit._load_finders",
+        return_value=(MagicMock(), max_sep),
+    ):
+        with pytest.warns(UserWarning, match="Max-separation failed for label 0"):
+            result = synthetic_orbit(df, mode="max_separation", skip_errors=True)
+
+    assert result.empty
+    assert list(result.columns) == ["line1", "line2", "label", "synthetic_type"]
