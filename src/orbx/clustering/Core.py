@@ -25,7 +25,8 @@ class Core:
         
         # Validate the input dataframe
         # Schema().validate(df)
-        
+
+        # Enrich a copy with Keplerian columns; caller's df is unchanged.
         df = self.data_handler.tle_to_keplerian(df)
         
         distance_matrix, key = get_distance_matrix(df)

@@ -35,6 +35,16 @@ def test_tle_to_keplerian_includes_row_context_on_parse_error(sample_tle_df):
         DataHandler().tle_to_keplerian(df)
 
 
+def test_tle_to_keplerian_does_not_mutate_input(two_satellite_tle_df):
+    original_columns = list(two_satellite_tle_df.columns)
+
+    enriched = DataHandler().tle_to_keplerian(two_satellite_tle_df)
+
+    assert list(two_satellite_tle_df.columns) == original_columns
+    assert "satNo" not in two_satellite_tle_df.columns
+    assert "satNo" in enriched.columns
+
+
 def test_get_points_returns_six_dimensional_embedding(two_satellite_tle_df):
     handler = DataHandler()
     enriched = handler.tle_to_keplerian(two_satellite_tle_df.copy())

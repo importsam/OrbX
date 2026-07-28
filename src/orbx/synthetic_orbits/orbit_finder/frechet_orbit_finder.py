@@ -29,7 +29,7 @@ def get_keplerian_array_from_tle(row):
     line2_array = np.array([row["line2"]])
     orbit = VectorizedKeplerianOrbit(line1_array, line2_array)
     return np.array([orbit.a[0], orbit.e[0], orbit.i[0],
-                     orbit.omega[0], orbit.raan[0], 0.0])
+                     orbit.omega[0], orbit.raan[0]])
 
 
 def make_complete_orbit(opt_array):
@@ -162,8 +162,8 @@ def optimize_frechet_kepler(all_keplers):
     min_omega, max_omega = safe_bounds(min(omega_vals_shifted), max(omega_vals_shifted))
     min_raan, max_raan = safe_bounds(min(raan_vals_shifted), max(raan_vals_shifted))
     
-    lower_bounds = [min_a, min_e, min_i, min_omega, min_raan, 0.0]
-    upper_bounds = [max_a, max_e, max_i, max_omega, max_raan, 2 * np.pi]
+    lower_bounds = [min_a, min_e, min_i, min_omega, min_raan]
+    upper_bounds = [max_a, max_e, max_i, max_omega, max_raan]
 
     # run from each initial guess
     best_result = None
@@ -182,7 +182,7 @@ def optimize_frechet_kepler(all_keplers):
     
     print(
         "Optimized Keplerian Elements: "
-        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f; v: %.6f;}"
+        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f;}"
         % tuple(optimum_keplerian)
     )
 
@@ -230,7 +230,7 @@ def frechet_orbit(df, return_diagnostics=False):
     initial_keplerian = get_keplerian_array_from_tle(initial_candidate)
     print(
         "Initial candidate Keplerian Elements: "
-        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f; v: %.6f;}"
+        "{a: %.6f; e: %.6f; i: %.6f; pa: %.6f; raan: %.6f;}"
         % tuple(initial_keplerian)
     )
 
@@ -239,11 +239,10 @@ def frechet_orbit(df, return_diagnostics=False):
     if return_diagnostics:
         return diagnostics
 
-    # build TLE for the Frechet orbit
+    # Mean anomaly is not optimised to we steal it from one of the real TLEs.
     avg_epoch = calculate_average_epoch(df)
     satrec = Satrec.twoline2rv(initial_candidate["line1"], initial_candidate["line2"])
     mean_anomaly = satrec.mo
-    optimum_keplerian[5] = mean_anomaly
     initialDate = datetime_to_absolutedate(avg_epoch)
     line1, line2 = convert_kep_to_tle(
         optimum_keplerian,

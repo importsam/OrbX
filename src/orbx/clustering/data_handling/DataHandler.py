@@ -71,7 +71,9 @@ class DataHandler:
             return X
 
     def tle_to_keplerian(self, input_df) -> pd.DataFrame:
-        
+        """Parse TLEs into Keplerian columns on a copy; does not change input_df (anymore lol)."""
+        df = input_df.copy()
+
         # Pre-allocate lists for keplerian elements
         sat_nos = []
         inclinations = []
@@ -80,9 +82,8 @@ class DataHandler:
         arguments_of_perigee = []
         eccentricities = []
         mean_motions = []
-        
-        # for each row, compute the keplerian elements and add to df
-        for index, row in input_df.iterrows():
+
+        for index, row in df.iterrows():
             try:
                 sat_obj = self._parse_tle_group(
                     row['line1'],
@@ -90,7 +91,7 @@ class DataHandler:
                 )
             except ValueError as e:
                 raise ValueError(f"Error parsing TLE at row: {index}, TLE: {row['line1']}, {row['line2']}, Error: {e}")
-            
+
             sat_nos.append(sat_obj.sat_no)
             inclinations.append(sat_obj.inclination)
             apogees.append(sat_obj.apogee)
@@ -98,17 +99,16 @@ class DataHandler:
             arguments_of_perigee.append(sat_obj.argument_of_perigee)
             eccentricities.append(sat_obj.eccentricity)
             mean_motions.append(sat_obj.mean_motion)
-        
-        # Add as new columns
-        input_df['satNo'] = sat_nos
-        input_df['inclination'] = inclinations
-        input_df['apogee'] = apogees
-        input_df['raan'] = raans
-        input_df['argument_of_perigee'] = arguments_of_perigee
-        input_df['eccentricity'] = eccentricities
-        input_df['mean_motion'] = mean_motions
-        
-        return input_df
+
+        df['satNo'] = sat_nos
+        df['inclination'] = inclinations
+        df['apogee'] = apogees
+        df['raan'] = raans
+        df['argument_of_perigee'] = arguments_of_perigee
+        df['eccentricity'] = eccentricities
+        df['mean_motion'] = mean_motions
+
+        return df
     
     def _parse_tle_group(self, line1: str, line2: str) -> Satellite:
 
