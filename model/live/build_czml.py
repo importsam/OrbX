@@ -93,8 +93,8 @@ def sample_frozen_orbit_ring(
     raan = float(satrec.nodeo)
     argp = float(satrec.argpo)
 
-    # Visual density only; 720 gives 0.5 degree phase spacing.
-    vertex_count = 720
+    # Visual density only
+    vertex_count = 120
     eccentric_anomaly = np.linspace(
         0.0,
         2.0 * np.pi,

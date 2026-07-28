@@ -736,6 +736,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         return map[tier] || tier || '';
     }
 
+    function pickCandidateClusterLabel(candidates, excludedLabel = currentClusterLabel) {
+        if (!candidates || candidates.length === 0) return null;
+        const filtered = candidates.filter((label) => label !== excludedLabel);
+        const pool = filtered.length > 0 ? filtered : candidates;
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
     function pickRandomClusterLabelForTier(category) {
         const candidates = [];
         clusterLabelToEntities.forEach((entities, label) => {
@@ -746,8 +753,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 candidates.push(label);
             }
         });
-        if (candidates.length === 0) return null;
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return pickCandidateClusterLabel(candidates);
     }
 
     /** Random cluster with both synthetic orbits; excludes noise (-1). */
@@ -758,8 +764,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (!clusterHasSyntheticPair(label)) return;
             candidates.push(label);
         });
-        if (candidates.length === 0) return null;
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return pickCandidateClusterLabel(candidates);
     }
 
     const SYNTHETIC_PATH_COLOR_FRECHET = Cesium.Color.RED;
